@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>IronRealm</title>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        body { margin: 0; overflow: hidden; font-family: sans-serif; }
+        #ui { position: absolute; top: 10px; left: 10px; color: white; pointer-events: none; }
+        #gather-ui { position: absolute; bottom: 20%; left: 50%; transform: translateX(-50%); display: none; width: 200px; text-align: center; }
+        #bar-bg { width: 100%; height: 10px; background: #000; border: 1px solid #fff; }
+        #bar-fill { width: 0%; height: 100%; background: #5a5; }
+    </style>
+</head>
+<body>
+    <div id="ui"><div id="hp">HP: Loading...</div></div>
+    <div id="gather-ui"><div style="color:white">Gathering...</div><div id="bar-bg"><div id="bar-fill"></div></div></div>
+    <script>
+        const token = localStorage.getItem('ir_token');
+        const socket = io({ auth: { token } });
+        
+        const scene = new THREE.Scene();
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+        const renderer = new THREE.WebGLRenderer();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
+        
+        scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+        const floor = new THREE.Mesh(new THREE.PlaneGeometry(100, 100), new THREE.MeshPhongMaterial({color: 0x223322}));
+        floor.rotation.x = -Math.PI/2;
+        scene.add(floor);
+
+        const meshes = { players: {} };
+        socket.on('state', (state) => {
+            state.players.forEach(p => {
+                if (!meshes.players[p.username]) {
+                    meshes.players[p.username] = new THREE.Mesh(new THREE.BoxGeometry(1, 2, 1), new THREE.MeshPhongMaterial({color: 0x3366ff}));
+                    scene.add(meshes.players[p.username]);
+                }
+                meshes.players[p.username].position.set(p.x, 1, p.z);
+                meshes.players[p.username].userData.isGathering = p.isGathering;
+            });
+        });
+
+        socket.on('gatheringStart', (d) => {
+            document.getElementById('gather-ui').style.display = 'block';
+            document.getElementById('bar-fill').style.transition = `width ${d.duration}ms linear`;
+            setTimeout(() => document.getElementById('bar-fill').style.width = '100%', 10);
+        });
+        socket.on('gatheringFinished', () => {
+            document.getElementById('gather-ui').style.display = 'none';
+            document.getElementById('bar-fill').style.transition = 'none';
+            document.getElementById('bar-fill').style.width = '0%';
+        });
+
+        window.addEventListener('mousedown', (e) => {
+            const mouse = new THREE.Vector2((e.clientX/window.innerWidth)*2-1, -(e.clientY/window.innerHeight)*2+1);
+            const ray = new THREE.Raycaster();
+            ray.setFromCamera(mouse, camera);
+            const hit = ray.intersectObject(floor);
+            if (hit[0]) socket.emit('move', {x: hit[0].point.x, z: hit[0].point.z});
+        });
+
+        camera.position.set(0, 15, 10);
+        camera.lookAt(0, 0, 0);
+
+        function animate() {
+            requestAnimationFrame(animate);
+            for(let id in meshes.players) {
+                if (meshes.players[id].userData.isGathering) meshes.players[id].rotation.y += 0.2;
+                else meshes.players[id].rotation.y = 0;
+            }
+            renderer.render(scene, camera);
+        }
+        animate();
+    </script>
+</body>
+</html>

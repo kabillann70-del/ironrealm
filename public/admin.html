@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+<body>
+    <h2>Admin Panel</h2>
+    <div id="list">Loading players...</div>
+    <script>
+        // Simple placeholder for admin view
+        fetch('/api/admin/players', { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('ir_token') }})
+        .then(r => r.json()).then(data => {
+            document.getElementById('list').innerHTML = JSON.stringify(data);
+        });
+    </script>
+</body>
+</html>

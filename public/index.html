@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>IronRealm Login</title>
+    <style>
+        body { background: #111; color: white; font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; }
+        .box { background: #222; padding: 20px; border-radius: 8px; width: 300px; text-align: center; }
+        input { width: 90%; padding: 10px; margin: 10px 0; background: #333; color: white; border: 1px solid #444; }
+        button { width: 100%; padding: 10px; background: #5a5; border: none; color: white; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <div class="box">
+        <h2>IronRealm</h2>
+        <input id="u" placeholder="Username">
+        <input id="p" type="password" placeholder="Password">
+        <button onclick="auth('login')">Login</button>
+        <button style="background:#444; margin-top:5px;" onclick="auth('register')">Register</button>
+    </div>
+    <script>
+        async function auth(mode) {
+            const res = await fetch('/api/'+mode, {
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({username: u.value, password: p.value})
+            });
+            const data = await res.json();
+            if (data.token) { localStorage.setItem('ir_token', data.token); window.location.href='/game.html'; }
+            else alert(data.error || 'Success, now login');
+        }
+    </script>
+</body>
+</html>
