@@ -1,14 +1,77 @@
 <!DOCTYPE html>
 <html>
+<head>
+    <title>IronRealm Admin Dashboard</title>
+    <style>
+        body { background: #111; color: #eee; font-family: sans-serif; padding: 20px; }
+        h1 { color: #5a5; border-bottom: 2px solid #333; padding-bottom: 10px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; background: #222; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #333; }
+        th { background: #333; color: #5a5; }
+        tr:hover { background: #2a2a2a; }
+        .btn { padding: 5px 10px; cursor: pointer; border: none; border-radius: 3px; font-weight: bold; margin-right: 5px; }
+        .btn-gold { background: #d4af37; color: black; }
+        .btn-item { background: #5a5; color: white; }
+        .stats-label { font-size: 0.8rem; color: #888; }
+    </style>
+</head>
 <body>
-    <h2>Admin Panel</h2>
-    <div id="list">Loading players...</div>
+    <h1>🛡️ IronRealm Admin Dashboard</h1>
+    <p>Live view of all players in the realm.</p>
+
+    <table id="player-table">
+        <thead>
+            <tr>
+                <th>Username</th>
+                <th>Level</th>
+                <th>Gold</th>
+                <th>Health</th>
+                <th>Position</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody id="player-list">
+            <!-- Players will appear here -->
+        </tbody>
+    </table>
+
     <script>
-        // Simple placeholder for admin view
-        fetch('/api/admin/players', { headers: { 'Authorization': 'Bearer ' + localStorage.getItem('ir_token') }})
-        .then(r => r.json()).then(data => {
-            document.getElementById('list').innerHTML = JSON.stringify(data);
-        });
+        const token = localStorage.getItem('ir_token');
+
+        async function loadPlayers() {
+            const res = await fetch('/api/admin/players', {
+                headers: { 'Authorization': 'Bearer ' + token }
+            });
+            const players = await res.json();
+            
+            const list = document.getElementById('player-list');
+            list.innerHTML = '';
+
+            players.forEach(p => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><strong>${p.username}</strong><br><span class="stats-label">${p.role}</span></td>
+                    <td>${p.stats.level}</td>
+                    <td>💰 ${p.stats.gold}</td>
+                    <td>❤️ ${p.stats.hp} / ${p.stats.maxHp}</td>
+                    <td>X: ${p.stats.pos.x.toFixed(1)}, Z: ${p.stats.pos.z.toFixed(1)}</td>
+                    <td>
+                        <button class="btn btn-gold" onclick="adminAction('${p.username}', 'gold')">+100 Gold</button>
+                        <button class="btn btn-item" onclick="adminAction('${p.username}', 'item')">Give Sword</button>
+                    </td>
+                `;
+                list.appendChild(tr);
+            });
+        }
+
+        async function adminAction(username, type) {
+            alert(`Action "${type}" triggered for ${username}. (Add server routes in server.js to handle this!)`);
+            // In a real update, you'd fetch('/api/admin/modify-player', ...)
+        }
+
+        // Auto-refresh every 5 seconds
+        loadPlayers();
+        setInterval(loadPlayers, 5000);
     </script>
 </body>
 </html>
