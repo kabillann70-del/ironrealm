@@ -65,7 +65,6 @@
         scene.add(new THREE.AmbientLight(0xffffff, 0.8));
         const sun = new THREE.DirectionalLight(0xffffff, 0.5); sun.position.set(20, 50, 10); scene.add(sun);
         
-        // VISIBLE FLOOR
         const floor = new THREE.Mesh(new THREE.PlaneGeometry(2000, 2000), new THREE.MeshPhongMaterial({color: 0x1b3016})); 
         floor.rotation.x = -Math.PI/2; floor.position.y = 0; floor.name = "FLOOR"; scene.add(floor);
         const grid = new THREE.GridHelper(2000, 100, 0x444444, 0x222222); scene.add(grid);
@@ -131,8 +130,7 @@
                     document.getElementById('gold-txt').innerText = `💰 Gold: ${p.gold}`;
                 }
             });
-            const serverPids = st.players.map(p => p.id);
-            Object.keys(meshes.players).forEach(id => { if(!serverPids.includes(id)) { scene.remove(meshes.players[id]); delete meshes.players[id]; } });
+            Object.keys(meshes.players).forEach(id => { if(!st.players.find(p=>p.id===id)) { scene.remove(meshes.players[id]); delete meshes.players[id]; } });
 
             st.monsters.forEach(m => {
                 if (!meshes.monsters[m.id]) {
@@ -150,8 +148,7 @@
                 if(fill) { fill.scale.x = Math.max(0.001, m.hp / m.maxHp); fill.lookAt(camera.position); }
                 mesh.children[0].material.emissive.setHex(m.isHit ? 0xff0000 : 0x000000);
             });
-            const mobIds = st.monsters.map(m => m.id);
-            Object.keys(meshes.monsters).forEach(id => { if(!mobIds.includes(id)) { scene.remove(meshes.monsters[id]); delete meshes.monsters[id]; } });
+            Object.keys(meshes.monsters).forEach(id => { if(!st.monsters.find(m=>m.id===id)) { scene.remove(meshes.monsters[id]); delete meshes.monsters[id]; } });
 
             st.loot.forEach(l => {
                 if (!meshes.loot[l.id]) {
@@ -159,8 +156,7 @@
                     m.position.set(l.x, 0.5, l.z); m.userData = { id: l.id, type: 'loot' }; scene.add(m); meshes.loot[l.id] = m;
                 }
             });
-            const lootIds = st.loot.map(l => l.id);
-            Object.keys(meshes.loot).forEach(id => { if(!lootIds.includes(id)) { scene.remove(meshes.loot[id]); delete meshes.loot[id]; } });
+            Object.keys(meshes.loot).forEach(id => { if(!st.loot.find(l=>l.id===id)) { scene.remove(meshes.loot[id]); delete meshes.loot[id]; } });
 
             st.resources.forEach(r => {
                 if (!meshes.resources[r.id]) {
@@ -169,6 +165,7 @@
                     scene.add(mesh); meshes.resources[r.id] = mesh;
                 }
             });
+            Object.keys(meshes.resources).forEach(id => { if(!st.resources.find(r=>r.id===id)) { scene.remove(meshes.resources[id]); delete meshes.resources[id]; } });
         });
 
         socket.on('inventory', (d) => {
@@ -202,8 +199,7 @@
                 if(obj.userData.type === 'monster') return socket.emit('startAttack', obj.userData.id);
                 if(obj.userData.type === 'loot') return socket.emit('lootItem', obj.userData.id);
             }
-            const gHit = ray.intersectObject(floor); 
-            if(gHit[0]) socket.emit('move', {x: gHit[0].point.x, z: gHit[0].point.z});
+            const gHit = ray.intersectObject(floor); if(gHit[0]) socket.emit('move', {x: gHit[0].point.x, z: gHit[0].point.z});
         });
 
         function animate() {
@@ -214,11 +210,7 @@
                 else if(m.userData.isGathering) m.userData.weaponArm.rotation.x = Math.sin(Date.now()*0.01)*1.5;
                 else m.userData.weaponArm.rotation.x = 0.5;
             });
-            if (myId && meshes.players[myId]) { 
-                const p = meshes.players[myId].position; 
-                camera.position.set(p.x, p.y+30, p.z+20); // TOP DOWN VIEW
-                camera.lookAt(p.x, p.y, p.z); 
-            }
+            if (myId && meshes.players[myId]) { const p = meshes.players[myId].position; camera.position.set(p.x, p.y+30, p.z+20); camera.lookAt(p.x, p.y, p.z); }
             renderer.render(scene, camera);
         }
         animate();
