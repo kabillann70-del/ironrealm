@@ -18,9 +18,12 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
+// --- Auth Routes ---
 app.post('/api/register', async (req, res) => {
     const { username, password } = req.body;
     if (!username || !password) return res.status(400).json({ error: 'Missing fields' });
+    const existing = await db.getUser(username);
+    if (existing) return res.status(400).json({ error: 'Username taken' });
     const passwordHash = await bcrypt.hash(password, 10);
     await db.createUser({ username, passwordHash, stats: db.freshStats(), inventory: [], equipment: { weapon: null } });
     res.json({ success: true });
@@ -34,6 +37,17 @@ app.post('/api/login', async (req, res) => {
     res.json({ token, username: user.username });
 });
 
+app.get('/api/admin/players', async (req, res) => {
+    try {
+        const header = req.headers.authorization;
+        const decoded = jwt.verify(header.replace('Bearer ', ''), JWT_SECRET);
+        if (decoded.role !== 'admin') return res.status(403).json({ error: 'Forbidden' });
+        const users = await db.getAllUsers();
+        res.json(users);
+    } catch (e) { res.status(401).json({ error: 'Unauthorized' }); }
+});
+
+// --- World State ---
 const liveWorld = { players: {}, resources: {}, monsters: {}, loot: {} };
 
 function spawnResource(type) {
@@ -50,6 +64,7 @@ function spawnMonster() {
 for(let i=0; i<30; i++) { spawnResource('tree'); spawnResource('rock'); }
 for(let i=0; i<12; i++) { spawnMonster(); }
 
+// --- Socket Connection ---
 io.use((socket, next) => {
     try {
         const token = socket.handshake.auth.token;
@@ -62,14 +77,27 @@ io.on('connection', async (socket) => {
     const userRec = await db.getUser(socket.user.username);
     if (!userRec) return socket.disconnect();
 
-    const p = { ...userRec._doc, socketId: socket.id, target: null, isGathering: false, isAttacking: false, dead: false, atkCd: 0 };
-    liveWorld.players[p.username] = p;
+    // FIX: Deep clone stats so multiplayer movements don't merge
+    const p = { 
+        username: userRec.username,
+        role: userRec.role,
+        stats: JSON.parse(JSON.stringify(userRec.stats)), 
+        inventory: userRec.inventory,
+        equipment: userRec.equipment,
+        socketId: socket.id, 
+        target: null, isGathering: false, isAttacking: false, dead: false, atkCd: 0 
+    };
+    
+    // Track by Socket ID to allow multiple connections from one account for testing
+    liveWorld.players[socket.id] = p;
 
+    socket.emit('init', { socketId: socket.id }); // Tell client their unique ID
     socket.emit('inventory', { stats: p.stats, inventory: p.inventory, equipment: p.equipment });
 
     socket.on('move', (pos) => {
         if (p.dead) return;
-        p.isGathering = false; p.isAttacking = false; p.target = { x: pos.x, z: pos.z };
+        p.isGathering = false; p.isAttacking = false;
+        p.target = { x: pos.x, z: pos.z };
     });
 
     socket.on('startGathering', (id) => {
@@ -100,21 +128,23 @@ io.on('connection', async (socket) => {
             const weaponDmg = (p.equipment && p.equipment.weapon) ? p.equipment.weapon.dmg : 5;
             const totalDmg = (p.stats.baseDamage + weaponDmg);
             mob.hp -= totalDmg;
+            mob.lastHit = Date.now();
             p.atkCd = Date.now() + 800;
             io.emit('vfx', { type: 'damage', x: mob.x, z: mob.z, amount: totalDmg });
 
             if (mob.hp <= 0) {
-                // Monster Death: Spawn Loot
                 const mobDef = MONSTER_TYPES[mob.type];
-                mobDef.drops.forEach(drop => {
-                    if (Math.random() < drop.chance) {
-                        const lid = 'loot_' + Math.random().toString(36).substr(2, 5);
-                        liveWorld.loot[lid] = { id: lid, itemId: drop.item, x: mob.x + (Math.random()-0.5), z: mob.z + (Math.random()-0.5), image: ITEMS[drop.item].image };
-                    }
-                });
+                if (mobDef.drops) {
+                    mobDef.drops.forEach(drop => {
+                        if (Math.random() < drop.chance) {
+                            const lid = 'loot_' + Math.random().toString(36).substr(2, 5);
+                            liveWorld.loot[lid] = { id: lid, itemId: drop.item, x: mob.x + (Math.random()-0.5), z: mob.z + (Math.random()-0.5), image: ITEMS[drop.item].image };
+                        }
+                    });
+                }
                 p.stats.gold += Math.floor(Math.random() * 15) + 5;
                 delete liveWorld.monsters[mobId];
-                socket.emit('notice', 'Victorious!');
+                socket.emit('notice', 'Victory!');
                 setTimeout(spawnMonster, 8000);
             }
             setTimeout(() => { p.isAttacking = false; }, 400);
@@ -167,7 +197,7 @@ io.on('connection', async (socket) => {
 
     socket.on('disconnect', async () => {
         await db.saveUser(p.username, { stats: p.stats, inventory: p.inventory, equipment: p.equipment });
-        delete liveWorld.players[p.username];
+        delete liveWorld.players[socket.id];
     });
 });
 
@@ -200,15 +230,17 @@ setInterval(() => {
     });
 
     io.emit('state', { 
-        players: Object.values(liveWorld.players).map(p => ({ 
-            username: p.username, x: p.stats.pos.x, z: p.stats.pos.z, hp: p.stats.hp, maxHp: p.stats.maxHp, 
+        players: Object.entries(liveWorld.players).map(([sid, p]) => ({ 
+            id: sid, username: p.username, x: p.stats.pos.x, z: p.stats.pos.z, hp: p.stats.hp, maxHp: p.stats.maxHp, 
             isGathering: p.isGathering, isAttacking: p.isAttacking, dead: p.dead, 
             weaponType: (p.equipment && p.equipment.weapon) ? p.equipment.weapon.weaponType : null, gold: p.stats.gold 
         })),
         resources: Object.values(liveWorld.resources),
-        monsters: Object.values(liveWorld.monsters),
+        monsters: Object.values(liveWorld.monsters).map(m => ({ id: m.id, type: m.type, x: m.x, z: m.z, hp: m.hp, maxHp: m.maxHp, isHit: (Date.now() - m.lastHit < 200) })),
         loot: Object.values(liveWorld.loot)
     });
 }, 100);
 
-db.connect().then(async () => { server.listen(PORT, () => console.log(`🚀 IronRealm Active`)); });
+db.connect().then(async () => { 
+    server.listen(PORT, () => console.log(`🚀 IronRealm Multiplayer Fix Live`)); 
+});
