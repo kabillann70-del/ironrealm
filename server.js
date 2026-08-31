@@ -18,7 +18,6 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// --- Auth Routes ---
 app.post('/api/register', async (req, res) => {
     const { username, password } = req.body;
     if (!username || !password) return res.status(400).json({ error: 'Missing fields' });
@@ -37,17 +36,6 @@ app.post('/api/login', async (req, res) => {
     res.json({ token, username: user.username });
 });
 
-app.get('/api/admin/players', async (req, res) => {
-    try {
-        const header = req.headers.authorization;
-        const decoded = jwt.verify(header.replace('Bearer ', ''), JWT_SECRET);
-        if (decoded.role !== 'admin') return res.status(403).json({ error: 'Forbidden' });
-        const users = await db.getAllUsers();
-        res.json(users);
-    } catch (e) { res.status(401).json({ error: 'Unauthorized' }); }
-});
-
-// --- World State ---
 const liveWorld = { players: {}, resources: {}, monsters: {}, loot: {} };
 
 function spawnResource(type) {
@@ -58,13 +46,12 @@ function spawnMonster() {
     const types = Object.keys(MONSTER_TYPES);
     const type = types[Math.floor(Math.random() * types.length)];
     const id = 'mob_' + Math.random().toString(36).substr(2, 5);
-    liveWorld.monsters[id] = { id, type, x: (Math.random()-0.5)*100, z: (Math.random()-0.5)*100, hp: MONSTER_TYPES[type].hp, maxHp: MONSTER_TYPES[type].hp, atkCd: 0 };
+    liveWorld.monsters[id] = { id, type, x: (Math.random()-0.5)*100, z: (Math.random()-0.5)*100, hp: MONSTER_TYPES[type].hp, maxHp: MONSTER_TYPES[type].hp, atkCd: 0, lastHit: 0 };
 }
 
 for(let i=0; i<30; i++) { spawnResource('tree'); spawnResource('rock'); }
 for(let i=0; i<12; i++) { spawnMonster(); }
 
-// --- Socket Connection ---
 io.use((socket, next) => {
     try {
         const token = socket.handshake.auth.token;
@@ -77,7 +64,6 @@ io.on('connection', async (socket) => {
     const userRec = await db.getUser(socket.user.username);
     if (!userRec) return socket.disconnect();
 
-    // FIX: Deep clone stats so multiplayer movements don't merge
     const p = { 
         username: userRec.username,
         role: userRec.role,
@@ -88,10 +74,9 @@ io.on('connection', async (socket) => {
         target: null, isGathering: false, isAttacking: false, dead: false, atkCd: 0 
     };
     
-    // Track by Socket ID to allow multiple connections from one account for testing
     liveWorld.players[socket.id] = p;
 
-    socket.emit('init', { socketId: socket.id }); // Tell client their unique ID
+    socket.emit('init', { socketId: socket.id });
     socket.emit('inventory', { stats: p.stats, inventory: p.inventory, equipment: p.equipment });
 
     socket.on('move', (pos) => {
@@ -167,7 +152,6 @@ io.on('connection', async (socket) => {
         p.stats.gold -= item.price;
         p.inventory.push({ ...item, itemId, uid: Date.now().toString() });
         socket.emit('inventory', { stats: p.stats, inventory: p.inventory, equipment: p.equipment });
-        socket.emit('notice', `Purchased ${item.name}`);
     });
 
     socket.on('equipItem', (uid) => {
@@ -187,7 +171,6 @@ io.on('connection', async (socket) => {
         });
         p.stats.gold += total;
         socket.emit('inventory', { stats: p.stats, inventory: p.inventory, equipment: p.equipment });
-        socket.emit('notice', `Earned ${total} gold`);
     });
 
     socket.on('clearInventory', () => {
@@ -196,8 +179,11 @@ io.on('connection', async (socket) => {
     });
 
     socket.on('disconnect', async () => {
+        // SAVE DATA TO DB BEFORE DELETING
         await db.saveUser(p.username, { stats: p.stats, inventory: p.inventory, equipment: p.equipment });
+        // REMOVE FROM LIVE WORLD INSTANTLY
         delete liveWorld.players[socket.id];
+        console.log(`Player ${p.username} left the game.`);
     });
 });
 
@@ -241,6 +227,4 @@ setInterval(() => {
     });
 }, 100);
 
-db.connect().then(async () => { 
-    server.listen(PORT, () => console.log(`🚀 IronRealm Multiplayer Fix Live`)); 
-});
+db.connect().then(async () => { server.listen(PORT, () => console.log(`🚀 IronRealm Fix Live`)); });
