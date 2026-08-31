@@ -1,5 +1,4 @@
 // items.js
-
 const ITEMS = {
     raw_wood: { 
         name: 'Raw Wood', 
@@ -25,6 +24,7 @@ const ITEMS = {
     wood_sword: { 
         name: 'Wood Sword', 
         type: 'weapon', 
+        weaponType: 'sword',
         dmg: 15, 
         image: 'https://e1.pngegg.com/pngimages/228/288/png-clipart-minecraft-icon-1-4-wooden-sword-brown-sword-art.png',
         sellValue: 20, 
@@ -32,8 +32,10 @@ const ITEMS = {
     },
     novice_axe: {
         name: 'Novice Axe',
-        type: 'tool',
+        type: 'weapon', // Changed to weapon so it can be equipped for attack too
         toolType: 'tree',
+        weaponType: 'axe',
+        dmg: 10,
         image: 'https://opengameart.org/sites/default/files/item_stoneaxe.png',
         sellValue: 15,
         price: 40
@@ -41,41 +43,15 @@ const ITEMS = {
 };
 
 const MONSTER_TYPES = {
-    wolf: { 
-        hp: 40, 
-        dmg: 8, 
-        speed: 2.5, 
-        xp: 20, 
-        gold: [5, 10], 
-        color: 0x777777 
-    },
-    ogre: { 
-        hp: 150, 
-        dmg: 20, 
-        speed: 1.2, 
-        xp: 100, 
-        gold: [20, 50], 
-        color: 0x553300 
-    }
+    wolf: { hp: 50, dmg: 5, speed: 2.2, xp: 30, gold: [5, 12], color: 0x777777, scale: 0.8 },
+    ogre: { hp: 200, dmg: 15, speed: 1.0, xp: 120, gold: [30, 60], color: 0x553300, scale: 1.6 }
 };
 
 const RESOURCE_TYPES = {
-    tree: { 
-        item: 'raw_wood', 
-        toolReq: 'tree', 
-        respawn: 10000, 
-        color: 0x228B22 
-    },
-    rock: { 
-        item: 'raw_ore', 
-        toolReq: 'rock', 
-        respawn: 15000, 
-        color: 0x808080 
-    }
+    tree: { item: 'raw_wood', toolReq: 'tree', respawn: 10000, color: 0x228B22 },
+    rock: { item: 'raw_ore', toolReq: 'rock', respawn: 15000, color: 0x808080 }
 };
 
-function xpForLevel(level) { 
-    return level * 100; 
-}
+function xpForLevel(level) { return level * 100; }
 
 module.exports = { ITEMS, MONSTER_TYPES, RESOURCE_TYPES, xpForLevel };
