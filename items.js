@@ -1,4 +1,5 @@
 // items.js
+
 const ITEMS = {
     raw_wood: { 
         name: 'Raw Wood', 
@@ -10,7 +11,7 @@ const ITEMS = {
     raw_ore: { 
         name: 'Iron Ore', 
         type: 'material', 
-        image: 'https://img.icons8.com/color/96/iron-ore.png', // Sketchfab links don't work as images, using this high-quality one instead
+        image: 'https://img.icons8.com/color/96/iron-ore.png', 
         sellValue: 8, 
         price: 15 
     },
@@ -24,7 +25,7 @@ const ITEMS = {
     wood_sword: { 
         name: 'Wood Sword', 
         type: 'weapon', 
-        dmg: 5, 
+        dmg: 15, 
         image: 'https://e1.pngegg.com/pngimages/228/288/png-clipart-minecraft-icon-1-4-wooden-sword-brown-sword-art.png',
         sellValue: 20, 
         price: 50 
@@ -40,13 +41,41 @@ const ITEMS = {
 };
 
 const MONSTER_TYPES = {
-    wolf: { hp: 40, dmg: 5, speed: 2.5, xp: 20, gold: [5, 10], color: 0x777777 },
-    ogre: { hp: 150, dmg: 15, speed: 1.2, xp: 100, gold: [20, 50], color: 0x553300 }
+    wolf: { 
+        hp: 40, 
+        dmg: 8, 
+        speed: 2.5, 
+        xp: 20, 
+        gold: [5, 10], 
+        color: 0x777777 
+    },
+    ogre: { 
+        hp: 150, 
+        dmg: 20, 
+        speed: 1.2, 
+        xp: 100, 
+        gold: [20, 50], 
+        color: 0x553300 
+    }
 };
 
 const RESOURCE_TYPES = {
-    tree: { item: 'raw_wood', toolReq: 'tree', respawn: 10000, color: 0x228B22 },
-    rock: { item: 'raw_ore', toolReq: 'rock', respawn: 15000, color: 0x808080 }
+    tree: { 
+        item: 'raw_wood', 
+        toolReq: 'tree', 
+        respawn: 10000, 
+        color: 0x228B22 
+    },
+    rock: { 
+        item: 'raw_ore', 
+        toolReq: 'rock', 
+        respawn: 15000, 
+        color: 0x808080 
+    }
 };
 
-module.exports = { ITEMS, MONSTER_TYPES, RESOURCE_TYPES };
+function xpForLevel(level) { 
+    return level * 100; 
+}
+
+module.exports = { ITEMS, MONSTER_TYPES, RESOURCE_TYPES, xpForLevel };
