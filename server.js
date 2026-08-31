@@ -36,16 +36,6 @@ app.post('/api/login', async (req, res) => {
     res.json({ token, username: user.username });
 });
 
-app.get('/api/admin/players', async (req, res) => {
-    try {
-        const header = req.headers.authorization;
-        const decoded = jwt.verify(header.replace('Bearer ', ''), JWT_SECRET);
-        if (decoded.role !== 'admin') return res.status(403).json({ error: 'Forbidden' });
-        const users = await db.getAllUsers();
-        res.json(users);
-    } catch (e) { res.status(401).json({ error: 'Unauthorized' }); }
-});
-
 const liveWorld = { players: {}, resources: {}, monsters: {} };
 
 function spawnResource(type) {
@@ -59,12 +49,13 @@ function spawnMonster() {
     liveWorld.monsters[id] = { id, type, x: (Math.random()-0.5)*80, z: (Math.random()-0.5)*80, hp: MONSTER_TYPES[type].hp, maxHp: MONSTER_TYPES[type].hp, atkCd: 0, lastHit: 0 };
 }
 
-for(let i=0; i<20; i++) { spawnResource('tree'); spawnResource('rock'); }
+for(let i=0; i<25; i++) { spawnResource('tree'); spawnResource('rock'); }
 for(let i=0; i<10; i++) { spawnMonster(); }
 
 io.use((socket, next) => {
     try {
         const token = socket.handshake.auth.token;
+        if(!token) return next(new Error('no token'));
         socket.user = jwt.verify(token, JWT_SECRET);
         next();
     } catch (e) { next(new Error('Auth Error')); }
@@ -81,20 +72,22 @@ io.on('connection', async (socket) => {
 
     socket.on('move', (pos) => {
         if (p.dead) return;
-        p.isGathering = false; p.isAttacking = false; p.target = { x: pos.x, z: pos.z };
+        p.isGathering = false; p.isAttacking = false;
+        p.target = { x: pos.x, z: pos.z };
     });
 
     socket.on('startGathering', (id) => {
         const node = liveWorld.resources[id];
         if (!node || p.isGathering || p.dead) return;
         const dist = Math.hypot(node.x - p.stats.pos.x, node.z - p.stats.pos.z);
-        if (dist > 4) return socket.emit('notice', 'Too far!');
+        if (dist > 5) return socket.emit('notice', 'Too far!');
         
         p.isGathering = true; p.target = null;
         socket.emit('gatheringStart', { duration: 3000 });
         setTimeout(() => {
             if (!p.isGathering) return;
-            p.inventory.push({ ...ITEMS[RESOURCE_TYPES[node.type].item], itemId: RESOURCE_TYPES[node.type].item, uid: Date.now().toString() });
+            const itemKey = RESOURCE_TYPES[node.type].item;
+            p.inventory.push({ ...ITEMS[itemKey], itemId: itemKey, uid: Date.now().toString() });
             delete liveWorld.resources[id]; p.isGathering = false;
             socket.emit('gatheringFinished');
             socket.emit('inventory', { stats: p.stats, inventory: p.inventory, equipment: p.equipment });
@@ -106,26 +99,33 @@ io.on('connection', async (socket) => {
         const mob = liveWorld.monsters[mobId];
         if (!mob || p.dead) return;
         const dist = Math.hypot(mob.x - p.stats.pos.x, mob.z - p.stats.pos.z);
-        if (dist > 4) return socket.emit('notice', 'Too far to attack!');
+        if (dist > 5) return socket.emit('notice', 'Too far!');
         
         if (Date.now() > p.atkCd) {
             p.isAttacking = true;
-            const weaponDmg = p.equipment.weapon ? p.equipment.weapon.dmg : 5;
+            const weaponDmg = (p.equipment && p.equipment.weapon) ? p.equipment.weapon.dmg : 5;
             const totalDmg = (p.stats.baseDamage + weaponDmg);
             mob.hp -= totalDmg;
             mob.lastHit = Date.now();
-            p.atkCd = Date.now() + 800; // Attack speed
-            
-            // Broadcast damage effect to all nearby
+            p.atkCd = Date.now() + 800;
             io.emit('vfx', { type: 'damage', x: mob.x, z: mob.z, amount: totalDmg });
 
             if (mob.hp <= 0) {
-                p.stats.gold += Math.floor(Math.random() * 20) + 10;
+                p.stats.gold += Math.floor(Math.random() * 20) + 15;
                 delete liveWorld.monsters[mobId];
                 socket.emit('notice', 'Monster Slain!');
-                setTimeout(spawnMonster, 10000);
+                setTimeout(spawnMonster, 8000);
             }
             setTimeout(() => { p.isAttacking = false; }, 400);
+        }
+    });
+
+    socket.on('equipItem', (uid) => {
+        const item = p.inventory.find(i => i.uid === uid);
+        if (item && (item.type === 'weapon')) {
+            p.equipment.weapon = item;
+            socket.emit('inventory', { stats: p.stats, inventory: p.inventory, equipment: p.equipment });
+            socket.emit('notice', `Equipped ${item.name}`);
         }
     });
 
@@ -137,15 +137,7 @@ io.on('connection', async (socket) => {
         });
         p.stats.gold += total;
         socket.emit('inventory', { stats: p.stats, inventory: p.inventory, equipment: p.equipment });
-    });
-
-    socket.on('equipItem', (uid) => {
-        const item = p.inventory.find(i => i.uid === uid);
-        if (item && (item.type === 'weapon' || item.type === 'tool')) {
-            p.equipment.weapon = item;
-            socket.emit('inventory', { stats: p.stats, inventory: p.inventory, equipment: p.equipment });
-            socket.emit('notice', `Equipped ${item.name}`);
-        }
+        socket.emit('notice', `Sold for ${total}g`);
     });
 
     socket.on('clearInventory', () => {
@@ -191,7 +183,7 @@ setInterval(() => {
         players: Object.values(liveWorld.players).map(p => ({ 
             username: p.username, x: p.stats.pos.x, z: p.stats.pos.z, hp: p.stats.hp, maxHp: p.stats.maxHp, 
             isGathering: p.isGathering, isAttacking: p.isAttacking, dead: p.dead, 
-            weaponType: p.equipment.weapon ? p.equipment.weapon.weaponType : null, gold: p.stats.gold 
+            weaponType: (p.equipment && p.equipment.weapon) ? p.equipment.weapon.weaponType : null, gold: p.stats.gold 
         })),
         resources: Object.values(liveWorld.resources),
         monsters: Object.values(liveWorld.monsters).map(m => ({ id: m.id, type: m.type, x: m.x, z: m.z, hp: m.hp, maxHp: m.maxHp, isHit: (Date.now() - m.lastHit < 200) }))
@@ -199,10 +191,5 @@ setInterval(() => {
 }, 100);
 
 db.connect().then(async () => { 
-    const name = process.env.ADMIN_USERNAME || 'admin';
-    if (!await db.getUser(name)) {
-        const passwordHash = await bcrypt.hash(process.env.ADMIN_PASSWORD || 'admin123', 10);
-        await db.createUser({ username: name, passwordHash, role: 'admin', stats: db.freshStats(), inventory: [], equipment: {weapon:null} });
-    }
-    server.listen(PORT, () => console.log(`🚀 Master Server on ${PORT}`)); 
+    server.listen(PORT, () => console.log(`🚀 IronRealm Master Server Live`)); 
 });
