@@ -22,7 +22,7 @@ app.post('/api/register', async (req, res) => {
     const { username, password } = req.body;
     if (!username || !password) return res.status(400).json({ error: 'Missing fields' });
     const existing = await db.getUser(username);
-    if (existing) return res.status(400).json({ error: 'Username taken' });
+    if (existing) return res.status(400).json({ error: 'Taken' });
     const passwordHash = await bcrypt.hash(password, 10);
     await db.createUser({ username, passwordHash, stats: db.freshStats(), inventory: [], equipment: { weapon: null } });
     res.json({ success: true });
@@ -40,21 +40,22 @@ const liveWorld = { players: {}, resources: {}, monsters: {}, loot: {} };
 
 function spawnResource(type) {
     const id = 'res_' + Math.random().toString(36).substr(2, 5);
-    liveWorld.resources[id] = { id, type, x: (Math.random()-0.5)*120, z: (Math.random()-0.5)*120, toolReq: RESOURCE_TYPES[type].toolReq };
+    liveWorld.resources[id] = { id, type, x: (Math.random()-0.5)*150, z: (Math.random()-0.5)*150, toolReq: RESOURCE_TYPES[type].toolReq };
 }
 function spawnMonster() {
     const types = Object.keys(MONSTER_TYPES);
     const type = types[Math.floor(Math.random() * types.length)];
     const id = 'mob_' + Math.random().toString(36).substr(2, 5);
-    liveWorld.monsters[id] = { id, type, x: (Math.random()-0.5)*100, z: (Math.random()-0.5)*100, hp: MONSTER_TYPES[type].hp, maxHp: MONSTER_TYPES[type].hp, atkCd: 0, lastHit: 0 };
+    liveWorld.monsters[id] = { id, type, x: (Math.random()-0.5)*120, z: (Math.random()-0.5)*120, hp: MONSTER_TYPES[type].hp, maxHp: MONSTER_TYPES[type].hp, atkCd: 0 };
 }
 
-for(let i=0; i<30; i++) { spawnResource('tree'); spawnResource('rock'); }
-for(let i=0; i<12; i++) { spawnMonster(); }
+for(let i=0; i<40; i++) { spawnResource('tree'); spawnResource('rock'); }
+for(let i=0; i<15; i++) { spawnMonster(); }
 
 io.use((socket, next) => {
     try {
         const token = socket.handshake.auth.token;
+        if(!token) return next(new Error('no token'));
         socket.user = jwt.verify(token, JWT_SECRET);
         next();
     } catch (e) { next(new Error('Auth Error')); }
@@ -75,7 +76,6 @@ io.on('connection', async (socket) => {
     };
     
     liveWorld.players[socket.id] = p;
-
     socket.emit('init', { socketId: socket.id });
     socket.emit('inventory', { stats: p.stats, inventory: p.inventory, equipment: p.equipment });
 
@@ -88,7 +88,7 @@ io.on('connection', async (socket) => {
     socket.on('startGathering', (id) => {
         const node = liveWorld.resources[id];
         if (!node || p.isGathering || p.dead) return;
-        if (Math.hypot(node.x - p.stats.pos.x, node.z - p.stats.pos.z) > 5) return socket.emit('notice', 'Too far!');
+        if (Math.hypot(node.x - p.stats.pos.x, node.z - p.stats.pos.z) > 6) return socket.emit('notice', 'Too far!');
         
         p.isGathering = true; p.target = null;
         socket.emit('gatheringStart', { duration: 3000 });
@@ -106,7 +106,7 @@ io.on('connection', async (socket) => {
     socket.on('startAttack', (mobId) => {
         const mob = liveWorld.monsters[mobId];
         if (!mob || p.dead) return;
-        if (Math.hypot(mob.x - p.stats.pos.x, mob.z - p.stats.pos.z) > 5) return socket.emit('notice', 'Too far!');
+        if (Math.hypot(mob.x - p.stats.pos.x, mob.z - p.stats.pos.z) > 6) return socket.emit('notice', 'Too far!');
         
         if (Date.now() > p.atkCd) {
             p.isAttacking = true;
@@ -127,9 +127,9 @@ io.on('connection', async (socket) => {
                         }
                     });
                 }
-                p.stats.gold += Math.floor(Math.random() * 15) + 5;
+                p.stats.gold += Math.floor(Math.random() * 20) + 15;
                 delete liveWorld.monsters[mobId];
-                socket.emit('notice', 'Victory!');
+                socket.emit('notice', 'Monster Defeated!');
                 setTimeout(spawnMonster, 8000);
             }
             setTimeout(() => { p.isAttacking = false; }, 400);
@@ -143,7 +143,7 @@ io.on('connection', async (socket) => {
         p.inventory.push({ ...ITEMS[item.itemId], itemId: item.itemId, uid: Date.now().toString() });
         delete liveWorld.loot[lid];
         socket.emit('inventory', { stats: p.stats, inventory: p.inventory, equipment: p.equipment });
-        socket.emit('notice', 'Item Looted!');
+        socket.emit('notice', 'Looted!');
     });
 
     socket.on('buyItem', (itemId) => {
@@ -171,6 +171,7 @@ io.on('connection', async (socket) => {
         });
         p.stats.gold += total;
         socket.emit('inventory', { stats: p.stats, inventory: p.inventory, equipment: p.equipment });
+        socket.emit('notice', `Sold materials for ${total}g`);
     });
 
     socket.on('clearInventory', () => {
@@ -179,11 +180,8 @@ io.on('connection', async (socket) => {
     });
 
     socket.on('disconnect', async () => {
-        // SAVE DATA TO DB BEFORE DELETING
         await db.saveUser(p.username, { stats: p.stats, inventory: p.inventory, equipment: p.equipment });
-        // REMOVE FROM LIVE WORLD INSTANTLY
         delete liveWorld.players[socket.id];
-        console.log(`Player ${p.username} left the game.`);
     });
 });
 
@@ -196,7 +194,7 @@ setInterval(() => {
     });
 
     Object.values(liveWorld.monsters).forEach(m => {
-        let nearest = null, minDist = 12;
+        let nearest = null, minDist = 15;
         Object.values(liveWorld.players).forEach(p => {
             if (p.dead) return;
             const d = Math.hypot(p.stats.pos.x - m.x, p.stats.pos.z - m.z);

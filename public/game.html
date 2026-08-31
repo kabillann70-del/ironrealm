@@ -16,6 +16,7 @@
         .slot img { width: 90%; height: 90%; object-fit: contain; }
         #shop-ui { position: absolute; left: 20px; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.95); border: 2px solid #f1c40f; color: white; padding: 20px; display: none; pointer-events: all; border-radius: 12px; z-index: 20; }
         .shop-btn { background: #5a5; color: white; border: none; padding: 10px; border-radius: 5px; cursor: pointer; width: 100%; font-weight: bold; margin-bottom: 8px; }
+        #controls-hint { position: absolute; bottom: 100px; left: 20px; color: #aaa; font-size: 12px; background: rgba(0,0,0,0.5); padding: 5px 10px; border-radius: 5px; }
         #gather-ui { position: absolute; bottom: 120px; left: 50%; transform: translateX(-50%); display: none; width: 250px; text-align: center; color: white; }
         #bar-bg { width: 100%; height: 12px; background: #111; border: 1px solid #fff; border-radius: 6px; overflow: hidden; }
         #bar-fill { width: 0%; height: 100%; background: #2ecc71; }
@@ -29,6 +30,7 @@
         <div id="hp-txt" style="color:#ff4d4d; font-weight:bold; font-size: 18px;">❤️ HP: 100</div>
         <div id="gold-txt" style="color:#f1c40f; font-size: 16px; margin-top: 5px;">💰 Gold: 0</div>
     </div>
+    <div id="controls-hint"><b>B</b>: Backpack | <b>P</b>: Shop | <b>Click</b>: Move/Attack/Gather/Loot</div>
     <div id="hotbar"><div class="h-slot"><div id="slot-1"></div></div><div class="h-slot"></div><div class="h-slot"></div><div class="h-slot"></div><div class="h-slot"></div></div>
     <div id="inv-ui">
         <div style="color:white; font-size:12px; font-weight:bold; text-align: center;">BACKPACK</div>
@@ -54,33 +56,29 @@
         socket.on('init', (d) => { myId = d.socketId; });
 
         const scene = new THREE.Scene();
-        scene.background = new THREE.Color(0x0a0a0a);
+        scene.background = new THREE.Color(0x0a141a);
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(renderer.domElement);
 
-        scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+        scene.add(new THREE.AmbientLight(0xffffff, 0.6));
         const sun = new THREE.DirectionalLight(0xffffff, 0.8); sun.position.set(20, 50, 10); scene.add(sun);
-        const floor = new THREE.Mesh(new THREE.PlaneGeometry(1000, 1000), new THREE.MeshPhongMaterial({color: 0x1b3016})); 
+
+        const floor = new THREE.Mesh(new THREE.PlaneGeometry(1000, 1000), new THREE.MeshPhongMaterial({color: 0x224422})); 
         floor.rotation.x = -Math.PI/2; floor.name = "FLOOR"; scene.add(floor);
 
         const meshes = { players: {}, resources: {}, monsters: {}, loot: {} };
 
-        // --- Helper: Name Tag Creator ---
         function createNameTag(name) {
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
             canvas.width = 256; canvas.height = 64;
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.5)';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            ctx.font = 'bold 36px Arial';
-            ctx.fillStyle = 'white';
-            ctx.textAlign = 'center';
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.5)'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.font = 'bold 36px Arial'; ctx.fillStyle = 'white'; ctx.textAlign = 'center';
             ctx.fillText(name, 128, 45);
             const tex = new THREE.CanvasTexture(canvas);
-            const mat = new THREE.SpriteMaterial({ map: tex });
-            const sprite = new THREE.Sprite(mat);
+            const sprite = new THREE.Sprite(new THREE.SpriteMaterial({ map: tex }));
             sprite.scale.set(2, 0.5, 1);
             return sprite;
         }
@@ -107,10 +105,7 @@
             h.position.y = 1.5; g.add(h);
             const arm = new THREE.Group(); arm.position.set(0.55, 0.8, 0.1); g.add(arm);
             g.userData.weaponArm = arm;
-            // Add Name Tag
-            const tag = createNameTag(name);
-            tag.position.y = 2.2;
-            g.add(tag);
+            const tag = createNameTag(name); tag.position.y = 2.2; g.add(tag);
             return g;
         }
 
@@ -148,12 +143,10 @@
                 if (!meshes.monsters[m.id]) {
                     const group = new THREE.Group();
                     const geo = m.type==='ogre' ? new THREE.BoxGeometry(1.4, 2.2, 1.4) : new THREE.BoxGeometry(0.8, 0.8, 1.5);
-                    const mat = new THREE.MeshPhongMaterial({color: m.type==='ogre'?0x553300:0x777777});
-                    const body = new THREE.Mesh(geo, mat); body.position.y = (m.type==='ogre'?1.1:0.4);
-                    group.add(body);
+                    const body = new THREE.Mesh(geo, new THREE.MeshPhongMaterial({color: m.type==='ogre'?0x553300:0x777777}));
+                    body.position.y = (m.type==='ogre'?1.1:0.4); group.add(body);
                     const hpFill = new THREE.Mesh(new THREE.PlaneGeometry(1, 0.15), new THREE.MeshBasicMaterial({color: 0xff0000}));
-                    hpFill.position.y = (m.type==='ogre'?2.8:1.5); hpFill.name="HPFILL";
-                    group.add(hpFill);
+                    hpFill.position.y = (m.type==='ogre'?2.8:1.5); hpFill.name="HPFILL"; group.add(hpFill);
                     meshes.monsters[m.id] = group; scene.add(group);
                 }
                 const mesh = meshes.monsters[m.id];
@@ -161,6 +154,7 @@
                 mesh.userData = { id: m.id, type: 'monster' };
                 const fill = mesh.children.find(c => c.name === "HPFILL");
                 if(fill) { fill.scale.x = Math.max(0.001, m.hp / m.maxHp); fill.lookAt(camera.position); }
+                mesh.children[0].material.emissive.setHex(m.isHit?0xff0000:0x000000);
             });
 
             const lootIds = st.loot.map(l => l.id);
@@ -171,6 +165,7 @@
                     m.position.set(l.x, 0.5, l.z); m.userData = { id: l.id, type: 'loot' };
                     scene.add(m); meshes.loot[l.id] = m;
                 }
+                meshes.loot[l.id].rotation.y += 0.05;
             });
 
             const resIds = st.resources.map(r => r.id);
