@@ -56,7 +56,7 @@ function spawnMonster() {
     const types = Object.keys(MONSTER_TYPES);
     const type = types[Math.floor(Math.random() * types.length)];
     const id = 'mob_' + Math.random().toString(36).substr(2, 5);
-    liveWorld.monsters[id] = { id, type, x: (Math.random()-0.5)*80, z: (Math.random()-0.5)*80, hp: MONSTER_TYPES[type].hp, maxHp: MONSTER_TYPES[type].hp, atkCd: 0 };
+    liveWorld.monsters[id] = { id, type, x: (Math.random()-0.5)*80, z: (Math.random()-0.5)*80, hp: MONSTER_TYPES[type].hp, maxHp: MONSTER_TYPES[type].hp, atkCd: 0, lastHit: 0 };
 }
 
 for(let i=0; i<20; i++) { spawnResource('tree'); spawnResource('rock'); }
@@ -89,6 +89,7 @@ io.on('connection', async (socket) => {
         if (!node || p.isGathering || p.dead) return;
         const dist = Math.hypot(node.x - p.stats.pos.x, node.z - p.stats.pos.z);
         if (dist > 4) return socket.emit('notice', 'Too far!');
+        
         p.isGathering = true; p.target = null;
         socket.emit('gatheringStart', { duration: 3000 });
         setTimeout(() => {
@@ -110,25 +111,22 @@ io.on('connection', async (socket) => {
         if (Date.now() > p.atkCd) {
             p.isAttacking = true;
             const weaponDmg = p.equipment.weapon ? p.equipment.weapon.dmg : 5;
-            mob.hp -= (p.stats.baseDamage + weaponDmg);
-            p.atkCd = Date.now() + 1000;
+            const totalDmg = (p.stats.baseDamage + weaponDmg);
+            mob.hp -= totalDmg;
+            mob.lastHit = Date.now();
+            p.atkCd = Date.now() + 800; // Attack speed
             
+            // Broadcast damage effect to all nearby
+            io.emit('vfx', { type: 'damage', x: mob.x, z: mob.z, amount: totalDmg });
+
             if (mob.hp <= 0) {
                 p.stats.gold += Math.floor(Math.random() * 20) + 10;
                 delete liveWorld.monsters[mobId];
                 socket.emit('notice', 'Monster Slain!');
                 setTimeout(spawnMonster, 10000);
             }
-            setTimeout(() => { p.isAttacking = false; }, 500);
+            setTimeout(() => { p.isAttacking = false; }, 400);
         }
-    });
-
-    socket.on('buyItem', (itemId) => {
-        const item = ITEMS[itemId];
-        if (!item || p.stats.gold < item.price) return socket.emit('notice', 'Not enough gold!');
-        p.stats.gold -= item.price;
-        p.inventory.push({ ...item, itemId, uid: Date.now().toString() });
-        socket.emit('inventory', { stats: p.stats, inventory: p.inventory, equipment: p.equipment });
     });
 
     socket.on('sellAll', () => {
@@ -196,7 +194,7 @@ setInterval(() => {
             weaponType: p.equipment.weapon ? p.equipment.weapon.weaponType : null, gold: p.stats.gold 
         })),
         resources: Object.values(liveWorld.resources),
-        monsters: Object.values(liveWorld.monsters)
+        monsters: Object.values(liveWorld.monsters).map(m => ({ id: m.id, type: m.type, x: m.x, z: m.z, hp: m.hp, maxHp: m.maxHp, isHit: (Date.now() - m.lastHit < 200) }))
     });
 }, 100);
 
