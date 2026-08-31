@@ -5,29 +5,58 @@
     <script src="/socket.io/socket.io.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
-        body { margin: 0; overflow: hidden; background: #000; font-family: sans-serif; }
-        #ui { position: absolute; top: 20px; left: 20px; padding: 15px; background: rgba(0,0,0,0.8); color: white; border-radius: 8px; pointer-events: none; }
-        #inv-ui { position: absolute; right: 20px; top: 50%; transform: translateY(-50%); width: 220px; background: rgba(0,0,0,0.9); padding: 10px; display: none; border: 2px solid #555; pointer-events: all; }
-        .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; margin-top: 10px; }
-        .slot { width: 45px; height: 45px; background: #222; border: 1px solid #444; display: flex; align-items: center; justify-content: center; font-size: 20px; }
-        #gather-ui { position: absolute; bottom: 15%; left: 50%; transform: translateX(-50%); display: none; width: 250px; }
-        #bar-bg { width: 100%; height: 10px; background: #111; border: 1px solid #fff; border-radius: 5px; overflow: hidden; }
+        body { margin: 0; overflow: hidden; background: #000; font-family: 'Segoe UI', sans-serif; }
+        
+        /* Main UI */
+        #ui { position: absolute; top: 20px; left: 20px; padding: 15px; background: rgba(0,0,0,0.8); color: white; border-radius: 8px; pointer-events: none; border: 1px solid #444; }
+        
+        /* Inventory UI */
+        #inv-ui { position: absolute; right: 20px; top: 50%; transform: translateY(-50%); width: 220px; background: rgba(0,0,0,0.9); padding: 10px; display: none; border: 2px solid #555; pointer-events: all; border-radius: 8px; }
+        .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 10px; }
+        .slot { width: 45px; height: 45px; background: #222; border: 2px solid #333; display: flex; align-items: center; justify-content: center; cursor: pointer; border-radius: 4px; transition: transform 0.1s; overflow: hidden; }
+        .slot:hover { border-color: #f1c40f; transform: scale(1.1); background: #333; }
+        .slot img { width: 100%; height: 100%; object-fit: contain; }
+
+        /* Shop UI */
+        #shop-ui { position: absolute; left: 20px; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.95); border: 2px solid #f1c40f; color: white; padding: 20px; display: none; pointer-events: all; border-radius: 12px; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
+        .shop-btn { background: #5a5; color: white; border: none; padding: 10px; border-radius: 5px; cursor: pointer; width: 100%; font-weight: bold; }
+        .shop-btn:hover { background: #484; }
+
+        /* Gathering Progress Bar */
+        #gather-ui { position: absolute; bottom: 15%; left: 50%; transform: translateX(-50%); display: none; width: 250px; text-align: center; }
+        #bar-bg { width: 100%; height: 12px; background: #111; border: 1px solid #fff; border-radius: 6px; overflow: hidden; }
         #bar-fill { width: 0%; height: 100%; background: #2ecc71; }
+        
+        #notice { position: absolute; top: 100px; left: 50%; transform: translateX(-50%); color: #f1c40f; font-weight: bold; text-shadow: 2px 2px 2px #000; }
     </style>
 </head>
 <body>
     <div id="ui">
-        <div id="hp-txt" style="color:#ff4d4d; font-weight:bold;">❤️ HP: Loading...</div>
-        <div id="gold-txt" style="color:#f1c40f;">💰 Gold: 0</div>
-        <div style="font-size:10px; color:#777; margin-top:5px;">Press 'B' for Bag</div>
+        <div id="hp-txt" style="color:#ff4d4d; font-weight:bold; font-size: 18px;">❤️ HP: Loading...</div>
+        <div id="gold-txt" style="color:#f1c40f; font-size: 16px; margin-top: 5px;">💰 Gold: 0</div>
+        <div style="font-size:11px; color:#aaa; margin-top:10px;">B: Bag | P: Shop | Click to Move</div>
     </div>
+
     <div id="inv-ui">
-        <div style="color:white; font-size:12px; font-weight:bold;">INVENTORY</div>
+        <div style="color:white; font-size:12px; font-weight:bold; text-align: center;">INVENTORY</div>
         <div id="inv-grid" class="grid"></div>
+        <div style="font-size: 9px; color: #777; margin-top: 10px; text-align: center;">Click item to sell</div>
     </div>
+
+    <div id="shop-ui">
+        <div style="font-weight:bold; font-size: 18px; margin-bottom:15px; color: #f1c40f; text-align: center;">VILLAGE SHOP</div>
+        <div id="shop-items">
+            <button class="shop-btn" onclick="buy('wood_sword')">Buy Wood Sword (50g)</button>
+        </div>
+        <button onclick="toggleShop()" style="margin-top:15px; background:#444; border:none; color:white; padding:5px; width:100%; cursor:pointer; border-radius:5px;">Close</button>
+    </div>
+
     <div id="gather-ui">
+        <div style="color: white; font-size: 10px; margin-bottom: 5px; font-weight: bold;">GATHERING...</div>
         <div id="bar-bg"><div id="bar-fill"></div></div>
     </div>
+
+    <div id="notice"></div>
 
     <script>
         const token = localStorage.getItem('ir_token');
@@ -36,19 +65,29 @@
 
         const socket = io({ auth: { token } });
         const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x050505);
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
         document.body.appendChild(renderer.domElement);
 
         scene.add(new THREE.AmbientLight(0xffffff, 0.5));
-        const sun = new THREE.DirectionalLight(0xffffff, 0.8);
-        sun.position.set(10, 20, 10); scene.add(sun);
+        const sun = new THREE.DirectionalLight(0xffffff, 0.7);
+        sun.position.set(20, 40, 10); scene.add(sun);
 
-        const floor = new THREE.Mesh(new THREE.PlaneGeometry(200, 200), new THREE.MeshPhongMaterial({color: 0x1b3016}));
+        const floor = new THREE.Mesh(new THREE.PlaneGeometry(300, 300), new THREE.MeshPhongMaterial({color: 0x1b3016}));
         floor.rotation.x = -Math.PI/2; scene.add(floor);
 
         const meshes = { players: {}, resources: {} };
+
+        // --- Helper: Create Resource Models ---
+        function createResourceMesh(type) {
+            const geo = type === 'tree' ? new THREE.ConeGeometry(0.7, 2.5, 7) : new THREE.DodecahedronGeometry(0.5);
+            const mat = new THREE.MeshPhongMaterial({color: type === 'tree' ? 0x145a32 : 0x7f8c8d});
+            const mesh = new THREE.Mesh(geo, mat);
+            mesh.position.y = type === 'tree' ? 1.25 : 0.25;
+            return mesh;
+        }
 
         function createPlayer(isMe) {
             const g = new THREE.Group();
@@ -59,7 +98,9 @@
             return g;
         }
 
+        // --- World Sync ---
         socket.on('state', (state) => {
+            // 1. Sync Players
             state.players.forEach(p => {
                 if (!meshes.players[p.username]) {
                     meshes.players[p.username] = createPlayer(p.username === myUsername);
@@ -68,73 +109,145 @@
                 const m = meshes.players[p.username];
                 m.targetPos = new THREE.Vector3(p.x, 0, p.z);
                 m.userData.isGathering = p.isGathering;
-                if (p.username === myUsername) document.getElementById('hp-txt').innerText = `❤️ HP: ${Math.round(p.hp)} / ${p.maxHp}`;
+                if (p.username === myUsername) {
+                    document.getElementById('hp-txt').innerText = `❤️ HP: ${Math.round(p.hp)} / ${p.maxHp}`;
+                }
             });
+
+            // 2. Sync Resources (with vanishing logic)
+            const serverIds = state.resources.map(r => r.id);
+            Object.keys(meshes.resources).forEach(id => {
+                if (!serverIds.includes(id)) {
+                    scene.remove(meshes.resources[id]);
+                    delete meshes.resources[id];
+                }
+            });
+
             state.resources.forEach(res => {
                 if (!meshes.resources[res.id]) {
-                    const mesh = new THREE.Mesh(
-                        res.type === 'tree' ? new THREE.ConeGeometry(0.7, 2.5) : new THREE.DodecahedronGeometry(0.5),
-                        new THREE.MeshPhongMaterial({color: res.type === 'tree' ? 0x145a32 : 0x7f8c8d})
-                    );
-                    mesh.position.set(res.x, res.type === 'tree' ? 1.25 : 0.25, res.z);
+                    const mesh = createResourceMesh(res.type);
+                    mesh.position.x = res.x; mesh.position.z = res.z;
                     mesh.userData = { id: res.id, type: 'resource' };
                     scene.add(mesh); meshes.resources[res.id] = mesh;
                 }
             });
         });
 
+        // --- Inventory & Shop ---
         socket.on('inventory', (data) => {
             document.getElementById('gold-txt').innerText = `💰 Gold: ${data.stats.gold}`;
-            const grid = document.getElementById('inv-grid'); grid.innerHTML = '';
+            const grid = document.getElementById('inv-grid'); 
+            grid.innerHTML = '';
+            
+            // Create 16 slots total
             for (let i = 0; i < 16; i++) {
                 const item = data.inventory[i];
-                const slot = document.createElement('div'); slot.className = 'slot';
-                if (item) slot.innerText = item.icon || '📦';
+                const slot = document.createElement('div'); 
+                slot.className = 'slot';
+                
+                if (item) {
+                    if (item.image) {
+                        slot.innerHTML = `<img src="${item.image}" title="${item.name}">`;
+                    } else {
+                        slot.innerText = item.icon || '📦';
+                    }
+                    slot.onclick = () => {
+                        if (confirm(`Sell ${item.name} for ${item.sellValue || 5}g?`)) {
+                            socket.emit('sellItem', i);
+                        }
+                    };
+                }
                 grid.appendChild(slot);
             }
         });
 
+        // --- Animations & UI Helpers ---
         socket.on('gatheringStart', (d) => {
             document.getElementById('gather-ui').style.display = 'block';
             const f = document.getElementById('bar-fill');
             f.style.transition = 'none'; f.style.width = '0%';
             setTimeout(() => { f.style.transition = `width ${d.duration}ms linear`; f.style.width = '100%'; }, 50);
         });
-        socket.on('gatheringFinished', () => { document.getElementById('gather-ui').style.display = 'none'; });
 
+        socket.on('gatheringFinished', () => { 
+            document.getElementById('gather-ui').style.display = 'none'; 
+        });
+
+        socket.on('notice', (msg) => {
+            const n = document.getElementById('notice');
+            n.innerText = msg;
+            setTimeout(() => n.innerText = "", 2500);
+        });
+
+        function toggleShop() {
+            const s = document.getElementById('shop-ui');
+            s.style.display = s.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function buy(itemId) {
+            socket.emit('buyItem', itemId);
+        }
+
+        // --- Controls ---
         window.addEventListener('keydown', (e) => {
-            if (e.key.toLowerCase() === 'b') {
+            const key = e.key.toLowerCase();
+            if (key === 'b') {
                 const ui = document.getElementById('inv-ui');
                 ui.style.display = ui.style.display === 'none' ? 'block' : 'none';
             }
+            if (key === 'p') toggleShop();
         });
 
         window.addEventListener('mousedown', (e) => {
+            // Ignore clicks if UI is in the way
+            if (e.target !== document.body && e.target.tagName !== 'CANVAS') return;
+
             const mouse = new THREE.Vector2((e.clientX/window.innerWidth)*2-1, -(e.clientY/window.innerHeight)*2+1);
             const ray = new THREE.Raycaster();
             ray.setFromCamera(mouse, camera);
+            
             const hits = ray.intersectObjects(scene.children, true);
             for(let h of hits) {
-                if(h.object.userData.type === 'resource') return socket.emit('startGathering', h.object.userData.id);
+                // Raycast target detection
+                let obj = h.object;
+                while(obj.parent && !obj.userData.type) obj = obj.parent;
+                
+                if(obj.userData.type === 'resource') {
+                    return socket.emit('startGathering', obj.userData.id);
+                }
             }
+            
             const ground = ray.intersectObject(floor);
             if(ground[0]) socket.emit('move', {x: ground[0].point.x, z: ground[0].point.z});
         });
 
+        // --- Loop ---
         function animate() {
             requestAnimationFrame(animate);
+            
+            // Movement Smoothing
             Object.values(meshes.players).forEach(m => {
-                if (m.targetPos) m.position.lerp(m.targetPos, 0.2);
+                if (m.targetPos) m.position.lerp(m.targetPos, 0.15);
                 if (m.userData.isGathering) m.rotation.y = Math.sin(Date.now() * 0.01) * 0.5;
                 else m.rotation.y = 0;
             });
+
+            // Camera follow
             if (meshes.players[myUsername]) {
                 const p = meshes.players[myUsername].position;
-                camera.position.set(p.x, p.y + 15, p.z + 10); camera.lookAt(p.x, p.y, p.z);
+                camera.position.set(p.x, p.y + 18, p.z + 14); 
+                camera.lookAt(p.x, p.y, p.z);
             }
+            
             renderer.render(scene, camera);
         }
         animate();
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
     </script>
 </body>
 </html>

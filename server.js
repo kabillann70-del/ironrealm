@@ -74,11 +74,19 @@ io.on('connection', async (socket) => {
 
     socket.on('startGathering', (id) => {
         const node = liveWorld.resources[id];
-        if(!node || p.isGathering) return;
-        p.isGathering = true; p.target = null;
+        if (!node || p.isGathering) return;
+
+        const dist = Math.hypot(node.x - p.stats.pos.x, node.z - p.stats.pos.z);
+        if (dist > 3.5) {
+            return socket.emit('notice', 'Too far to gather!');
+        }
+
+        p.isGathering = true;
+        p.target = null;
         socket.emit('gatheringStart', { duration: 3000 });
+
         setTimeout(() => {
-            if(!p.isGathering) return;
+            if (!p.isGathering) return;
             p.inventory.push(ITEMS[RESOURCE_TYPES[node.type].item]);
             delete liveWorld.resources[id];
             p.isGathering = false;
@@ -86,6 +94,16 @@ io.on('connection', async (socket) => {
             socket.emit('inventory', { stats: p.stats, inventory: p.inventory });
             setTimeout(() => spawnResource(node.type), 10000);
         }, 3000);
+    });
+
+    socket.on('sellItem', (index) => {
+        const item = p.inventory[index];
+        if (item && item.sellValue) {
+            p.stats.gold += item.sellValue;
+            p.inventory.splice(index, 1);
+            socket.emit('inventory', { stats: p.stats, inventory: p.inventory });
+            socket.emit('notice', `Sold ${item.name} for ${item.sellValue} gold`);
+        }
     });
 
     socket.on('disconnect', async () => {

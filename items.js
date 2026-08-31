@@ -1,14 +1,25 @@
+// items.js
 const ITEMS = {
-    raw_wood:      { name: 'Raw Wood',     type: 'material', icon: '📦' },
-    raw_ore:       { name: 'Iron Ore',     type: 'material', icon: '📦' },
-    ogre_bone:     { name: 'Ogre Bone',    type: 'material', icon: '🦴' },
-    wood_sword:    { name: 'Wood Sword',   type: 'weapon',   dmg: 5, icon: '⚔️' },
-    iron_sword:    { name: 'Iron Sword',   type: 'weapon',   dmg: 12, icon: '⚔️' }
+    raw_wood: { 
+        name: 'Raw Wood', type: 'material', 
+        image: 'https://kenney.nl/content/assets/rpg-base/preview.png', // Placeholder URL
+        sellValue: 5, price: 10 
+    },
+    raw_ore: { 
+        name: 'Iron Ore', type: 'material', 
+        image: 'https://kenney.nl/content/assets/rpg-base/preview.png',
+        sellValue: 8, price: 15 
+    },
+    wood_sword: { 
+        name: 'Wood Sword', type: 'weapon', dmg: 5, 
+        image: 'https://kenney.nl/content/assets/rpg-base/preview.png',
+        sellValue: 20, price: 50 
+    }
 };
 
 const MONSTER_TYPES = {
-    wolf:   { hp: 30, dmg: 6, xp: 15, gold: [2, 6], color: 0x8899aa },
-    ogre:   { hp: 120, dmg: 18, xp: 60, gold: [10, 25], color: 0xaa5533 }
+    wolf: { hp: 40, dmg: 5, speed: 2.5, xp: 20, gold: [5, 10], color: 0x777777 },
+    ogre: { hp: 150, dmg: 15, speed: 1.2, xp: 100, gold: [20, 50], color: 0x553300 }
 };
 
 const RESOURCE_TYPES = {
