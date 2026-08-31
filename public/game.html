@@ -6,27 +6,17 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
         body { margin: 0; overflow: hidden; background: #000; font-family: 'Segoe UI', sans-serif; }
-        
-        /* Main UI */
         #ui { position: absolute; top: 20px; left: 20px; padding: 15px; background: rgba(0,0,0,0.8); color: white; border-radius: 8px; pointer-events: none; border: 1px solid #444; }
-        
-        /* Inventory UI */
         #inv-ui { position: absolute; right: 20px; top: 50%; transform: translateY(-50%); width: 220px; background: rgba(0,0,0,0.9); padding: 10px; display: none; border: 2px solid #555; pointer-events: all; border-radius: 8px; }
         .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 10px; }
         .slot { width: 45px; height: 45px; background: #222; border: 2px solid #333; display: flex; align-items: center; justify-content: center; cursor: pointer; border-radius: 4px; transition: transform 0.1s; overflow: hidden; }
         .slot:hover { border-color: #f1c40f; transform: scale(1.1); background: #333; }
         .slot img { width: 100%; height: 100%; object-fit: contain; }
-
-        /* Shop UI */
-        #shop-ui { position: absolute; left: 20px; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.95); border: 2px solid #f1c40f; color: white; padding: 20px; display: none; pointer-events: all; border-radius: 12px; box-shadow: 0 0 20px rgba(0,0,0,0.5); }
+        #shop-ui { position: absolute; left: 20px; top: 50%; transform: translateY(-50%); background: rgba(0,0,0,0.95); border: 2px solid #f1c40f; color: white; padding: 20px; display: none; pointer-events: all; border-radius: 12px; }
         .shop-btn { background: #5a5; color: white; border: none; padding: 10px; border-radius: 5px; cursor: pointer; width: 100%; font-weight: bold; }
-        .shop-btn:hover { background: #484; }
-
-        /* Gathering Progress Bar */
         #gather-ui { position: absolute; bottom: 15%; left: 50%; transform: translateX(-50%); display: none; width: 250px; text-align: center; }
         #bar-bg { width: 100%; height: 12px; background: #111; border: 1px solid #fff; border-radius: 6px; overflow: hidden; }
         #bar-fill { width: 0%; height: 100%; background: #2ecc71; }
-        
         #notice { position: absolute; top: 100px; left: 50%; transform: translateX(-50%); color: #f1c40f; font-weight: bold; text-shadow: 2px 2px 2px #000; }
     </style>
 </head>
@@ -41,6 +31,9 @@
         <div style="color:white; font-size:12px; font-weight:bold; text-align: center;">INVENTORY</div>
         <div id="inv-grid" class="grid"></div>
         <div style="font-size: 9px; color: #777; margin-top: 10px; text-align: center;">Click item to sell</div>
+        <button onclick="clearInventory()" style="margin-top: 15px; width: 100%; background: #c0392b; color: white; border: none; padding: 8px; cursor: pointer; border-radius: 4px; font-size: 10px; font-weight: bold;">
+            🗑️ DISCARD ALL ITEMS
+        </button>
     </div>
 
     <div id="shop-ui">
@@ -80,7 +73,6 @@
 
         const meshes = { players: {}, resources: {} };
 
-        // --- Helper: Create Resource Models ---
         function createResourceMesh(type) {
             const geo = type === 'tree' ? new THREE.ConeGeometry(0.7, 2.5, 7) : new THREE.DodecahedronGeometry(0.5);
             const mat = new THREE.MeshPhongMaterial({color: type === 'tree' ? 0x145a32 : 0x7f8c8d});
@@ -98,9 +90,7 @@
             return g;
         }
 
-        // --- World Sync ---
         socket.on('state', (state) => {
-            // 1. Sync Players
             state.players.forEach(p => {
                 if (!meshes.players[p.username]) {
                     meshes.players[p.username] = createPlayer(p.username === myUsername);
@@ -114,7 +104,6 @@
                 }
             });
 
-            // 2. Sync Resources (with vanishing logic)
             const serverIds = state.resources.map(r => r.id);
             Object.keys(meshes.resources).forEach(id => {
                 if (!serverIds.includes(id)) {
@@ -133,35 +122,21 @@
             });
         });
 
-        // --- Inventory & Shop ---
         socket.on('inventory', (data) => {
             document.getElementById('gold-txt').innerText = `💰 Gold: ${data.stats.gold}`;
-            const grid = document.getElementById('inv-grid'); 
-            grid.innerHTML = '';
-            
-            // Create 16 slots total
+            const grid = document.getElementById('inv-grid'); grid.innerHTML = '';
             for (let i = 0; i < 16; i++) {
                 const item = data.inventory[i];
-                const slot = document.createElement('div'); 
-                slot.className = 'slot';
-                
+                const slot = document.createElement('div'); slot.className = 'slot';
                 if (item) {
-                    if (item.image) {
-                        slot.innerHTML = `<img src="${item.image}" title="${item.name}">`;
-                    } else {
-                        slot.innerText = item.icon || '📦';
-                    }
-                    slot.onclick = () => {
-                        if (confirm(`Sell ${item.name} for ${item.sellValue || 5}g?`)) {
-                            socket.emit('sellItem', i);
-                        }
-                    };
+                    if (item.image) slot.innerHTML = `<img src="${item.image}" title="${item.name}">`;
+                    else slot.innerText = item.icon || '📦';
+                    slot.onclick = () => { if (confirm(`Sell ${item.name}?`)) socket.emit('sellItem', i); };
                 }
                 grid.appendChild(slot);
             }
         });
 
-        // --- Animations & UI Helpers ---
         socket.on('gatheringStart', (d) => {
             document.getElementById('gather-ui').style.display = 'block';
             const f = document.getElementById('bar-fill');
@@ -169,9 +144,7 @@
             setTimeout(() => { f.style.transition = `width ${d.duration}ms linear`; f.style.width = '100%'; }, 50);
         });
 
-        socket.on('gatheringFinished', () => { 
-            document.getElementById('gather-ui').style.display = 'none'; 
-        });
+        socket.on('gatheringFinished', () => { document.getElementById('gather-ui').style.display = 'none'; });
 
         socket.on('notice', (msg) => {
             const n = document.getElementById('notice');
@@ -184,70 +157,48 @@
             s.style.display = s.style.display === 'none' ? 'block' : 'none';
         }
 
-        function buy(itemId) {
-            socket.emit('buyItem', itemId);
+        function buy(itemId) { socket.emit('buyItem', itemId); }
+
+        function clearInventory() {
+            if (confirm("Delete EVERYTHING in your bag?")) socket.emit('clearInventory');
         }
 
-        // --- Controls ---
         window.addEventListener('keydown', (e) => {
-            const key = e.key.toLowerCase();
-            if (key === 'b') {
-                const ui = document.getElementById('inv-ui');
-                ui.style.display = ui.style.display === 'none' ? 'block' : 'none';
-            }
-            if (key === 'p') toggleShop();
+            const k = e.key.toLowerCase();
+            if (k === 'b') document.getElementById('inv-ui').style.display = document.getElementById('inv-ui').style.display === 'none' ? 'block' : 'none';
+            if (k === 'p') toggleShop();
         });
 
         window.addEventListener('mousedown', (e) => {
-            // Ignore clicks if UI is in the way
             if (e.target !== document.body && e.target.tagName !== 'CANVAS') return;
-
             const mouse = new THREE.Vector2((e.clientX/window.innerWidth)*2-1, -(e.clientY/window.innerHeight)*2+1);
             const ray = new THREE.Raycaster();
             ray.setFromCamera(mouse, camera);
-            
             const hits = ray.intersectObjects(scene.children, true);
             for(let h of hits) {
-                // Raycast target detection
                 let obj = h.object;
                 while(obj.parent && !obj.userData.type) obj = obj.parent;
-                
-                if(obj.userData.type === 'resource') {
-                    return socket.emit('startGathering', obj.userData.id);
-                }
+                if(obj.userData.type === 'resource') return socket.emit('startGathering', obj.userData.id);
             }
-            
             const ground = ray.intersectObject(floor);
             if(ground[0]) socket.emit('move', {x: ground[0].point.x, z: ground[0].point.z});
         });
 
-        // --- Loop ---
         function animate() {
             requestAnimationFrame(animate);
-            
-            // Movement Smoothing
             Object.values(meshes.players).forEach(m => {
                 if (m.targetPos) m.position.lerp(m.targetPos, 0.15);
                 if (m.userData.isGathering) m.rotation.y = Math.sin(Date.now() * 0.01) * 0.5;
                 else m.rotation.y = 0;
             });
-
-            // Camera follow
             if (meshes.players[myUsername]) {
                 const p = meshes.players[myUsername].position;
-                camera.position.set(p.x, p.y + 18, p.z + 14); 
-                camera.lookAt(p.x, p.y, p.z);
+                camera.position.set(p.x, p.y + 18, p.z + 14); camera.lookAt(p.x, p.y, p.z);
             }
-            
             renderer.render(scene, camera);
         }
         animate();
-
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-        });
+        window.addEventListener('resize', () => { camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); });
     </script>
 </body>
 </html>
