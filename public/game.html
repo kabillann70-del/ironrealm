@@ -6,6 +6,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
     <style>
         body { margin: 0; overflow: hidden; background: #050505; font-family: 'Segoe UI', sans-serif; }
+        #loading-screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #000; color: white; display: flex; align-items: center; justify-content: center; z-index: 1000; font-size: 24px; font-weight: bold; }
         #ui-top { position: absolute; top: 20px; left: 20px; padding: 15px; background: rgba(0,0,0,0.85); color: white; border-radius: 8px; border: 1px solid #444; pointer-events: none; z-index: 10; }
         #hotbar { position: absolute; bottom: 20px; left: 50%; transform: translateX(-50%); display: flex; gap: 10px; background: rgba(0,0,0,0.8); padding: 10px; border-radius: 10px; border: 2px solid #555; pointer-events: all; z-index: 10; }
         .h-slot { width: 55px; height: 55px; background: #222; border: 2px solid #444; border-radius: 5px; display: flex; align-items: center; justify-content: center; overflow: hidden; }
@@ -26,24 +27,29 @@
     </style>
 </head>
 <body>
+    <div id="loading-screen">ENTERING REALM...</div>
+
     <div id="ui-top">
         <div id="hp-txt" style="color:#ff4d4d; font-weight:bold; font-size: 18px;">❤️ HP: 100</div>
         <div id="gold-txt" style="color:#f1c40f; font-size: 16px; margin-top: 5px;">💰 Gold: 0</div>
     </div>
     <div id="controls-hint"><b>B</b>: Bag | <b>P</b>: Shop | <b>Click</b>: Move/Attack/Gather/Loot</div>
     <div id="hotbar"><div class="h-slot"><div id="slot-1"></div></div><div class="h-slot"></div><div class="h-slot"></div><div class="h-slot"></div><div class="h-slot"></div></div>
+    
     <div id="inv-ui">
         <div style="color:white; font-size:14px; font-weight:bold; text-align: center;">BACKPACK</div>
         <div id="inv-grid" class="grid"></div>
         <button onclick="socket.emit('sellAll')" style="margin-top:15px; width:100%; background:#f1c40f; border:none; padding:12px; cursor:pointer; font-weight:bold; border-radius:5px;">💰 SELL MATERIALS</button>
         <button onclick="if(confirm('Empty Bag?')) socket.emit('clearInventory')" style="margin-top:5px; width:100%; background:red; color:white; border:none; padding:6px; cursor:pointer; font-size:11px; border-radius:5px;">🗑️ DISCARD ALL</button>
     </div>
+
     <div id="shop-ui">
         <div style="font-weight:bold; font-size: 18px; margin-bottom:15px; color:#f1c40f; text-align:center;">VILLAGE SHOP</div>
         <button class="shop-btn" onclick="socket.emit('buyItem', 'wood_sword')">Buy Wood Sword (50g)</button>
         <button class="shop-btn" onclick="socket.emit('buyItem', 'novice_axe')">Buy Novice Axe (40g)</button>
         <button onclick="toggleShop()" style="margin-top:10px; width:100%; background:#444; border:none; color:white; padding:8px; cursor:pointer; border-radius:5px;">Close</button>
     </div>
+
     <div id="gather-ui"><div>ACTION...</div><div id="bar-bg"><div id="bar-fill"></div></div></div>
     <div id="notice"></div>
 
@@ -57,6 +63,11 @@
         const scene = new THREE.Scene();
         scene.background = new THREE.Color(0x0a141a);
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth/window.innerHeight, 0.1, 1000);
+        
+        // DEFAULT START POSITION
+        camera.position.set(0, 50, 50);
+        camera.lookAt(0, 0, 0);
+
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setPixelRatio(window.devicePixelRatio);
         renderer.setSize(window.innerWidth, window.innerHeight);
@@ -118,7 +129,12 @@
 
         socket.on('state', (st) => {
             st.players.forEach(p => {
-                if (!meshes.players[p.id]) { meshes.players[p.id] = createCharMesh(p.id === myId, p.username); scene.add(meshes.players[p.id]); }
+                if (!meshes.players[p.id]) { 
+                    meshes.players[p.id] = createCharMesh(p.id === myId, p.username); 
+                    scene.add(meshes.players[p.id]); 
+                    // REMOVE LOADING SCREEN WHEN I SPAWN
+                    if(p.id === myId) document.getElementById('loading-screen').style.display = 'none';
+                }
                 const m = meshes.players[p.id]; m.targetPos = new THREE.Vector3(p.x, 0, p.z);
                 m.userData.isGathering = p.isGathering; m.userData.isAttacking = p.isAttacking; m.visible = !p.dead;
                 if (m.userData.currentWep !== p.weaponType) {
@@ -210,7 +226,11 @@
                 else if(m.userData.isGathering) m.userData.weaponArm.rotation.x = Math.sin(Date.now()*0.01)*1.5;
                 else m.userData.weaponArm.rotation.x = 0.5;
             });
-            if (myId && meshes.players[myId]) { const p = meshes.players[myId].position; camera.position.set(p.x, p.y+30, p.z+20); camera.lookAt(p.x, p.y, p.z); }
+            if (myId && meshes.players[myId]) { 
+                const p = meshes.players[myId].position; 
+                camera.position.set(p.x, p.y+30, p.z+20); 
+                camera.lookAt(p.x, p.y, p.z); 
+            }
             renderer.render(scene, camera);
         }
         animate();

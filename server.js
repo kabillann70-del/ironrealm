@@ -21,8 +21,6 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.post('/api/register', async (req, res) => {
     const { username, password } = req.body;
     if (!username || !password) return res.status(400).json({ error: 'Missing fields' });
-    const existing = await db.getUser(username);
-    if (existing) return res.status(400).json({ error: 'Taken' });
     const passwordHash = await bcrypt.hash(password, 10);
     await db.createUser({ username, passwordHash, stats: db.freshStats(), inventory: [], equipment: { weapon: null } });
     res.json({ success: true });
@@ -39,7 +37,7 @@ app.post('/api/login', async (req, res) => {
 const liveWorld = { players: {}, resources: {}, monsters: {}, loot: {} };
 
 function spawnResource(type) {
-    const id = 'res_' + Math.random().toString(36).substr(2, 8);
+    const id = 'res_' + Math.random().toString(36).substr(2, 5);
     liveWorld.resources[id] = { id, type, x: (Math.random()-0.5)*150, z: (Math.random()-0.5)*150, toolReq: RESOURCE_TYPES[type].toolReq };
 }
 function spawnMonster() {
@@ -63,9 +61,7 @@ io.use((socket, next) => {
 function broadcastState() {
     io.emit('state', { 
         players: Object.entries(liveWorld.players).map(([sid, p]) => ({ id: sid, username: p.username, x: p.stats.pos.x, z: p.stats.pos.z, hp: p.stats.hp, maxHp: p.stats.maxHp, isGathering: p.isGathering, isAttacking: p.isAttacking, dead: p.dead, weaponType: (p.equipment && p.equipment.weapon) ? p.equipment.weapon.weaponType : null, gold: p.stats.gold })),
-        resources: Object.values(liveWorld.resources), 
-        monsters: Object.values(liveWorld.monsters).map(m => ({ id: m.id, type: m.type, x: m.x, z: m.z, hp: m.hp, maxHp: m.maxHp, isHit: (Date.now() - m.lastHit < 150) })), 
-        loot: Object.values(liveWorld.loot)
+        resources: Object.values(liveWorld.resources), monsters: Object.values(liveWorld.monsters).map(m => ({ id: m.id, type: m.type, x: m.x, z: m.z, hp: m.hp, maxHp: m.maxHp, isHit: (Date.now() - m.lastHit < 150) })), loot: Object.values(liveWorld.loot)
     });
 }
 
@@ -78,7 +74,6 @@ io.on('connection', async (socket) => {
     socket.emit('inventory', { stats: p.stats, inventory: p.inventory, equipment: p.equipment });
 
     socket.on('move', (pos) => { if (!p.dead) { p.isGathering = false; p.isAttacking = false; p.target = { x: pos.x, z: pos.z }; } });
-
     socket.on('startGathering', (id) => {
         const node = liveWorld.resources[id];
         if (!node || p.isGathering || p.dead) return;
@@ -87,17 +82,14 @@ io.on('connection', async (socket) => {
         socket.emit('gatheringStart', { duration: 3000 });
         setTimeout(() => {
             if (!p.isGathering) return;
-            const itemKey = RESOURCE_TYPES[node.type].item;
-            p.inventory.push({ ...ITEMS[itemKey], itemId: itemKey, uid: Date.now().toString() });
-            delete liveWorld.resources[id]; // REMOVE RESOURCE
-            p.isGathering = false;
+            p.inventory.push({ ...ITEMS[RESOURCE_TYPES[node.type].item], itemId: RESOURCE_TYPES[node.type].item, uid: Date.now().toString() });
+            delete liveWorld.resources[id]; p.isGathering = false;
             socket.emit('gatheringFinished');
             socket.emit('inventory', { stats: p.stats, inventory: p.inventory, equipment: p.equipment });
-            broadcastState(); // FORCE IMMEDIATE SYNC
+            broadcastState();
             setTimeout(() => { spawnResource(node.type); broadcastState(); }, 15000);
         }, 3000);
     });
-
     socket.on('startAttack', (mobId) => {
         const mob = liveWorld.monsters[mobId];
         if (!mob || p.dead) return;
@@ -117,7 +109,6 @@ io.on('connection', async (socket) => {
             setTimeout(() => { p.isAttacking = false; }, 400);
         }
     });
-
     socket.on('lootItem', (lid) => {
         const item = liveWorld.loot[lid];
         if (!item || Math.hypot(item.x - p.stats.pos.x, item.z - p.stats.pos.z) > 4) return;
@@ -125,24 +116,20 @@ io.on('connection', async (socket) => {
         delete liveWorld.loot[lid]; socket.emit('inventory', { stats: p.stats, inventory: p.inventory, equipment: p.equipment });
         broadcastState();
     });
-
     socket.on('buyItem', (itemId) => {
         const item = ITEMS[itemId];
         if (!item || p.stats.gold < item.price) return;
         p.stats.gold -= item.price; p.inventory.push({ ...item, itemId, uid: Date.now().toString() });
         socket.emit('inventory', { stats: p.stats, inventory: p.inventory, equipment: p.equipment });
     });
-
     socket.on('equipItem', (uid) => {
         const item = p.inventory.find(i => i.uid === uid);
         if (item && item.type === 'weapon') { p.equipment.weapon = item; socket.emit('inventory', { stats: p.stats, inventory: p.inventory, equipment: p.equipment }); }
     });
-
     socket.on('sellAll', () => {
         let total = 0; p.inventory = p.inventory.filter(it => { if (it.type === 'material') { total += (it.sellValue || 5); return false; } return true; });
         p.stats.gold += total; socket.emit('inventory', { stats: p.stats, inventory: p.inventory, equipment: p.equipment });
     });
-
     socket.on('clearInventory', () => { p.inventory = []; socket.emit('inventory', { stats: p.stats, inventory: p.inventory, equipment: p.equipment }); });
     socket.on('disconnect', async () => { await db.saveUser(p.username, { stats: p.stats, inventory: p.inventory, equipment: p.equipment }); delete liveWorld.players[socket.id]; });
 });
@@ -155,13 +142,9 @@ setInterval(() => {
         if (nearest) {
             const dx = nearest.stats.pos.x - m.x, dz = nearest.stats.pos.z - m.z;
             if (minDist > 2) { m.x += (dx/minDist)*0.18; m.z += (dz/minDist)*0.18; }
-            else if (Date.now() > m.atkCd) {
-                nearest.stats.hp -= MONSTER_TYPES[m.type].dmg; m.atkCd = Date.now() + 1500;
-                if (nearest.stats.hp <= 0) { nearest.dead = true; nearest.stats.hp = 0; setTimeout(() => { nearest.dead = false; nearest.stats.hp = nearest.stats.maxHp; nearest.stats.pos = {x:0,z:0}; }, 4000); }
-            }
+            else if (Date.now() > m.atkCd) { nearest.stats.hp -= MONSTER_TYPES[m.type].dmg; m.atkCd = Date.now() + 1500; if (nearest.stats.hp <= 0) { nearest.dead = true; nearest.stats.hp = 0; setTimeout(() => { nearest.dead = false; nearest.stats.hp = nearest.stats.maxHp; nearest.stats.pos = {x:0,z:0}; }, 4000); } }
         }
     });
     broadcastState();
 }, 100);
-
 db.connect().then(async () => { server.listen(PORT, () => console.log(`🚀 Master Server Live`)); });
