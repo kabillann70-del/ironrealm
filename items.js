@@ -28,13 +28,19 @@ const ITEMS = {
 };
 
 const MONSTER_TYPES = {
-    wolf: { hp: 50, dmg: 5, speed: 2.2, xp: 30, gold: [5, 12], color: 0x777777, scale: 0.8 },
-    ogre: { hp: 200, dmg: 15, speed: 1.0, xp: 120, gold: [30, 60], color: 0x553300, scale: 1.6 }
+    wolf: { 
+        hp: 50, dmg: 5, speed: 2.2, xp: 30, gold: [5, 12], color: 0x777777,
+        drops: [{ item: 'raw_wood', chance: 0.3 }] 
+    },
+    ogre: { 
+        hp: 200, dmg: 15, speed: 1.0, xp: 120, gold: [30, 60], color: 0x553300,
+        drops: [{ item: 'ogre_bone', chance: 0.5 }, { item: 'wood_sword', chance: 0.1 }] 
+    }
 };
 
 const RESOURCE_TYPES = {
-    tree: { item: 'raw_wood', toolReq: 'tree', respawn: 10000, color: 0x228B22 },
-    rock: { item: 'raw_ore', toolReq: 'rock', respawn: 15000, color: 0x808080 }
+    tree: { item: 'raw_wood', toolReq: 'tree', respawn: 10000 },
+    rock: { item: 'raw_ore', toolReq: 'rock', respawn: 15000 }
 };
 
 function xpForLevel(level) { return level * 100; }
