@@ -18,11 +18,14 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
+// --- Auth Routes ---
 app.post('/api/register', async (req, res) => {
     const { username, password } = req.body;
     if (!username || !password) return res.status(400).json({ error: 'Missing fields' });
+    const existing = await db.getUser(username);
+    if (existing) return res.status(400).json({ error: 'Taken' });
     const passwordHash = await bcrypt.hash(password, 10);
-    await db.createUser({ username, passwordHash, stats: db.freshStats(), inventory: [], equipment: { weapon: null } });
+    await db.createUser({ username, passwordHash, role: 'player', stats: db.freshStats(), inventory: [], equipment: { weapon: null } });
     res.json({ success: true });
 });
 
@@ -30,8 +33,30 @@ app.post('/api/login', async (req, res) => {
     const { username, password } = req.body;
     const user = await db.getUser(username);
     if (!user || !await bcrypt.compare(password, user.passwordHash)) return res.status(400).json({ error: 'Invalid' });
+    
+    // FIX: Include the role in the token so admin panel works
     const token = jwt.sign({ username: user.username, role: user.role }, JWT_SECRET);
-    res.json({ token, username: user.username });
+    res.json({ token, username: user.username, role: user.role });
+});
+
+// FIX: Admin route with proper role check
+app.get('/api/admin/players', async (req, res) => {
+    try {
+        const header = req.headers.authorization;
+        if (!header) return res.status(401).json({ error: 'No token' });
+        
+        const token = header.replace('Bearer ', '');
+        const decoded = jwt.verify(token, JWT_SECRET);
+        
+        if (decoded.role !== 'admin') {
+            return res.status(403).json({ error: 'Only admins allowed' });
+        }
+
+        const users = await db.getAllUsers();
+        res.json(users);
+    } catch (e) {
+        res.status(401).json({ error: 'Unauthorized session' });
+    }
 });
 
 const liveWorld = { players: {}, resources: {}, monsters: {}, loot: {} };
@@ -47,8 +72,9 @@ function spawnMonster() {
     liveWorld.monsters[id] = { id, type, x: (Math.random()-0.5)*120, z: (Math.random()-0.5)*120, hp: MONSTER_TYPES[type].hp, maxHp: MONSTER_TYPES[type].hp, atkCd: 0, lastHit: 0 };
 }
 
-for(let i=0; i<40; i++) { spawnResource('tree'); spawnResource('rock'); }
-for(let i=0; i<15; i++) { spawnMonster(); }
+for(let i=0; i<40; i++) spawnResource('tree'); 
+for(let i=0; i<40; i++) spawnResource('rock');
+for(let i=0; i<15; i++) spawnMonster();
 
 io.use((socket, next) => {
     try {
@@ -82,7 +108,8 @@ io.on('connection', async (socket) => {
         socket.emit('gatheringStart', { duration: 3000 });
         setTimeout(() => {
             if (!p.isGathering) return;
-            p.inventory.push({ ...ITEMS[RESOURCE_TYPES[node.type].item], itemId: RESOURCE_TYPES[node.type].item, uid: Date.now().toString() });
+            const itemKey = RESOURCE_TYPES[node.type].item;
+            p.inventory.push({ ...ITEMS[itemKey], itemId: itemKey, uid: Date.now().toString() });
             delete liveWorld.resources[id]; p.isGathering = false;
             socket.emit('gatheringFinished');
             socket.emit('inventory', { stats: p.stats, inventory: p.inventory, equipment: p.equipment });
@@ -147,4 +174,14 @@ setInterval(() => {
     });
     broadcastState();
 }, 100);
-db.connect().then(async () => { server.listen(PORT, () => console.log(`🚀 Master Server Live`)); });
+
+db.connect().then(async () => { 
+    const name = process.env.ADMIN_USERNAME || 'admin';
+    const existing = await db.getUser(name);
+    if (!existing) {
+        const pass = process.env.ADMIN_PASSWORD || 'admin123';
+        const passwordHash = await bcrypt.hash(pass, 10);
+        await db.createUser({ username: name, passwordHash, role: 'admin', stats: db.freshStats(), inventory: [], equipment: {weapon:null} });
+    }
+    server.listen(PORT, () => console.log(`🚀 Master Server Live`)); 
+});

@@ -9,69 +9,70 @@
         th, td { padding: 12px; text-align: left; border-bottom: 1px solid #333; }
         th { background: #333; color: #5a5; }
         tr:hover { background: #2a2a2a; }
-        .btn { padding: 5px 10px; cursor: pointer; border: none; border-radius: 3px; font-weight: bold; margin-right: 5px; }
-        .btn-gold { background: #d4af37; color: black; }
-        .btn-item { background: #5a5; color: white; }
-        .stats-label { font-size: 0.8rem; color: #888; }
+        .error { color: #ff4d4d; background: rgba(255,0,0,0.1); padding: 10px; border-radius: 5px; display: none; }
     </style>
 </head>
 <body>
     <h1>🛡️ IronRealm Admin Dashboard</h1>
-    <p>Live view of all players in the realm.</p>
-
+    <div id="error-box" class="error"></div>
     <table id="player-table">
         <thead>
             <tr>
                 <th>Username</th>
+                <th>Role</th>
                 <th>Level</th>
                 <th>Gold</th>
                 <th>Health</th>
                 <th>Position</th>
-                <th>Actions</th>
             </tr>
         </thead>
-        <tbody id="player-list">
-            <!-- Players will appear here -->
-        </tbody>
+        <tbody id="player-list"></tbody>
     </table>
 
     <script>
         const token = localStorage.getItem('ir_token');
 
         async function loadPlayers() {
-            const res = await fetch('/api/admin/players', {
-                headers: { 'Authorization': 'Bearer ' + token }
-            });
-            const players = await res.json();
-            
-            const list = document.getElementById('player-list');
-            list.innerHTML = '';
+            try {
+                const res = await fetch('/api/admin/players', {
+                    headers: { 'Authorization': 'Bearer ' + token }
+                });
 
-            players.forEach(p => {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td><strong>${p.username}</strong><br><span class="stats-label">${p.role}</span></td>
-                    <td>${p.stats.level}</td>
-                    <td>💰 ${p.stats.gold}</td>
-                    <td>❤️ ${p.stats.hp} / ${p.stats.maxHp}</td>
-                    <td>X: ${p.stats.pos.x.toFixed(1)}, Z: ${p.stats.pos.z.toFixed(1)}</td>
-                    <td>
-                        <button class="btn btn-gold" onclick="adminAction('${p.username}', 'gold')">+100 Gold</button>
-                        <button class="btn btn-item" onclick="adminAction('${p.username}', 'item')">Give Sword</button>
-                    </td>
-                `;
-                list.appendChild(tr);
-            });
+                if (!res.ok) {
+                    const errorData = await res.json();
+                    document.getElementById('error-box').style.display = 'block';
+                    document.getElementById('error-box').innerText = "Access Denied: " + errorData.error;
+                    return;
+                }
+
+                const players = await res.json();
+                const list = document.getElementById('player-list');
+                list.innerHTML = '';
+
+                players.forEach(p => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td><strong>${p.username}</strong></td>
+                        <td>${p.role}</td>
+                        <td>${p.stats.level}</td>
+                        <td>💰 ${p.stats.gold}</td>
+                        <td>❤️ ${p.stats.hp} / ${p.stats.maxHp}</td>
+                        <td>X: ${p.stats.pos.x.toFixed(1)}, Z: ${p.stats.pos.z.toFixed(1)}</td>
+                    `;
+                    list.appendChild(tr);
+                });
+            } catch (e) {
+                console.error("Fetch error:", e);
+            }
         }
 
-        async function adminAction(username, type) {
-            alert(`Action "${type}" triggered for ${username}. (Add server routes in server.js to handle this!)`);
-            // In a real update, you'd fetch('/api/admin/modify-player', ...)
+        if (!token) {
+            alert("No login found. Go to login page first.");
+            window.location.href = "/";
+        } else {
+            loadPlayers();
+            setInterval(loadPlayers, 5000);
         }
-
-        // Auto-refresh every 5 seconds
-        loadPlayers();
-        setInterval(loadPlayers, 5000);
     </script>
 </body>
 </html>
