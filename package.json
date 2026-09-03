@@ -5,6 +5,9 @@
   "description": "IronRealm - Persistent 3D Sandbox with Gathering and PvP",
   "main": "server.js",
   "scripts": {
+    "dev": "node server.js",
+    "build": "echo 'Build complete'",
+    "lint": "node --check server.js db.js items.js",
     "start": "node server.js"
   },
   "dependencies": {

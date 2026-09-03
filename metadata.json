@@ -1,0 +1,8 @@
+{
+  "name": "IronRealm",
+  "description": "Persistent 3D Sandbox with Gathering, PvP, and Economy",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

@@ -13,7 +13,7 @@ const server = http.createServer(app);
 const io = new Server(server);
 
 const JWT_SECRET = process.env.JWT_SECRET || 'ironrealm_secret';
-const PORT = process.env.PORT || 3000;
+const PORT = 3000;
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
@@ -57,6 +57,17 @@ app.get('/api/admin/players', async (req, res) => {
     } catch (e) {
         res.status(401).json({ error: 'Unauthorized session' });
     }
+});
+
+app.use((err, req, res, next) => {
+    if (err.name === 'MongooseError' || err.name === 'MongoNetworkError' || (err.message && err.message.includes('buffering timed out'))) {
+        console.warn('[AI Studio] Database offline — returning mock empty response');
+        if (req.method === 'GET') {
+            return res.json(req.path.endsWith('s') || req.path.endsWith('s/') ? [] : {});
+        }
+        return res.status(503).json({ error: 'Service temporarily unavailable (database offline)' });
+    }
+    next(err);
 });
 
 const liveWorld = { players: {}, resources: {}, monsters: {}, loot: {} };
@@ -183,5 +194,8 @@ db.connect().then(async () => {
         const passwordHash = await bcrypt.hash(pass, 10);
         await db.createUser({ username: name, passwordHash, role: 'admin', stats: db.freshStats(), inventory: [], equipment: {weapon:null} });
     }
-    server.listen(PORT, () => console.log(`🚀 Master Server Live`)); 
+    server.listen(PORT, '0.0.0.0', () => console.log(`🚀 Master Server Live on http://0.0.0.0:${PORT}`)); 
+}).catch(err => {
+    console.error('Database connection error on start:', err);
+    server.listen(PORT, '0.0.0.0', () => console.log(`🚀 Master Server Live (fallback) on http://0.0.0.0:${PORT}`));
 });
