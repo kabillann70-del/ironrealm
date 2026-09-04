@@ -85,6 +85,10 @@
       background: linear-gradient(90deg, #dc2626, #f87171);
       box-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
     }
+    .bar-xp {
+      background: linear-gradient(90deg, #8b5cf6, #c084fc);
+      box-shadow: 0 0 10px rgba(192, 132, 252, 0.5);
+    }
     .hero-pills {
       display: flex; gap: 10px; margin-top: 2px; font-size: 12px;
     }
@@ -212,54 +216,96 @@
     /* Inventory Panel */
     #inv-ui {
       position: absolute; right: 24px; top: 50%; transform: translateY(-50%);
-      width: 290px;
-      background: linear-gradient(165deg, rgba(15, 23, 42, 0.94), rgba(9, 14, 26, 0.98));
+      width: 320px; max-height: 85vh; overflow-y: auto;
+      background: linear-gradient(165deg, rgba(15, 23, 42, 0.96), rgba(9, 14, 26, 0.98));
       backdrop-filter: blur(20px);
       border: 1px solid rgba(255, 255, 255, 0.12);
-      border-top: 1px solid rgba(255, 255, 255, 0.25);
-      border-radius: 16px; padding: 20px;
+      border-top: 1px solid rgba(56, 189, 248, 0.4);
+      border-radius: 16px; padding: 18px;
       display: none; box-shadow: 0 20px 50px rgba(0, 0, 0, 0.85);
       z-index: 50;
     }
     .panel-title {
       font-family: 'Cinzel', serif; font-size: 16px; font-weight: 700;
-      color: #f8fafc; text-align: center; margin-bottom: 14px;
+      color: #f8fafc; text-align: center; margin-bottom: 12px;
       letter-spacing: 1px;
     }
-    .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+    .equip-summary {
+      display: flex; gap: 8px; margin-bottom: 12px;
+      background: rgba(0, 0, 0, 0.35); padding: 8px; border-radius: 10px;
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+    .equip-box {
+      flex: 1; display: flex; flex-direction: column; align-items: center; gap: 3px;
+      background: rgba(255, 255, 255, 0.03); border: 1px dashed rgba(255, 255, 255, 0.15);
+      border-radius: 8px; padding: 6px; font-size: 10px; color: #94a3b8; text-align: center;
+    }
+    .equip-box b { color: #f1f5f9; font-size: 11px; }
+    .equip-box button {
+      margin-top: 4px; padding: 3px 8px; font-size: 9px; font-weight: 700;
+      background: rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.4);
+      color: #fca5a5; border-radius: 4px; cursor: pointer;
+    }
+    .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
     .slot {
       aspect-ratio: 1;
       background: rgba(255, 255, 255, 0.03);
       border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 8px; display: flex; align-items: center; justify-content: center;
-      cursor: pointer; transition: all 0.15s;
+      border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center;
+      cursor: pointer; transition: all 0.15s; position: relative; padding: 3px;
     }
     .slot:hover {
       background: rgba(255, 255, 255, 0.08);
       border-color: #38bdf8;
       transform: translateY(-2px);
     }
-    .slot img { width: 80%; height: 80%; object-fit: contain; }
+    .slot img { width: 70%; height: 70%; object-fit: contain; }
+    .slot .badge {
+      position: absolute; bottom: 2px; right: 2px; font-size: 8px; font-weight: 800;
+      background: rgba(15, 23, 42, 0.9); padding: 1px 4px; border-radius: 4px;
+      color: #38bdf8;
+    }
 
-    /* Village Shop Modal */
+    /* Village Shop & Anvil Forge Modal */
     #shop-ui {
       position: absolute; left: 24px; top: 50%; transform: translateY(-50%);
-      background: linear-gradient(165deg, rgba(15, 23, 42, 0.95), rgba(9, 14, 26, 0.98));
+      background: linear-gradient(165deg, rgba(15, 23, 42, 0.96), rgba(9, 14, 26, 0.98));
       backdrop-filter: blur(20px);
       border: 1px solid rgba(245, 158, 11, 0.3);
-      border-top: 1px solid rgba(245, 158, 11, 0.6);
-      color: white; padding: 22px; display: none;
-      border-radius: 16px; z-index: 50; width: 270px;
+      border-top: 1px solid rgba(245, 158, 11, 0.7);
+      color: white; padding: 18px; display: none;
+      border-radius: 16px; z-index: 50; width: 350px;
+      max-height: 85vh; overflow-y: auto;
       box-shadow: 0 20px 50px rgba(0, 0, 0, 0.85);
     }
+    .shop-tabs {
+      display: flex; gap: 6px; margin-bottom: 12px;
+      background: rgba(0, 0, 0, 0.35); padding: 3px; border-radius: 8px;
+    }
+    .shop-tab-btn {
+      flex: 1; padding: 7px; background: transparent; border: none;
+      color: #94a3b8; font-size: 11px; font-weight: 700; border-radius: 6px;
+      cursor: pointer; transition: all 0.2s;
+    }
+    .shop-tab-btn.active {
+      background: rgba(245, 158, 11, 0.2); color: #fbbf24;
+    }
+    .shop-item-card {
+      display: flex; align-items: center; justify-content: space-between;
+      background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 8px; padding: 8px 10px; margin-bottom: 6px;
+    }
+    .shop-item-info { display: flex; flex-direction: column; gap: 2px; }
+    .shop-item-name { font-size: 12px; font-weight: 700; color: #f8fafc; }
+    .shop-item-desc { font-size: 10px; color: #94a3b8; }
     .shop-btn {
       background: linear-gradient(135deg, #22c55e, #16a34a);
-      color: white; border: none; padding: 11px; border-radius: 8px;
-      cursor: pointer; width: 100%; font-weight: 700; font-size: 12px;
-      margin-bottom: 10px; transition: all 0.15s;
-      box-shadow: 0 4px 14px rgba(34, 197, 94, 0.3);
+      color: white; border: none; padding: 6px 10px; border-radius: 6px;
+      cursor: pointer; font-weight: 700; font-size: 11px; white-space: nowrap;
+      transition: all 0.15s; box-shadow: 0 2px 8px rgba(34, 197, 94, 0.3);
     }
-    .shop-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(34, 197, 94, 0.5); }
+    .shop-btn:hover { filter: brightness(1.1); transform: translateY(-1px); }
+    .shop-btn:disabled { opacity: 0.35; cursor: not-allowed; transform: none; filter: none; }
 
     /* Gathering Progress Bar */
     #gather-ui {
@@ -311,7 +357,7 @@
   <div id="ui-top">
     <div class="hero-header">
       <span id="hero-name" class="hero-name">Hero</span>
-      <span class="hero-badge">Adventurer</span>
+      <span id="hero-badge" class="hero-badge">Lv. 1 Adventurer</span>
     </div>
     <div class="bar-row">
       <div class="bar-label">
@@ -322,14 +368,31 @@
         <div id="hp-fill" class="bar-fill bar-hp" style="width: 100%;"></div>
       </div>
     </div>
+    <div class="bar-row" style="margin-top: 4px;">
+      <div class="bar-label">
+        <span>Experience</span>
+        <span id="xp-txt">0 / 100 XP</span>
+      </div>
+      <div class="bar-track">
+        <div id="xp-fill" class="bar-fill bar-xp" style="width: 0%;"></div>
+      </div>
+    </div>
     <div class="hero-pills">
-      <div class="pill pill-gold">
+      <div class="pill pill-gold" title="Gold Coins">
         <span>💰</span>
         <span id="gold-txt">0</span>
       </div>
-      <div class="pill">
+      <div class="pill" title="Attack Power">
         <span>⚔️</span>
         <span id="dmg-txt">8 DMG</span>
+      </div>
+      <div class="pill" title="Armor Defense">
+        <span>🛡️</span>
+        <span id="def-txt">0 DEF</span>
+      </div>
+      <div class="pill" title="Monsters Slain">
+        <span>💀</span>
+        <span id="kills-txt">0</span>
       </div>
     </div>
   </div>
@@ -366,17 +429,22 @@
 
   <!-- Action Hotbar -->
   <div id="hotbar">
-    <div class="h-slot" title="Equipped Weapon" onclick="toggleBag()">
+    <div class="h-slot" title="Equipped Weapon (Click to unequip)" onclick="unequipSlot('weapon')">
       <span class="h-slot-label">Wpn</span>
       <div id="slot-1"></div>
       <span class="h-slot-key">1</span>
+    </div>
+    <div class="h-slot" title="Equipped Armor (Click to unequip)" onclick="unequipSlot('armor')">
+      <span class="h-slot-label">Arm</span>
+      <div id="slot-2"></div>
+      <span class="h-slot-key">2</span>
     </div>
     <div class="h-slot" title="Satchel Backpack [B]" onclick="toggleBag()">
       <span style="font-size: 20px;">🎒</span>
       <span class="h-slot-key">B</span>
     </div>
-    <div class="h-slot" title="Village Blacksmith [P]" onclick="toggleShop()">
-      <span style="font-size: 20px;">🛒</span>
+    <div class="h-slot" title="Village Blacksmith & Forge [P]" onclick="toggleShop()">
+      <span style="font-size: 20px;">🔨</span>
       <span class="h-slot-key">P</span>
     </div>
     <div class="h-slot" title="Expand Minimap [M]" onclick="toggleExpandMap()">
@@ -388,21 +456,36 @@
   <!-- Backpack Inventory -->
   <div id="inv-ui">
     <div class="panel-title">SATCHEL INVENTORY</div>
+    <div class="equip-summary">
+      <div class="equip-box" id="inv-wep-box">
+        <span>WEAPON</span>
+        <b id="inv-wep-name">None</b>
+        <button id="inv-wep-btn" style="display:none;" onclick="unequipSlot('weapon')">Unequip</button>
+      </div>
+      <div class="equip-box" id="inv-arm-box">
+        <span>ARMOR</span>
+        <b id="inv-arm-name">None</b>
+        <button id="inv-arm-btn" style="display:none;" onclick="unequipSlot('armor')">Unequip</button>
+      </div>
+    </div>
     <div id="inv-grid" class="grid"></div>
-    <button onclick="socket.emit('sellAll')" style="margin-top:16px; width:100%; background:linear-gradient(135deg, #f59e0b, #d97706); border:none; padding:11px; cursor:pointer; font-weight:700; border-radius:8px; color:#fff; font-size:12px; box-shadow:0 4px 14px rgba(245, 158, 11, 0.4);">
+    <button onclick="socket.emit('sellAll')" style="margin-top:14px; width:100%; background:linear-gradient(135deg, #f59e0b, #d97706); border:none; padding:10px; cursor:pointer; font-weight:700; border-radius:8px; color:#fff; font-size:11px; box-shadow:0 4px 14px rgba(245, 158, 11, 0.4);">
       💰 SELL ALL MATERIALS
     </button>
-    <button onclick="if(confirm('Discard all materials in your bag?')) socket.emit('clearInventory')" style="margin-top:8px; width:100%; background:rgba(239, 68, 68, 0.15); border:1px solid rgba(239, 68, 68, 0.3); color:#f87171; padding:8px; cursor:pointer; font-size:11px; font-weight:600; border-radius:8px;">
+    <button id="btn-clear-bag" onclick="clearBagSafe()" style="margin-top:6px; width:100%; background:rgba(239, 68, 68, 0.15); border:1px solid rgba(239, 68, 68, 0.3); color:#f87171; padding:7px; cursor:pointer; font-size:11px; font-weight:600; border-radius:8px;">
       🗑️ Empty Bag
     </button>
   </div>
 
-  <!-- Village Shop Modal -->
+  <!-- Village Shop & Forge Modal -->
   <div id="shop-ui">
-    <div class="panel-title" style="color: #fbbf24;">VILLAGE BLACKSMITH</div>
-    <p style="font-size: 11px; color: #94a3b8; text-align: center; margin-bottom: 16px;">Equip powerful gear to vanquish beasts!</p>
-    <button class="shop-btn" onclick="socket.emit('buyItem', 'wood_sword')">🗡️ Buy Wood Sword (50g)</button>
-    <button class="shop-btn" onclick="socket.emit('buyItem', 'novice_axe')">🪓 Buy Novice Axe (40g)</button>
+    <div class="panel-title" style="color: #fbbf24;">VILLAGE BLACKSMITH & FORGE</div>
+    <div class="shop-tabs">
+      <button class="shop-tab-btn active" id="tab-shop-buy" onclick="setShopTab('buy')">🛒 Buy Gear</button>
+      <button class="shop-tab-btn" id="tab-shop-craft" onclick="setShopTab('craft')">🔨 Anvil Crafting</button>
+    </div>
+    <div id="shop-buy-list"></div>
+    <div id="shop-craft-list" style="display:none;"></div>
     <button onclick="toggleShop()" style="margin-top:10px; width:100%; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.12); color:#cbd5e1; padding:9px; cursor:pointer; border-radius:8px; font-size:12px; font-weight:600;">
       Close
     </button>
@@ -450,6 +533,35 @@
         gain.gain.setValueAtTime(0.2, t);
         gain.gain.linearRampToValueAtTime(0.01, t + 0.2);
         osc.start(t); osc.stop(t + 0.2);
+      } else if (type === 'levelup') {
+        const notes = [261.63, 329.63, 392.00, 523.25];
+        notes.forEach((freq, idx) => {
+          const o = audioCtx.createOscillator();
+          const g = audioCtx.createGain();
+          o.type = 'triangle';
+          o.frequency.setValueAtTime(freq, t + idx * 0.08);
+          g.gain.setValueAtTime(0.25, t + idx * 0.08);
+          g.gain.linearRampToValueAtTime(0.01, t + idx * 0.08 + 0.28);
+          o.connect(g);
+          g.connect(audioCtx.destination);
+          o.start(t + idx * 0.08);
+          o.stop(t + idx * 0.08 + 0.28);
+        });
+      } else if (type === 'craft') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(587.33, t);
+        osc.frequency.exponentialRampToValueAtTime(880, t + 0.05);
+        osc.frequency.exponentialRampToValueAtTime(440, t + 0.25);
+        gain.gain.setValueAtTime(0.3, t);
+        gain.gain.linearRampToValueAtTime(0.01, t + 0.25);
+        osc.start(t); osc.stop(t + 0.25);
+      } else if (type === 'equip') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(320, t);
+        osc.frequency.exponentialRampToValueAtTime(540, t + 0.08);
+        gain.gain.setValueAtTime(0.2, t);
+        gain.gain.linearRampToValueAtTime(0.01, t + 0.1);
+        osc.start(t); osc.stop(t + 0.1);
       }
     }
 
@@ -506,6 +618,9 @@
           playSfx('hit');
           spawnDamageText(d.x, d.z, d.amount);
           spawnHitSparks(new THREE.Vector3(d.x, 1.2, d.z));
+        } else if (d.type === 'levelup') {
+          playSfx('levelup');
+          spawnLevelUpVFX(d.x, d.z, d.level);
         }
       });
 
@@ -740,34 +855,25 @@
     function createWeaponModel(type) {
       const group = new THREE.Group();
       if (type === 'sword') {
-        // Steel Polished Sword Blade
-        const bladeGeo = new THREE.BoxGeometry(0.12, 1.2, 0.05);
-        const bladeMat = new THREE.MeshStandardMaterial({
-          color: 0xe2e8f0,
-          metalness: 0.95,
-          roughness: 0.15,
-          emissive: 0x38bdf8,
-          emissiveIntensity: 0.25
-        });
+        // Wood Sword / Practice Blade
+        const bladeGeo = new THREE.BoxGeometry(0.12, 1.1, 0.05);
+        const bladeMat = new THREE.MeshStandardMaterial({ color: 0xa16207, roughness: 0.6 });
         const blade = new THREE.Mesh(bladeGeo, bladeMat);
-        blade.position.y = 0.6;
+        blade.position.y = 0.55;
         blade.castShadow = true;
         group.add(blade);
 
-        // Gold Crossguard
-        const guardGeo = new THREE.BoxGeometry(0.38, 0.08, 0.12);
-        const guardMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b, metalness: 0.8, roughness: 0.3 });
+        const guardGeo = new THREE.BoxGeometry(0.34, 0.06, 0.1);
+        const guardMat = new THREE.MeshStandardMaterial({ color: 0x78350f });
         const guard = new THREE.Mesh(guardGeo, guardMat);
         guard.position.y = 0.05;
         group.add(guard);
 
-        // Leather hilt
-        const hiltGeo = new THREE.CylinderGeometry(0.04, 0.04, 0.35, 8);
-        const hiltMat = new THREE.MeshStandardMaterial({ color: 0x78350f });
-        const hilt = new THREE.Mesh(hiltGeo, hiltMat);
-        hilt.position.y = -0.15;
+        const hiltGeo = new THREE.CylinderGeometry(0.04, 0.04, 0.3, 8);
+        const hilt = new THREE.Mesh(hiltGeo, guardMat);
+        hilt.position.y = -0.12;
         group.add(hilt);
-      } else {
+      } else if (type === 'axe') {
         // Novice Battle Axe
         const shaftGeo = new THREE.CylinderGeometry(0.045, 0.045, 1.2, 8);
         const shaftMat = new THREE.MeshStandardMaterial({ color: 0x78350f, roughness: 0.8 });
@@ -781,6 +887,98 @@
         head.position.set(0.18, 0.85, 0);
         head.castShadow = true;
         group.add(head);
+      } else if (type === 'broadsword') {
+        // Steel Broadsword (Heavy Two-Handed Rune Blade)
+        const bladeGeo = new THREE.BoxGeometry(0.22, 1.5, 0.06);
+        const bladeMat = new THREE.MeshStandardMaterial({
+          color: 0xf1f5f9,
+          metalness: 0.95,
+          roughness: 0.12,
+          emissive: 0x38bdf8,
+          emissiveIntensity: 0.35
+        });
+        const blade = new THREE.Mesh(bladeGeo, bladeMat);
+        blade.position.y = 0.75;
+        blade.castShadow = true;
+        group.add(blade);
+
+        const guardGeo = new THREE.BoxGeometry(0.5, 0.09, 0.14);
+        const guardMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b, metalness: 0.8, roughness: 0.2 });
+        const guard = new THREE.Mesh(guardGeo, guardMat);
+        guard.position.y = 0.06;
+        group.add(guard);
+
+        const hiltGeo = new THREE.CylinderGeometry(0.045, 0.045, 0.4, 8);
+        const hiltMat = new THREE.MeshStandardMaterial({ color: 0x1e293b });
+        const hilt = new THREE.Mesh(hiltGeo, hiltMat);
+        hilt.position.y = -0.16;
+        group.add(hilt);
+      } else if (type === 'dagger') {
+        // Flame Dagger (Fiery Serrated Blade)
+        const bladeGeo = new THREE.BoxGeometry(0.1, 0.8, 0.04);
+        const bladeMat = new THREE.MeshStandardMaterial({
+          color: 0x1c1917,
+          emissive: 0xef4444,
+          emissiveIntensity: 0.85,
+          roughness: 0.3
+        });
+        const blade = new THREE.Mesh(bladeGeo, bladeMat);
+        blade.position.y = 0.4;
+        blade.castShadow = true;
+        group.add(blade);
+
+        const guardGeo = new THREE.BoxGeometry(0.26, 0.06, 0.08);
+        const guardMat = new THREE.MeshStandardMaterial({ color: 0xb91c1c });
+        const guard = new THREE.Mesh(guardGeo, guardMat);
+        guard.position.y = 0.04;
+        group.add(guard);
+
+        const hiltGeo = new THREE.CylinderGeometry(0.035, 0.035, 0.25, 8);
+        const hiltMat = new THREE.MeshStandardMaterial({ color: 0x451a03 });
+        const hilt = new THREE.Mesh(hiltGeo, hiltMat);
+        hilt.position.y = -0.1;
+        group.add(hilt);
+      } else if (type === 'hammer') {
+        // War Hammer (Massive Iron Head)
+        const shaftGeo = new THREE.CylinderGeometry(0.05, 0.05, 1.4, 8);
+        const shaftMat = new THREE.MeshStandardMaterial({ color: 0x475569, metalness: 0.8, roughness: 0.4 });
+        const shaft = new THREE.Mesh(shaftGeo, shaftMat);
+        shaft.position.y = 0.55;
+        group.add(shaft);
+
+        const headGeo = new THREE.BoxGeometry(0.48, 0.42, 0.65);
+        const headMat = new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.9, roughness: 0.2 });
+        const head = new THREE.Mesh(headGeo, headMat);
+        head.position.set(0, 1.05, 0);
+        head.castShadow = true;
+        group.add(head);
+
+        const spikeGeo = new THREE.ConeGeometry(0.12, 0.35, 4);
+        const spikeMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.9 });
+        const spike = new THREE.Mesh(spikeGeo, spikeMat);
+        spike.rotation.x = Math.PI / 2;
+        spike.position.set(0, 1.05, -0.45);
+        group.add(spike);
+      } else if (type === 'spear') {
+        // Frost Pike (Crystal Ice Polearm)
+        const shaftGeo = new THREE.CylinderGeometry(0.04, 0.04, 1.8, 8);
+        const shaftMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.7 });
+        const shaft = new THREE.Mesh(shaftGeo, shaftMat);
+        shaft.position.y = 0.7;
+        group.add(shaft);
+
+        const tipGeo = new THREE.ConeGeometry(0.15, 0.6, 6);
+        const tipMat = new THREE.MeshStandardMaterial({
+          color: 0x38bdf8,
+          emissive: 0x0284c7,
+          emissiveIntensity: 0.75,
+          roughness: 0.1,
+          metalness: 0.8
+        });
+        const tip = new THREE.Mesh(tipGeo, tipMat);
+        tip.position.set(0, 1.85, 0);
+        tip.castShadow = true;
+        group.add(tip);
       }
       return group;
     }
@@ -800,6 +998,7 @@
       body.position.y = 1.0;
       body.castShadow = true;
       g.add(body);
+      g.userData.bodyMesh = body;
 
       // Gold Shoulder Pauldrons
       const pauldronGeo = new THREE.BoxGeometry(0.35, 0.3, 0.6);
@@ -808,11 +1007,14 @@
       pL.position.set(-0.6, 1.45, 0);
       pL.castShadow = true;
       g.add(pL);
+      g.userData.pL = pL;
 
       const pR = new THREE.Mesh(pauldronGeo, pauldronMat);
       pR.position.set(0.6, 1.45, 0);
       pR.castShadow = true;
       g.add(pR);
+      g.userData.pR = pR;
+      g.userData.isMe = isMe;
 
       // Helmet with Glowing Visor
       const helmGeo = new THREE.BoxGeometry(0.65, 0.65, 0.65);
@@ -934,10 +1136,13 @@
       return g;
     }
 
-    // MONSTER MODELS (WOLF & OGRE)
+    // MONSTER MODELS (OGRE, WOLF, DEMON, SPIDER, SKELETON)
     function createMonsterModel(type) {
       const g = new THREE.Group();
+      let hpY = 2.0;
+
       if (type === 'ogre') {
+        hpY = 3.4;
         // Massive Ogre Brute
         const bodyGeo = new THREE.BoxGeometry(1.8, 2.4, 1.4);
         const bodyMat = new THREE.MeshStandardMaterial({ color: 0x5b3815, roughness: 0.6, metalness: 0.2 });
@@ -964,8 +1169,148 @@
         const e2 = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.12, 0.05), eyeMat);
         e2.position.set(0.4, 2.3, 0.72);
         g.add(e2);
+      } else if (type === 'demon') {
+        hpY = 3.2;
+        // Infernal Demon Warrior
+        const bodyGeo = new THREE.BoxGeometry(1.3, 1.9, 0.9);
+        const bodyMat = new THREE.MeshStandardMaterial({
+          color: 0x7f1d1d,
+          emissive: 0x450a0a,
+          emissiveIntensity: 0.4,
+          roughness: 0.4,
+          metalness: 0.5
+        });
+        const body = new THREE.Mesh(bodyGeo, bodyMat);
+        body.position.y = 1.45;
+        body.castShadow = true;
+        g.add(body);
+        g.userData.bodyMesh = body;
+
+        // Demon Head
+        const headGeo = new THREE.BoxGeometry(0.65, 0.65, 0.65);
+        const headMat = new THREE.MeshStandardMaterial({ color: 0x991b1b, roughness: 0.3 });
+        const head = new THREE.Mesh(headGeo, headMat);
+        head.position.set(0, 2.35, 0.05);
+        head.castShadow = true;
+        g.add(head);
+
+        // Curved Horns
+        const hornGeo = new THREE.ConeGeometry(0.14, 0.9, 6);
+        const hornMat = new THREE.MeshStandardMaterial({ color: 0x18181b, emissive: 0xe11d48, emissiveIntensity: 0.5 });
+        const hL = new THREE.Mesh(hornGeo, hornMat);
+        hL.position.set(-0.35, 2.8, -0.1);
+        hL.rotation.z = 0.45;
+        hL.rotation.x = -0.2;
+        g.add(hL);
+
+        const hR = new THREE.Mesh(hornGeo, hornMat);
+        hR.position.set(0.35, 2.8, -0.1);
+        hR.rotation.z = -0.45;
+        hR.rotation.x = -0.2;
+        g.add(hR);
+
+        // Blazing Yellow-Orange Eyes
+        const eyeMat = new THREE.MeshBasicMaterial({ color: 0xf59e0b });
+        const e1 = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.08, 0.05), eyeMat);
+        e1.position.set(-0.18, 2.38, 0.38);
+        g.add(e1);
+        const e2 = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.08, 0.05), eyeMat);
+        e2.position.set(0.18, 2.38, 0.38);
+        g.add(e2);
+
+        // Molten Chest Core
+        const coreGeo = new THREE.OctahedronGeometry(0.24, 0);
+        const coreMat = new THREE.MeshBasicMaterial({ color: 0xf97316 });
+        const core = new THREE.Mesh(coreGeo, coreMat);
+        core.position.set(0, 1.45, 0.48);
+        g.add(core);
+      } else if (type === 'spider') {
+        hpY = 1.6;
+        // Frost Spider Body
+        const bodyGeo = new THREE.SphereGeometry(0.7, 8, 8);
+        const bodyMat = new THREE.MeshStandardMaterial({
+          color: 0x0369a1,
+          emissive: 0x0284c7,
+          emissiveIntensity: 0.25,
+          roughness: 0.35,
+          metalness: 0.4
+        });
+        const body = new THREE.Mesh(bodyGeo, bodyMat);
+        body.position.set(0, 0.55, -0.3);
+        body.scale.set(1.1, 0.8, 1.4);
+        body.castShadow = true;
+        g.add(body);
+        g.userData.bodyMesh = body;
+
+        // Cephalothorax (Head)
+        const headGeo = new THREE.BoxGeometry(0.65, 0.45, 0.6);
+        const headMat = new THREE.MeshStandardMaterial({ color: 0x0c4a6e, roughness: 0.4 });
+        const head = new THREE.Mesh(headGeo, headMat);
+        head.position.set(0, 0.45, 0.5);
+        head.castShadow = true;
+        g.add(head);
+
+        // Multiple glowing cyan eyes
+        const eyeMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
+        for (let i = -1; i <= 1; i += 2) {
+          const eye1 = new THREE.Mesh(new THREE.SphereGeometry(0.06, 4, 4), eyeMat);
+          eye1.position.set(i * 0.15, 0.52, 0.8);
+          g.add(eye1);
+          const eye2 = new THREE.Mesh(new THREE.SphereGeometry(0.04, 4, 4), eyeMat);
+          eye2.position.set(i * 0.24, 0.42, 0.77);
+          g.add(eye2);
+        }
+
+        // 6 Angled Legs
+        const legMat = new THREE.MeshStandardMaterial({ color: 0x075985, roughness: 0.6 });
+        for (let side of [-1, 1]) {
+          for (let row = -1; row <= 1; row++) {
+            const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.03, 1.1, 5), legMat);
+            leg.position.set(side * 0.75, 0.4, row * 0.4);
+            leg.rotation.z = side * 0.75;
+            leg.rotation.y = row * 0.25;
+            leg.castShadow = true;
+            g.add(leg);
+          }
+        }
+      } else if (type === 'skeleton') {
+        hpY = 2.8;
+        // Cursed Skeleton Warrior
+        const bodyMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, roughness: 0.8 });
+        const bodyGeo = new THREE.BoxGeometry(0.7, 1.0, 0.4);
+        const body = new THREE.Mesh(bodyGeo, bodyMat);
+        body.position.y = 1.3;
+        body.castShadow = true;
+        g.add(body);
+        g.userData.bodyMesh = body;
+
+        // Skull
+        const skullGeo = new THREE.BoxGeometry(0.5, 0.5, 0.5);
+        const skull = new THREE.Mesh(skullGeo, bodyMat);
+        skull.position.set(0, 2.05, 0.05);
+        skull.castShadow = true;
+        g.add(skull);
+
+        // Glowing Emerald Eyes
+        const eyeMat = new THREE.MeshBasicMaterial({ color: 0x10b981 });
+        const e1 = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.08, 0.05), eyeMat);
+        e1.position.set(-0.13, 2.08, 0.31);
+        g.add(e1);
+        const e2 = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.08, 0.05), eyeMat);
+        e2.position.set(0.13, 2.08, 0.31);
+        g.add(e2);
+
+        // Rusty Blade in hand
+        const swordGeo = new THREE.BoxGeometry(0.08, 1.2, 0.04);
+        const swordMat = new THREE.MeshStandardMaterial({ color: 0x64748b, metalness: 0.7, roughness: 0.4 });
+        const sword = new THREE.Mesh(swordGeo, swordMat);
+        sword.position.set(0.65, 1.1, 0.25);
+        sword.rotation.x = 0.4;
+        sword.castShadow = true;
+        g.add(sword);
       } else {
-        // Dire Wolf
+        // Shadow Wolf
+        hpY = 1.9;
         const bodyGeo = new THREE.BoxGeometry(1.0, 1.0, 1.8);
         const bodyMat = new THREE.MeshStandardMaterial({ color: 0x3f3f46, roughness: 0.7 });
         const body = new THREE.Mesh(bodyGeo, bodyMat);
@@ -1005,7 +1350,7 @@
         new THREE.PlaneGeometry(1.6, 0.22),
         new THREE.MeshBasicMaterial({ color: 0x0f172a })
       );
-      hpBg.position.y = (type === 'ogre' ? 3.4 : 1.9);
+      hpBg.position.y = hpY;
       hpBg.name = "HPBG";
 
       const hpFill = new THREE.Mesh(
@@ -1077,6 +1422,49 @@
       const pts = new THREE.Points(geo, mat);
       scene.add(pts);
       activeSparks.push({ pts, vels, life: 1.0 });
+    }
+
+    function spawnLevelUpVFX(x, z, level) {
+      // Screen banner text
+      const vector = new THREE.Vector3(x, 3.2, z).project(camera);
+      const el = document.createElement('div');
+      el.className = 'dmg-text';
+      el.style.color = '#fbbf24';
+      el.style.fontSize = '28px';
+      el.style.letterSpacing = '1px';
+      el.style.textShadow = '0 0 16px rgba(251, 191, 36, 0.95), 0 2px 8px #000';
+      el.style.left = `${(vector.x * 0.5 + 0.5) * window.innerWidth}px`;
+      el.style.top = `${(vector.y * -0.5 + 0.5) * window.innerHeight}px`;
+      el.innerText = `LEVEL UP! (LV. ${level})`;
+      document.body.appendChild(el);
+      setTimeout(() => el.remove(), 1200);
+
+      // 3D celebratory golden sparks explosion
+      const count = 35;
+      const geo = new THREE.BufferGeometry();
+      const posArr = new Float32Array(count * 3);
+      const vels = [];
+      for (let i = 0; i < count; i++) {
+        posArr[i * 3] = x; posArr[i * 3 + 1] = 1.0; posArr[i * 3 + 2] = z;
+        const angle = Math.random() * Math.PI * 2;
+        const speed = Math.random() * 5 + 2;
+        vels.push({
+          vx: Math.cos(angle) * speed,
+          vy: Math.random() * 7 + 4,
+          vz: Math.sin(angle) * speed
+        });
+      }
+      geo.setAttribute('position', new THREE.BufferAttribute(posArr, 3));
+      const mat = new THREE.PointsMaterial({
+        color: 0xfbbf24,
+        size: 0.55,
+        transparent: true,
+        opacity: 1,
+        blending: THREE.AdditiveBlending
+      });
+      const pts = new THREE.Points(geo, mat);
+      scene.add(pts);
+      activeSparks.push({ pts, vels, life: 1.5 });
     }
 
     // -------------------------------------------------------------
@@ -1291,11 +1679,56 @@
           m.userData.currentWep = p.weaponType;
         }
 
+        if (m.userData.currentArmor !== p.armorType) {
+          m.userData.currentArmor = p.armorType;
+          if (m.userData.bodyMesh) {
+            if (p.armorType === 'leather') {
+              m.userData.bodyMesh.material.color.setHex(0x92400e);
+              m.userData.bodyMesh.material.roughness = 0.8;
+              m.userData.bodyMesh.material.metalness = 0.1;
+              if (m.userData.pL) m.userData.pL.material.color.setHex(0x78350f);
+              if (m.userData.pR) m.userData.pR.material.color.setHex(0x78350f);
+            } else if (p.armorType === 'iron') {
+              m.userData.bodyMesh.material.color.setHex(0xcbd5e1);
+              m.userData.bodyMesh.material.roughness = 0.2;
+              m.userData.bodyMesh.material.metalness = 0.95;
+              if (m.userData.pL) m.userData.pL.material.color.setHex(0x94a3b8);
+              if (m.userData.pR) m.userData.pR.material.color.setHex(0x94a3b8);
+            } else if (p.armorType === 'demon') {
+              m.userData.bodyMesh.material.color.setHex(0x18181b);
+              m.userData.bodyMesh.material.emissive.setHex(0x991b1b);
+              m.userData.bodyMesh.material.emissiveIntensity = 0.5;
+              m.userData.bodyMesh.material.roughness = 0.3;
+              m.userData.bodyMesh.material.metalness = 0.8;
+              if (m.userData.pL) m.userData.pL.material.color.setHex(0xb91c1c);
+              if (m.userData.pR) m.userData.pR.material.color.setHex(0xb91c1c);
+            } else {
+              m.userData.bodyMesh.material.color.setHex(p.id === myId ? 0x2563eb : 0xdc2626);
+              m.userData.bodyMesh.material.emissive.setHex(0x000000);
+              m.userData.bodyMesh.material.roughness = 0.35;
+              m.userData.bodyMesh.material.metalness = 0.6;
+              if (m.userData.pL) m.userData.pL.material.color.setHex(0xf59e0b);
+              if (m.userData.pR) m.userData.pR.material.color.setHex(0xf59e0b);
+            }
+          }
+        }
+
         if (p.id === myId) {
           const hpPct = Math.max(0, (p.hp / p.maxHp) * 100);
           document.getElementById('hp-fill').style.width = hpPct + '%';
           document.getElementById('hp-txt').innerText = `${Math.round(p.hp)} / ${p.maxHp}`;
           document.getElementById('gold-txt').innerText = `${p.gold}`;
+
+          if (p.level) {
+            document.getElementById('hero-badge').innerText = `Lv. ${p.level} Adventurer`;
+            const reqXp = Math.floor(100 * Math.pow(1.35, p.level - 1));
+            const curXp = p.xp || 0;
+            document.getElementById('xp-txt').innerText = `${curXp} / ${reqXp} XP`;
+            document.getElementById('xp-fill').style.width = Math.min(100, Math.round((curXp / reqXp) * 100)) + '%';
+          }
+          if (p.kills !== undefined) {
+            document.getElementById('kills-txt').innerText = `${p.kills}`;
+          }
 
           if (p.hp < p.maxHp * 0.35) {
             document.getElementById('screen-vignette').classList.add('hit');
@@ -1387,33 +1820,233 @@
     }
 
     // -------------------------------------------------------------
-    // INVENTORY & SHOP UI
+    // INVENTORY, CRAFTING & SHOP UI
     // -------------------------------------------------------------
+    let latestInventoryData = null;
+    let currentShopTab = 'buy';
+
+    const SHOP_ITEMS = [
+      { id: 'wood_sword', name: 'Wood Sword', type: 'weapon', desc: '+5 DMG', price: 50, icon: '🗡️' },
+      { id: 'novice_axe', name: 'Novice Axe', type: 'weapon', desc: '+4 DMG', price: 40, icon: '🪓' },
+      { id: 'steel_broadsword', name: 'Steel Broadsword', type: 'weapon', desc: '+14 DMG', price: 120, icon: '⚔️' },
+      { id: 'flame_dagger', name: 'Flame Dagger', type: 'weapon', desc: '+18 DMG', price: 150, icon: '🗡️' },
+      { id: 'battle_hammer', name: 'War Hammer', type: 'weapon', desc: '+24 DMG', price: 220, icon: '🔨' },
+      { id: 'crystal_spear', name: 'Frost Pike', type: 'weapon', desc: '+30 DMG', price: 260, icon: '🔱' },
+      { id: 'leather_armor', name: 'Leather Tunic', type: 'armor', desc: '+20 HP, +5 DEF', price: 60, icon: '🥋' },
+      { id: 'iron_plate', name: 'Iron Plate Mail', type: 'armor', desc: '+50 HP, +15 DEF', price: 180, icon: '🛡️' },
+      { id: 'demon_carapace', name: 'Demon Carapace', type: 'armor', desc: '+100 HP, +30 DEF', price: 350, icon: '🦺' }
+    ];
+
+    const CRAFT_RECIPES = [
+      { id: 'wood_sword', name: 'Wood Sword', stat: '+5 DMG', gold: 10, mats: { raw_wood: 3 }, icon: '🗡️' },
+      { id: 'novice_axe', name: 'Novice Axe', stat: '+4 DMG', gold: 10, mats: { raw_wood: 2, raw_ore: 1 }, icon: '🪓' },
+      { id: 'steel_broadsword', name: 'Steel Broadsword', stat: '+14 DMG', gold: 30, mats: { raw_ore: 4, raw_wood: 2 }, icon: '⚔️' },
+      { id: 'flame_dagger', name: 'Flame Dagger', stat: '+18 DMG', gold: 35, mats: { demon_horn: 2, raw_ore: 2 }, icon: '🗡️' },
+      { id: 'battle_hammer', name: 'War Hammer', stat: '+24 DMG', gold: 50, mats: { ogre_bone: 3, raw_ore: 4 }, icon: '🔨' },
+      { id: 'crystal_spear', name: 'Frost Pike', stat: '+30 DMG', gold: 45, mats: { spider_silk: 3, skeleton_skull: 2 }, icon: '🔱' },
+      { id: 'leather_armor', name: 'Leather Tunic', stat: '+20 HP, +5 DEF', gold: 20, mats: { raw_wood: 4, ogre_bone: 1 }, icon: '🥋' },
+      { id: 'iron_plate', name: 'Iron Plate Mail', stat: '+50 HP, +15 DEF', gold: 40, mats: { raw_ore: 6 }, icon: '🛡️' },
+      { id: 'demon_carapace', name: 'Demon Carapace', stat: '+100 HP, +30 DEF', gold: 75, mats: { demon_horn: 3, skeleton_skull: 2 }, icon: '🦺' }
+    ];
+
+    const MAT_NAMES = {
+      raw_wood: 'Wood',
+      raw_ore: 'Ore',
+      demon_horn: 'Demon Horn',
+      ogre_bone: 'Ogre Bone',
+      spider_silk: 'Frost Silk',
+      skeleton_skull: 'Skull'
+    };
+
     function renderInventory(d) {
+      latestInventoryData = d;
+
+      // Update equipped gear boxes
+      const wep = d.equipment ? d.equipment.weapon : null;
+      const arm = d.equipment ? d.equipment.armor : null;
+
+      const wepName = document.getElementById('inv-wep-name');
+      const wepBtn = document.getElementById('inv-wep-btn');
+      if (wep) {
+        wepName.innerText = `${wep.name} (+${wep.dmg || 0}D)`;
+        wepBtn.style.display = 'inline-block';
+      } else {
+        wepName.innerText = 'None';
+        wepBtn.style.display = 'none';
+      }
+
+      const armName = document.getElementById('inv-arm-name');
+      const armBtn = document.getElementById('inv-arm-btn');
+      if (arm) {
+        armName.innerText = `${arm.name} (+${arm.defense || 0}A)`;
+        armBtn.style.display = 'inline-block';
+      } else {
+        armName.innerText = 'None';
+        armBtn.style.display = 'none';
+      }
+
+      // Hotbar slots
+      const s1 = document.getElementById('slot-1');
+      if (wep) {
+        s1.innerHTML = wep.image ? `<img src="${wep.image}">` : `<span style="font-size:18px;">🗡️</span>`;
+        document.getElementById('dmg-txt').innerText = `${(d.stats ? d.stats.baseDamage || 8 : 8) + (wep.dmg || 0)} DMG`;
+      } else {
+        s1.innerHTML = '';
+        document.getElementById('dmg-txt').innerText = `${d.stats ? d.stats.baseDamage || 8 : 8} DMG`;
+      }
+
+      const s2 = document.getElementById('slot-2');
+      if (arm) {
+        s2.innerHTML = arm.image ? `<img src="${arm.image}">` : `<span style="font-size:18px;">🛡️</span>`;
+        document.getElementById('def-txt').innerText = `${arm.defense || 0} DEF`;
+      } else {
+        s2.innerHTML = '';
+        document.getElementById('def-txt').innerText = '0 DEF';
+      }
+
+      // Top HUD stats
+      if (d.stats) {
+        document.getElementById('gold-txt').innerText = `${d.stats.gold || 0}`;
+        if (d.stats.level) {
+          document.getElementById('hero-badge').innerText = `Lv. ${d.stats.level} Adventurer`;
+          const reqXp = Math.floor(100 * Math.pow(1.35, d.stats.level - 1));
+          const curXp = d.stats.xp || 0;
+          document.getElementById('xp-txt').innerText = `${curXp} / ${reqXp} XP`;
+          document.getElementById('xp-fill').style.width = Math.min(100, Math.round((curXp / reqXp) * 100)) + '%';
+        }
+        if (d.stats.kills !== undefined) {
+          document.getElementById('kills-txt').innerText = `${d.stats.kills}`;
+        }
+      }
+
+      // Grid items
       const grid = document.getElementById('inv-grid');
       grid.innerHTML = '';
       d.inventory.forEach((it, i) => {
         const s = document.createElement('div');
         s.className = 'slot';
         s.title = `${it.name} (${it.type})`;
-        if (it.image) s.innerHTML = `<img src="${it.image}">`;
-        else s.innerText = it.name.substr(0, 4);
+        if (it.image) {
+          s.innerHTML = `<img src="${it.image}">`;
+        } else {
+          const emoji = it.type === 'weapon' ? '⚔️' : it.type === 'armor' ? '🛡️' : '📦';
+          s.innerHTML = `<span style="font-size:18px;">${emoji}</span><span style="font-size:8px; font-weight:700; text-align:center; color:#cbd5e1; line-height:1.1;">${it.name.substr(0, 6)}</span>`;
+        }
 
-        s.onclick = () => {
-          if (it.type === 'weapon') socket.emit('equipItem', it.uid);
-          else if (confirm(`Sell 1x ${it.name}?`)) socket.emit('sellItem', i);
-        };
+        if (it.type === 'weapon') {
+          s.innerHTML += `<span class="badge">+${it.dmg || 0}D</span>`;
+          s.onclick = () => { playSfx('equip'); socket.emit('equipItem', it.uid); };
+        } else if (it.type === 'armor') {
+          s.innerHTML += `<span class="badge">+${it.defense || 0}A</span>`;
+          s.onclick = () => { playSfx('equip'); socket.emit('equipItem', it.uid); };
+        } else {
+          const val = it.sellValue || 5;
+          s.innerHTML += `<span class="badge">${val}g</span>`;
+          s.onclick = () => { socket.emit('sellItem', i); };
+        }
         grid.appendChild(s);
       });
 
-      const s1 = document.getElementById('slot-1');
-      if (d.equipment && d.equipment.weapon) {
-        s1.innerHTML = `<img src="${d.equipment.weapon.image}">`;
-        document.getElementById('dmg-txt').innerText = `${8 + (d.equipment.weapon.dmg || 5)} DMG`;
+      // Update shop tabs
+      renderShopList();
+      renderCraftingList();
+    }
+
+    function unequipSlot(slot) {
+      playSfx('equip');
+      socket.emit('unequipItem', slot);
+    }
+
+    let clearBagPending = false;
+    function clearBagSafe() {
+      const btn = document.getElementById('btn-clear-bag');
+      if (!clearBagPending) {
+        clearBagPending = true;
+        btn.innerText = '⚠️ Click again to confirm';
+        btn.style.background = 'rgba(239, 68, 68, 0.4)';
+        setTimeout(() => {
+          clearBagPending = false;
+          btn.innerText = '🗑️ Empty Bag';
+          btn.style.background = 'rgba(239, 68, 68, 0.15)';
+        }, 3000);
       } else {
-        s1.innerHTML = '';
-        document.getElementById('dmg-txt').innerText = '8 DMG';
+        clearBagPending = false;
+        btn.innerText = '🗑️ Empty Bag';
+        btn.style.background = 'rgba(239, 68, 68, 0.15)';
+        socket.emit('clearInventory');
       }
+    }
+
+    function setShopTab(tab) {
+      currentShopTab = tab;
+      const bBtn = document.getElementById('tab-shop-buy');
+      const cBtn = document.getElementById('tab-shop-craft');
+      const bList = document.getElementById('shop-buy-list');
+      const cList = document.getElementById('shop-craft-list');
+      if (bBtn) bBtn.classList.toggle('active', tab === 'buy');
+      if (cBtn) cBtn.classList.toggle('active', tab === 'craft');
+      if (bList) bList.style.display = tab === 'buy' ? 'block' : 'none';
+      if (cList) cList.style.display = tab === 'craft' ? 'block' : 'none';
+      if (tab === 'buy') renderShopList();
+      else renderCraftingList();
+    }
+
+    function renderShopList() {
+      const container = document.getElementById('shop-buy-list');
+      if (!container) return;
+      const gold = latestInventoryData && latestInventoryData.stats ? (latestInventoryData.stats.gold || 0) : 0;
+      container.innerHTML = '';
+      SHOP_ITEMS.forEach(it => {
+        const card = document.createElement('div');
+        card.className = 'shop-item-card';
+        const canAfford = gold >= it.price;
+        card.innerHTML = `
+          <div class="shop-item-info">
+            <span class="shop-item-name">${it.icon} ${it.name}</span>
+            <span class="shop-item-desc">${it.desc} &bull; <span style="color:#fbbf24; font-weight:700;">${it.price}g</span></span>
+          </div>
+          <button class="shop-btn" ${canAfford ? '' : 'disabled'} onclick="socket.emit('buyItem', '${it.id}')">
+            ${canAfford ? 'Buy' : 'Need Gold'}
+          </button>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function renderCraftingList() {
+      const container = document.getElementById('shop-craft-list');
+      if (!container) return;
+      const counts = {};
+      if (latestInventoryData && latestInventoryData.inventory) {
+        latestInventoryData.inventory.forEach(it => {
+          counts[it.itemId] = (counts[it.itemId] || 0) + 1;
+        });
+      }
+      const gold = latestInventoryData && latestInventoryData.stats ? (latestInventoryData.stats.gold || 0) : 0;
+      container.innerHTML = '';
+      CRAFT_RECIPES.forEach(r => {
+        let canCraft = gold >= r.gold;
+        const matParts = [];
+        for (const [matId, req] of Object.entries(r.mats)) {
+          const have = counts[matId] || 0;
+          if (have < req) canCraft = false;
+          const label = MAT_NAMES[matId] || matId;
+          const check = have >= req ? '✓' : `${have}/${req}`;
+          matParts.push(`<span style="color:${have >= req ? '#4ade80' : '#f87171'}">${label} ${check}</span>`);
+        }
+        const card = document.createElement('div');
+        card.className = 'shop-item-card';
+        card.innerHTML = `
+          <div class="shop-item-info">
+            <span class="shop-item-name">${r.icon} ${r.name} <span style="color:#38bdf8; font-size:10px;">(${r.stat})</span></span>
+            <span class="shop-item-desc">${matParts.join(', ')} &bull; <span style="color:#fbbf24;">${r.gold}g</span></span>
+          </div>
+          <button class="shop-btn" ${canCraft ? '' : 'disabled'} onclick="playSfx('craft'); socket.emit('craftItem', '${r.id}')">
+            ${canCraft ? 'Forge' : 'Need Mats'}
+          </button>
+        `;
+        container.appendChild(card);
+      });
     }
 
     function toggleBag() {
@@ -1423,7 +2056,12 @@
 
     function toggleShop() {
       const s = document.getElementById('shop-ui');
-      s.style.display = s.style.display === 'none' || s.style.display === '' ? 'block' : 'none';
+      const isOpening = s.style.display === 'none' || s.style.display === '';
+      s.style.display = isOpening ? 'block' : 'none';
+      if (isOpening) {
+        renderShopList();
+        renderCraftingList();
+      }
     }
 
     function triggerClickRipple(x, z) {

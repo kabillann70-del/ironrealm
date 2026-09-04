@@ -1,32 +1,320 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>IronRealm Login</title>
-    <style>
-        body { background: #111; color: white; font-family: sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; }
-        .box { background: #222; padding: 20px; border-radius: 8px; width: 300px; text-align: center; }
-        input { width: 90%; padding: 10px; margin: 10px 0; background: #333; color: white; border: 1px solid #444; }
-        button { width: 100%; padding: 10px; background: #5a5; border: none; color: white; cursor: pointer; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IronRealm - 3D Sandbox RPG & PvP</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;900&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <script>
+    if (localStorage.getItem('ir_token')) {
+      window.location.replace('/game.html');
+    }
+  </script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+    body {
+      background: radial-gradient(circle at center, #101626 0%, #05070d 100%);
+      color: #f1f5f9;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+    .auth-card {
+      background: linear-gradient(145deg, rgba(15, 23, 42, 0.95), rgba(9, 14, 26, 0.98));
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-top: 1px solid rgba(56, 189, 248, 0.35);
+      border-radius: 16px;
+      padding: 32px 28px;
+      width: 100%;
+      max-width: 400px;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.8), 0 0 40px rgba(56, 189, 248, 0.12);
+      text-align: center;
+    }
+    .title {
+      font-family: 'Cinzel', serif;
+      font-size: 32px;
+      font-weight: 900;
+      letter-spacing: 2px;
+      color: #f8fafc;
+      text-shadow: 0 4px 20px rgba(56, 189, 248, 0.4);
+      margin-bottom: 6px;
+    }
+    .subtitle {
+      font-size: 13px;
+      color: #94a3b8;
+      margin-bottom: 24px;
+    }
+    .btn-quickplay {
+      width: 100%;
+      padding: 14px;
+      background: linear-gradient(135deg, #0284c7, #2563eb);
+      border: 1px solid rgba(56, 189, 248, 0.5);
+      border-radius: 10px;
+      color: #ffffff;
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      box-shadow: 0 8px 24px rgba(37, 99, 235, 0.4);
+      transition: all 0.2s ease;
+      margin-bottom: 20px;
+    }
+    .btn-quickplay:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 28px rgba(37, 99, 235, 0.6);
+      filter: brightness(1.1);
+    }
+    .divider {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      color: #64748b;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 20px;
+    }
+    .divider::before, .divider::after {
+      content: '';
+      flex: 1;
+      height: 1px;
+      background: rgba(255, 255, 255, 0.1);
+    }
+    .tab-row {
+      display: flex;
+      background: rgba(0, 0, 0, 0.35);
+      border-radius: 8px;
+      padding: 3px;
+      margin-bottom: 16px;
+    }
+    .tab-btn {
+      flex: 1;
+      padding: 8px;
+      background: transparent;
+      border: none;
+      color: #94a3b8;
+      font-weight: 600;
+      font-size: 13px;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .tab-btn.active {
+      background: rgba(255, 255, 255, 0.1);
+      color: #38bdf8;
+    }
+    .input-group {
+      margin-bottom: 14px;
+      text-align: left;
+    }
+    .input-group label {
+      display: block;
+      font-size: 11px;
+      font-weight: 600;
+      color: #cbd5e1;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .input-field {
+      width: 100%;
+      padding: 12px 14px;
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 8px;
+      color: #f8fafc;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s ease;
+    }
+    .input-field:focus {
+      border-color: #38bdf8;
+      box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2);
+    }
+    .btn-submit {
+      width: 100%;
+      padding: 12px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 8px;
+      color: #f1f5f9;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      margin-top: 4px;
+    }
+    .btn-submit:hover {
+      background: rgba(255, 255, 255, 0.14);
+      border-color: rgba(255, 255, 255, 0.25);
+    }
+    .status-msg {
+      margin-top: 14px;
+      font-size: 12px;
+      min-height: 18px;
+    }
+    .status-msg.error { color: #f87171; }
+    .status-msg.success { color: #4ade80; }
+    .footer-links {
+      margin-top: 20px;
+      padding-top: 14px;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      font-size: 12px;
+    }
+    .footer-links a {
+      color: #94a3b8;
+      text-decoration: none;
+      transition: color 0.2s ease;
+    }
+    .footer-links a:hover {
+      color: #38bdf8;
+    }
+  </style>
 </head>
 <body>
-    <div class="box">
-        <h2>IronRealm</h2>
-        <input id="u" placeholder="Username">
-        <input id="p" type="password" placeholder="Password">
-        <button onclick="auth('login')">Login</button>
-        <button style="background:#444; margin-top:5px;" onclick="auth('register')">Register</button>
+  <div class="auth-card" id="auth-box">
+    <div class="title">IRONREALM</div>
+    <div class="subtitle">Persistent 3D Sandbox RPG & PvP</div>
+
+    <button class="btn-quickplay" id="btn-quickplay" onclick="quickPlay()">
+      <span>⚔️</span>
+      <span>ENTER REALM (QUICK PLAY)</span>
+    </button>
+
+    <div class="divider">or account access</div>
+
+    <div class="tab-row">
+      <button class="tab-btn active" id="tab-login" onclick="setMode('login')">Login</button>
+      <button class="tab-btn" id="tab-register" onclick="setMode('register')">Register</button>
     </div>
-    <script>
-        async function auth(mode) {
-            const res = await fetch('/api/'+mode, {
-                method: 'POST', headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({username: u.value, password: p.value})
-            });
-            const data = await res.json();
-            if (data.token) { localStorage.setItem('ir_token', data.token); window.location.href='/game.html'; }
-            else alert(data.error || 'Success, now login');
+
+    <div class="input-group">
+      <label for="u">Adventurer Name</label>
+      <input class="input-field" id="u" placeholder="Enter username..." autocomplete="username">
+    </div>
+
+    <div class="input-group">
+      <label for="p">Passphrase</label>
+      <input class="input-field" id="p" type="password" placeholder="Enter password..." autocomplete="current-password">
+    </div>
+
+    <button class="btn-submit" id="btn-submit" onclick="submitAuth()">Sign In to IronRealm</button>
+    <div class="status-msg" id="status-msg"></div>
+
+    <div class="footer-links">
+      <a href="/admin.html">Admin Dashboard</a>
+      <a href="/game.html">Direct Game Client</a>
+    </div>
+  </div>
+
+  <script>
+    let currentMode = 'login';
+
+    function setMode(mode) {
+      currentMode = mode;
+      document.getElementById('tab-login').classList.toggle('active', mode === 'login');
+      document.getElementById('tab-register').classList.toggle('active', mode === 'register');
+      document.getElementById('btn-submit').innerText = mode === 'login' ? 'Sign In to IronRealm' : 'Create New Adventurer';
+      showStatus('', '');
+    }
+
+    function showStatus(text, type) {
+      const el = document.getElementById('status-msg');
+      el.className = 'status-msg ' + type;
+      el.innerText = text;
+    }
+
+    async function quickPlay() {
+      const btn = document.getElementById('btn-quickplay');
+      btn.disabled = true;
+      btn.innerText = 'Creating Guest Adventurer...';
+      const guestName = 'Hero_' + Math.floor(Math.random() * 9000 + 1000);
+      try {
+        await fetch('/api/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: guestName, password: 'guestpassword123' })
+        });
+        const logRes = await fetch('/api/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: guestName, password: 'guestpassword123' })
+        });
+        const data = await logRes.json();
+        if (data.token) {
+          localStorage.setItem('ir_token', data.token);
+          window.location.href = '/game.html';
+        } else {
+          showStatus(data.error || 'Failed to initialize guest session', 'error');
+          btn.disabled = false;
+          btn.innerHTML = '<span>⚔️</span><span>ENTER REALM (QUICK PLAY)</span>';
         }
-    </script>
+      } catch (e) {
+        showStatus('Connection error. Retrying directly in game...', 'error');
+        window.location.href = '/game.html';
+      }
+    }
+
+    async function submitAuth() {
+      const u = document.getElementById('u').value.trim();
+      const p = document.getElementById('p').value;
+      if (!u || !p) {
+        showStatus('Please enter both username and password.', 'error');
+        return;
+      }
+
+      showStatus('Contacting server...', '');
+      try {
+        const res = await fetch('/api/' + currentMode, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: u, password: p })
+        });
+        const data = await res.json();
+        if (currentMode === 'login') {
+          if (data.token) {
+            localStorage.setItem('ir_token', data.token);
+            showStatus('Success! Entering IronRealm...', 'success');
+            window.location.href = '/game.html';
+          } else {
+            showStatus(data.error || 'Invalid credentials', 'error');
+          }
+        } else {
+          if (data.success) {
+            showStatus('Account created! Signing you in...', 'success');
+            const logRes = await fetch('/api/login', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ username: u, password: p })
+            });
+            const logData = await logRes.json();
+            if (logData.token) {
+              localStorage.setItem('ir_token', logData.token);
+              window.location.href = '/game.html';
+            } else {
+              setMode('login');
+              showStatus('Account created. Please log in.', 'success');
+            }
+          } else {
+            showStatus(data.error || 'Registration failed', 'error');
+          }
+        }
+      } catch (err) {
+        showStatus('Network error while authenticating.', 'error');
+      }
+    }
+  </script>
 </body>
 </html>

@@ -6,7 +6,7 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { Server } = require('socket.io');
 const db = require('./db');
-const { ITEMS, MONSTER_TYPES, RESOURCE_TYPES } = require('./items');
+const { ITEMS, MONSTER_TYPES, RESOURCE_TYPES, xpForLevel } = require('./items');
 
 const app = express();
 const server = http.createServer(app);
@@ -85,7 +85,7 @@ function spawnMonster() {
 
 for(let i=0; i<40; i++) spawnResource('tree'); 
 for(let i=0; i<40; i++) spawnResource('rock');
-for(let i=0; i<15; i++) spawnMonster();
+for(let i=0; i<25; i++) spawnMonster();
 
 io.use((socket, next) => {
     try {
@@ -97,8 +97,35 @@ io.use((socket, next) => {
 
 function broadcastState() {
     io.emit('state', { 
-        players: Object.entries(liveWorld.players).map(([sid, p]) => ({ id: sid, username: p.username, x: p.stats.pos.x, z: p.stats.pos.z, hp: p.stats.hp, maxHp: p.stats.maxHp, isGathering: p.isGathering, isAttacking: p.isAttacking, dead: p.dead, weaponType: (p.equipment && p.equipment.weapon) ? p.equipment.weapon.weaponType : null, gold: p.stats.gold })),
-        resources: Object.values(liveWorld.resources), monsters: Object.values(liveWorld.monsters).map(m => ({ id: m.id, type: m.type, x: m.x, z: m.z, hp: m.hp, maxHp: m.maxHp, isHit: (Date.now() - m.lastHit < 150) })), loot: Object.values(liveWorld.loot)
+        players: Object.entries(liveWorld.players).map(([sid, p]) => ({ 
+            id: sid, 
+            username: p.username, 
+            x: p.stats.pos.x, 
+            z: p.stats.pos.z, 
+            hp: p.stats.hp, 
+            maxHp: p.stats.maxHp + ((p.equipment && p.equipment.armor && p.equipment.armor.hpBonus) ? p.equipment.armor.hpBonus : 0), 
+            isGathering: p.isGathering, 
+            isAttacking: p.isAttacking, 
+            dead: p.dead, 
+            weaponType: (p.equipment && p.equipment.weapon) ? p.equipment.weapon.weaponType : null,
+            armorType: (p.equipment && p.equipment.armor) ? p.equipment.armor.armorType : null,
+            gold: p.stats.gold,
+            level: p.stats.level || 1,
+            xp: p.stats.xp || 0,
+            kills: p.stats.kills || 0 
+        })),
+        resources: Object.values(liveWorld.resources), 
+        monsters: Object.values(liveWorld.monsters).map(m => ({ 
+            id: m.id, 
+            type: m.type, 
+            name: MONSTER_TYPES[m.type].name || m.type,
+            x: m.x, 
+            z: m.z, 
+            hp: m.hp, 
+            maxHp: m.maxHp, 
+            isHit: (Date.now() - m.lastHit < 150) 
+        })), 
+        loot: Object.values(liveWorld.loot)
     });
 }
 
@@ -141,7 +168,23 @@ io.on('connection', async (socket) => {
             if (mob.hp <= 0) {
                 const mobDef = MONSTER_TYPES[mob.type];
                 mobDef.drops && mobDef.drops.forEach(drop => { if (Math.random() < drop.chance) { const lid = 'loot_' + Math.random().toString(36).substr(2, 5); liveWorld.loot[lid] = { id: lid, itemId: drop.item, x: mob.x + (Math.random()-0.5), z: mob.z + (Math.random()-0.5) }; } });
-                p.stats.gold += Math.floor(Math.random() * 20) + 15;
+                const goldGained = Math.floor(Math.random() * (mobDef.gold ? (mobDef.gold[1] - mobDef.gold[0]) : 20)) + (mobDef.gold ? mobDef.gold[0] : 15);
+                p.stats.gold += goldGained;
+                const xpGain = mobDef.xp || 30;
+                p.stats.xp = (p.stats.xp || 0) + xpGain;
+                p.stats.kills = (p.stats.kills || 0) + 1;
+                const reqXp = xpForLevel(p.stats.level || 1);
+                if (p.stats.xp >= reqXp) {
+                    p.stats.xp -= reqXp;
+                    p.stats.level = (p.stats.level || 1) + 1;
+                    p.stats.maxHp += 20;
+                    const armorHp = (p.equipment && p.equipment.armor && p.equipment.armor.hpBonus) ? p.equipment.armor.hpBonus : 0;
+                    p.stats.hp = p.stats.maxHp + armorHp;
+                    p.stats.baseDamage = (p.stats.baseDamage || 8) + 3;
+                    socket.emit('notice', `⚔️ LEVEL UP! You reached Level ${p.stats.level}! (+20 HP, +3 DMG)`);
+                    io.emit('vfx', { type: 'levelup', x: p.stats.pos.x, z: p.stats.pos.z, level: p.stats.level });
+                }
+                socket.emit('inventory', { stats: p.stats, inventory: p.inventory, equipment: p.equipment });
                 delete liveWorld.monsters[mobId]; setTimeout(() => { spawnMonster(); broadcastState(); }, 8000);
             }
             setTimeout(() => { p.isAttacking = false; }, 400);
@@ -160,13 +203,85 @@ io.on('connection', async (socket) => {
         p.stats.gold -= item.price; p.inventory.push({ ...item, itemId, uid: Date.now().toString() });
         socket.emit('inventory', { stats: p.stats, inventory: p.inventory, equipment: p.equipment });
     });
+    const RECIPES = {
+        wood_sword: { mats: { raw_wood: 3 }, gold: 10 },
+        novice_axe: { mats: { raw_wood: 2, raw_ore: 1 }, gold: 10 },
+        steel_broadsword: { mats: { raw_ore: 4, raw_wood: 2 }, gold: 30 },
+        flame_dagger: { mats: { demon_horn: 2, raw_ore: 2 }, gold: 35 },
+        battle_hammer: { mats: { ogre_bone: 3, raw_ore: 4 }, gold: 50 },
+        crystal_spear: { mats: { spider_silk: 3, skeleton_skull: 2 }, gold: 45 },
+        leather_armor: { mats: { raw_wood: 4, ogre_bone: 1 }, gold: 20 },
+        iron_plate: { mats: { raw_ore: 6 }, gold: 40 },
+        demon_carapace: { mats: { demon_horn: 3, skeleton_skull: 2 }, gold: 75 }
+    };
+    socket.on('craftItem', (itemId) => {
+        const recipe = RECIPES[itemId];
+        const targetItem = ITEMS[itemId];
+        if (!recipe || !targetItem) return;
+        if ((p.stats.gold || 0) < recipe.gold) {
+            return socket.emit('notice', 'Need more gold to forge this item!');
+        }
+        const counts = {};
+        p.inventory.forEach(it => { counts[it.itemId] = (counts[it.itemId] || 0) + 1; });
+        for (const [matId, req] of Object.entries(recipe.mats)) {
+            if ((counts[matId] || 0) < req) {
+                const matName = ITEMS[matId] ? ITEMS[matId].name : matId;
+                return socket.emit('notice', `Missing materials: need ${req}x ${matName}`);
+            }
+        }
+        for (const [matId, req] of Object.entries(recipe.mats)) {
+            let toRemove = req;
+            for (let i = p.inventory.length - 1; i >= 0 && toRemove > 0; i--) {
+                if (p.inventory[i].itemId === matId) {
+                    p.inventory.splice(i, 1);
+                    toRemove--;
+                }
+            }
+        }
+        p.stats.gold -= recipe.gold;
+        p.inventory.push({ ...targetItem, itemId, uid: Date.now().toString() });
+        socket.emit('notice', `✨ Successfully forged ${targetItem.name}!`);
+        socket.emit('inventory', { stats: p.stats, inventory: p.inventory, equipment: p.equipment });
+        broadcastState();
+    });
     socket.on('equipItem', (uid) => {
         const item = p.inventory.find(i => i.uid === uid);
-        if (item && item.type === 'weapon') { p.equipment.weapon = item; socket.emit('inventory', { stats: p.stats, inventory: p.inventory, equipment: p.equipment }); }
+        if (item) {
+            if (item.type === 'weapon') {
+                p.equipment.weapon = item;
+            } else if (item.type === 'armor') {
+                p.equipment.armor = item;
+                const bonus = item.hpBonus || 0;
+                p.stats.hp = Math.min(p.stats.hp + bonus, p.stats.maxHp + bonus);
+            }
+            socket.emit('inventory', { stats: p.stats, inventory: p.inventory, equipment: p.equipment });
+            broadcastState();
+        }
+    });
+    socket.on('unequipItem', (slot) => {
+        if (p.equipment && p.equipment[slot]) {
+            const unequipped = p.equipment[slot];
+            p.equipment[slot] = null;
+            if (slot === 'armor' && unequipped.hpBonus) {
+                p.stats.hp = Math.min(p.stats.hp, p.stats.maxHp);
+            }
+            socket.emit('inventory', { stats: p.stats, inventory: p.inventory, equipment: p.equipment });
+            broadcastState();
+        }
+    });
+    socket.on('sellItem', (index) => {
+        if (index >= 0 && index < p.inventory.length) {
+            const item = p.inventory[index];
+            p.stats.gold += (item.sellValue || 5);
+            p.inventory.splice(index, 1);
+            socket.emit('inventory', { stats: p.stats, inventory: p.inventory, equipment: p.equipment });
+            broadcastState();
+        }
     });
     socket.on('sellAll', () => {
         let total = 0; p.inventory = p.inventory.filter(it => { if (it.type === 'material') { total += (it.sellValue || 5); return false; } return true; });
         p.stats.gold += total; socket.emit('inventory', { stats: p.stats, inventory: p.inventory, equipment: p.equipment });
+        broadcastState();
     });
     socket.on('clearInventory', () => { p.inventory = []; socket.emit('inventory', { stats: p.stats, inventory: p.inventory, equipment: p.equipment }); });
     socket.on('disconnect', async () => { await db.saveUser(p.username, { stats: p.stats, inventory: p.inventory, equipment: p.equipment }); delete liveWorld.players[socket.id]; });
@@ -180,7 +295,23 @@ setInterval(() => {
         if (nearest) {
             const dx = nearest.stats.pos.x - m.x, dz = nearest.stats.pos.z - m.z;
             if (minDist > 2) { m.x += (dx/minDist)*0.18; m.z += (dz/minDist)*0.18; }
-            else if (Date.now() > m.atkCd) { nearest.stats.hp -= MONSTER_TYPES[m.type].dmg; m.atkCd = Date.now() + 1500; if (nearest.stats.hp <= 0) { nearest.dead = true; nearest.stats.hp = 0; setTimeout(() => { nearest.dead = false; nearest.stats.hp = nearest.stats.maxHp; nearest.stats.pos = {x:0,z:0}; }, 4000); } }
+            else if (Date.now() > m.atkCd) {
+                const baseMobDmg = MONSTER_TYPES[m.type].dmg;
+                const def = (nearest.equipment && nearest.equipment.armor && nearest.equipment.armor.defense) ? nearest.equipment.armor.defense : 0;
+                const netDmg = Math.max(2, baseMobDmg - def);
+                nearest.stats.hp -= netDmg;
+                m.atkCd = Date.now() + 1500;
+                const effectiveMaxHp = nearest.stats.maxHp + ((nearest.equipment && nearest.equipment.armor && nearest.equipment.armor.hpBonus) ? nearest.equipment.armor.hpBonus : 0);
+                if (nearest.stats.hp <= 0) { 
+                    nearest.dead = true; 
+                    nearest.stats.hp = 0; 
+                    setTimeout(() => { 
+                        nearest.dead = false; 
+                        nearest.stats.hp = effectiveMaxHp; 
+                        nearest.stats.pos = {x:0,z:0}; 
+                    }, 4000); 
+                } 
+            }
         }
     });
     broadcastState();
