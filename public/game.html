@@ -261,6 +261,47 @@
     #chat-panel.collapsed .chat-log, #chat-panel.collapsed .chat-input-row {
       display: none;
     }
+
+    /* Combat Log Overlay */
+    #combat-log-panel {
+      position: absolute; bottom: 20px; right: 24px;
+      width: 320px; height: 180px;
+      background: transparent; pointer-events: none;
+      display: flex; flex-direction: column; justify-content: flex-end;
+      z-index: 60; overflow: hidden;
+    }
+    .clog-entry {
+      font-family: monospace; font-size: 13px; margin-top: 4px;
+      text-shadow: 1px 1px 2px #000, -1px -1px 2px #000, 1px -1px 2px #000, -1px 1px 2px #000;
+      animation: slideUpFadeOut 5s forwards; line-height: 1.2;
+    }
+    .clog-out { color: #facc15; }
+    .clog-in { color: #f87171; }
+    .clog-lvl { color: #34d399; font-weight: bold; }
+    @keyframes slideUpFadeOut {
+      0% { opacity: 0; transform: translateY(10px); }
+      10% { opacity: 1; transform: translateY(0); }
+      80% { opacity: 1; transform: translateY(0); }
+      100% { opacity: 0; transform: translateY(-10px); }
+    }
+
+    /* Party Overlay System */
+    #party-panel {
+      position: absolute; top: 80px; left: 16px;
+      width: 220px;
+      background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 12px;
+      padding: 12px; display: flex; flex-direction: column; gap: 8px;
+      z-index: 55;
+    }
+    .party-member {
+      background: rgba(0, 0, 0, 0.4); border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 8px; padding: 6px 8px;
+    }
+    .party-name { font-size: 11px; font-weight: 700; color: #e2e8f0; margin-bottom: 4px; display: flex; justify-content: space-between; }
+    .party-hp-bg { width: 100%; height: 6px; background: rgba(0, 0, 0, 0.6); border-radius: 3px; overflow: hidden; }
+    .party-hp-fill { height: 100%; background: #ef4444; width: 100%; transition: width 0.2s; }
+    
     .chat-header {
       display: flex; align-items: center; justify-content: space-between;
       padding: 6px 12px; background: rgba(0, 0, 0, 0.35);
@@ -339,6 +380,37 @@
       border-radius: 16px; padding: 16px;
       display: none; box-shadow: 0 20px 50px rgba(0, 0, 0, 0.85);
       z-index: 75;
+    }
+    #stats-ui {
+      position: absolute; right: 500px; top: 16px;
+      width: 280px; max-height: calc(100vh - 120px); overflow-y: auto;
+      background: linear-gradient(165deg, rgba(15, 23, 42, 0.96), rgba(9, 14, 26, 0.98));
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-top: 1px solid rgba(52, 211, 153, 0.4);
+      border-radius: 16px; padding: 16px;
+      display: none; box-shadow: 0 20px 50px rgba(0, 0, 0, 0.85);
+      z-index: 75;
+      color: #f8fafc;
+    }
+    .stat-row {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 8px 10px; background: rgba(0, 0, 0, 0.25);
+      border-radius: 8px; margin-bottom: 8px;
+    }
+    .stat-label { font-size: 12px; font-weight: 700; color: #94a3b8; }
+    .stat-val { font-size: 14px; font-weight: 800; color: #e2e8f0; display: flex; align-items: center; gap: 8px; }
+    .btn-stat-add {
+      background: rgba(52, 211, 153, 0.2); border: 1px solid #34d399;
+      color: #34d399; border-radius: 4px; width: 22px; height: 22px;
+      font-size: 14px; font-weight: 800; cursor: pointer; display: flex;
+      align-items: center; justify-content: center; line-height: 1;
+      transition: all 0.15s;
+    }
+    .btn-stat-add:hover { background: #34d399; color: #000; }
+    .btn-stat-add:disabled {
+      background: rgba(255, 255, 255, 0.05); border: 1px solid rgba(255, 255, 255, 0.1);
+      color: rgba(255, 255, 255, 0.2); cursor: not-allowed;
     }
     .panel-title {
       font-family: 'Cinzel', serif; font-size: 16px; font-weight: 700;
@@ -694,6 +766,33 @@
 <body>
   <div id="screen-vignette"></div>
 
+  <!-- Admin UI -->
+  <button id="btn-admin" onclick="toggleAdminPanel()" style="display:none; position:absolute; top: 16px; left: 50%; transform: translateX(-50%); background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.5); color: #fca5a5; font-size: 11px; font-weight: 800; padding: 6px 16px; border-radius: 8px; cursor: pointer; box-shadow: 0 4px 12px rgba(220, 38, 38, 0.2); z-index: 10;">👑 ADMIN DASHBOARD</button>
+  
+  <div id="admin-ui" style="display:none; position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); width:320px; background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(16px); border: 1px solid rgba(239, 68, 68, 0.4); border-radius: 12px; padding: 16px; color: #f8fafc; z-index: 100; box-shadow: 0 12px 40px rgba(0,0,0,0.6);">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 8px;">
+      <div style="font-size: 14px; font-weight: 800; color: #ef4444; letter-spacing: 0.5px;">👑 ADMIN CONSOLE</div>
+      <button onclick="toggleAdminPanel()" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:#94a3b8; width:22px; height:22px; border-radius:6px; cursor:pointer; font-weight: 700;">✕</button>
+    </div>
+    
+    <div style="margin-bottom: 16px;">
+      <div style="font-size: 10px; font-weight: 700; color: #94a3b8; margin-bottom: 6px;">ADD GOLD</div>
+      <div style="display:flex; gap: 8px;">
+        <input type="number" id="admin-gold-amt" value="10000" style="flex:1; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; color: #f8fafc; padding: 6px; font-family: monospace;">
+        <button onclick="adminGiveGold()" style="background: rgba(234, 179, 8, 0.2); border: 1px solid #eab308; color: #fde047; padding: 0 12px; border-radius: 6px; font-weight: 700; cursor: pointer;">Add</button>
+      </div>
+    </div>
+    
+    <div>
+      <div style="font-size: 10px; font-weight: 700; color: #94a3b8; margin-bottom: 6px;">ADD GEAR (Item ID)</div>
+      <div style="display:flex; gap: 8px;">
+        <input type="text" id="admin-gear-id" placeholder="e.g. celestial_greatsword" style="flex:1; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; color: #f8fafc; padding: 6px; font-family: monospace;">
+        <button onclick="adminGiveGear()" style="background: rgba(168, 85, 247, 0.2); border: 1px solid #a855f7; color: #d8b4fe; padding: 0 12px; border-radius: 6px; font-weight: 700; cursor: pointer;">Spawn</button>
+      </div>
+      <div style="font-size: 9.5px; color: #64748b; margin-top: 6px; line-height: 1.4;">Hint: Try `celestial_greatsword`, `master_relic_blade`, `demon_carapace`, `void_shard`</div>
+    </div>
+  </div>
+
   <!-- Zone Discovery Overlay Banner -->
   <div id="zone-banner">
     <div id="zone-banner-icon" class="zone-banner-icon">🛡️</div>
@@ -733,6 +832,9 @@
       </div>
       <button id="btn-portal-exit" onclick="exitToPortal()" title="Return to Login Portal / Switch Account" style="background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.16); color: #cbd5e1; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 4px; transition: all 0.2s ease;">
         <span>🚪</span><span>Portal</span>
+      </button>
+      <button id="btn-logout" onclick="logoutGame()" title="Logout and clear credentials" style="background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.3); color: #fca5a5; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 4px; transition: all 0.2s ease; margin-left: 4px;">
+        <span>⏏️</span><span>Logout</span>
       </button>
     </div>
     <!-- Zone Location & Level Recommendation HUD Pill -->
@@ -812,6 +914,32 @@
     <div><b>[Q]/[E]</b>: Zoom &bull; <b>[Enter]</b>: Chat &bull; <b>[B]</b>: Bag &bull; <b>[P]</b>: Forge &bull; <b>[M]</b>: Map</div>
   </div>
 
+  <!-- Party HUD Panel -->
+  <div id="party-panel" style="display:none;">
+    <div style="font-size: 10px; font-weight: 800; color: #94a3b8; margin-bottom: 8px; display: flex; justify-content: space-between;">
+      <span>PARTY</span>
+      <button onclick="leaveParty()" style="background:transparent; border:none; color:#ef4444; font-size:10px; cursor:pointer; font-weight:700;">Leave</button>
+    </div>
+    
+    <div style="display:flex; gap: 4px; margin-bottom: 12px;">
+      <input type="text" id="party-invite-name" placeholder="Player Name" style="flex:1; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; color: #f8fafc; padding: 4px; font-size: 11px;">
+      <button onclick="inviteParty()" style="background: rgba(56, 189, 248, 0.2); border: 1px solid #38bdf8; color: #bae6fd; padding: 0 8px; border-radius: 4px; font-size: 11px; cursor: pointer;">Invite</button>
+    </div>
+    
+    <div id="party-list"></div>
+  </div>
+
+  <div id="party-invite-popup" style="display:none; position:absolute; top: 80px; left: 50%; transform: translateX(-50%); background: rgba(15, 23, 42, 0.95); border: 1px solid #38bdf8; border-radius: 8px; padding: 12px; z-index: 90; text-align: center; box-shadow: 0 8px 32px rgba(0,0,0,0.8);">
+    <div style="color: #f8fafc; font-size: 13px; margin-bottom: 8px;"><b id="party-invite-from" style="color: #38bdf8;">Name</b> invited you to a party!</div>
+    <div style="display:flex; gap: 8px; justify-content: center;">
+      <button onclick="acceptParty()" style="background: #34d399; color: #000; border:none; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-weight: bold;">Accept</button>
+      <button onclick="declineParty()" style="background: #ef4444; color: #fff; border:none; padding: 4px 12px; border-radius: 4px; cursor: pointer; font-weight: bold;">Decline</button>
+    </div>
+  </div>
+
+  <!-- Combat Log Overlay -->
+  <div id="combat-log-panel"></div>
+
   <!-- Public Chat Docked System -->
   <div id="chat-panel">
     <div class="chat-header">
@@ -850,6 +978,14 @@
       <span style="font-size: 20px;">🎒</span>
       <span class="h-slot-key">B</span>
     </div>
+    <div class="h-slot" title="Party & Social [Y]" onclick="togglePartyWindow()">
+      <span style="font-size: 20px;">👥</span>
+      <span class="h-slot-key">Y</span>
+    </div>
+    <div class="h-slot" title="Character Stats [C]" onclick="toggleStats()">
+      <span style="font-size: 20px;">👤</span>
+      <span class="h-slot-key">C</span>
+    </div>
     <div class="h-slot" title="Village Blacksmith & Forge [P]" onclick="toggleShop()">
       <span style="font-size: 20px;">🔨</span>
       <span class="h-slot-key">P</span>
@@ -857,6 +993,48 @@
     <div class="h-slot" title="Expand Minimap [M]" onclick="toggleExpandMap()">
       <span style="font-size: 20px;">🗺️</span>
       <span class="h-slot-key">M</span>
+    </div>
+  </div>
+
+  <!-- Character Stats -->
+  <div id="stats-ui">
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+      <div class="panel-title" style="margin-bottom:0;">CHARACTER STATS</div>
+      <button onclick="toggleStats()" title="Close Stats [C]" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:#94a3b8; width:22px; height:22px; border-radius:6px; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; transition:all 0.15s;">✕</button>
+    </div>
+    
+    <div style="background: rgba(0,0,0,0.3); padding: 8px; border-radius: 8px; margin-bottom: 16px; text-align: center; border: 1px solid rgba(255,255,255,0.05);">
+      <div style="font-size: 11px; color: #94a3b8; font-weight: 700; text-transform: uppercase;">Available Points</div>
+      <div id="ui-stat-pts" style="font-size: 24px; font-weight: 800; color: #34d399; margin-top: 4px;">0</div>
+    </div>
+
+    <div class="stat-row">
+      <div class="stat-label" title="Increases base attack damage">Strength</div>
+      <div class="stat-val">
+        <span id="ui-stat-str">1</span>
+        <button class="btn-stat-add" id="btn-add-str" onclick="allocateStat('strength')">+</button>
+      </div>
+    </div>
+    <div class="stat-row">
+      <div class="stat-label" title="Increases max health points">Vitality</div>
+      <div class="stat-val">
+        <span id="ui-stat-vit">1</span>
+        <button class="btn-stat-add" id="btn-add-vit" onclick="allocateStat('vitality')">+</button>
+      </div>
+    </div>
+    <div class="stat-row">
+      <div class="stat-label" title="Increases movement speed">Agility</div>
+      <div class="stat-val">
+        <span id="ui-stat-agi">1</span>
+        <button class="btn-stat-add" id="btn-add-agi" onclick="allocateStat('agility')">+</button>
+      </div>
+    </div>
+    <div class="stat-row">
+      <div class="stat-label" title="Reduces damage taken from enemies">Defense</div>
+      <div class="stat-val">
+        <span id="ui-stat-def">1</span>
+        <button class="btn-stat-add" id="btn-add-def" onclick="allocateStat('defense')">+</button>
+      </div>
     </div>
   </div>
 
@@ -1048,12 +1226,19 @@
       console.warn('Storage read note:', e);
     }
 
+    if (!token) {
+      alert('Authentication required. Only registered accounts can access the game.');
+      window.location.href = '/';
+    }
+
     let socket, myId = null;
+    let myStats = null;
     let currentLatestState = null;
     let minimapZoom = 1.0; // scale factor
     let isMinimapExpanded = false;
 
     function initSocket() {
+      if (!token) return;
       socket = io({ auth: { token } });
 
       socket.on('connect', () => {
@@ -1061,12 +1246,16 @@
       });
 
       socket.on('connect_error', (err) => {
-        console.warn('Socket connect warning, continuing as guest...', err);
-        dismissLoadingScreen();
+        alert(err.message || 'Authentication error. Please log in with a registered account.');
+        try { localStorage.removeItem('ir_token'); } catch(e){}
+        window.location.href = '/';
       });
 
       socket.on('init', (d) => {
         myId = d.socketId;
+        if (d.role === 'admin') {
+          document.getElementById('btn-admin').style.display = 'block';
+        }
         if (d.username) dismissLoadingScreen(d.username);
         else dismissLoadingScreen();
       });
@@ -1108,10 +1297,36 @@
       socket.on('state', (st) => {
         currentLatestState = st;
         handleState(st);
+        if (currentParty && currentParty.length > 0) renderParty();
+      });
+      
+      socket.on('partyInviteReq', (d) => {
+        pendingInvite = d.from;
+        document.getElementById('party-invite-from').innerText = d.from;
+        document.getElementById('party-invite-popup').style.display = 'block';
+      });
+
+      socket.on('partyUpdate', (members) => {
+        currentParty = members || [];
+        renderParty();
       });
 
       socket.on('inventory', (d) => {
         renderInventory(d);
+      });
+
+      socket.on('combatLog', (d) => {
+        if (!d || !d.msg) return;
+        const panel = document.getElementById('combat-log-panel');
+        if (!panel) return;
+        const entry = document.createElement('div');
+        entry.className = `clog-entry ${d.type === 'dmg_in' ? 'clog-in' : (d.type === 'dmg_out' ? 'clog-out' : 'clog-lvl')}`;
+        entry.innerText = d.msg;
+        panel.appendChild(entry);
+        if (panel.children.length > 8) {
+          panel.removeChild(panel.firstChild);
+        }
+        setTimeout(() => { if (entry.parentElement) entry.remove(); }, 5000);
       });
 
       socket.on('notice', (m) => {
@@ -3384,6 +3599,16 @@
         // Health bar update
         const hpBg = mesh.children.find(c => c.name === "HPBG");
         if (hpBg) {
+          const myPlayerMesh = meshes.players[myId];
+          let distToPlayer = Infinity;
+          if (myPlayerMesh) {
+            distToPlayer = mesh.position.distanceTo(myPlayerMesh.position);
+          }
+          
+          // Show health bar if within range (35 for bosses, 20 for regular mobs)
+          const visRange = m.isBoss ? 35 : 20;
+          hpBg.visible = distToPlayer <= visRange;
+
           hpBg.lookAt(camera.position);
           const hpFill = hpBg.children.find(c => c.name === "HPFILL");
           if (hpFill) {
@@ -3547,6 +3772,27 @@
 
     function renderInventory(d) {
       latestInventoryData = d;
+      if (d.stats) {
+        myStats = d.stats; // Save local copy to use for speed multiplier
+        
+        // Update Stats UI
+        const pts = d.stats.statPoints || 0;
+        document.getElementById('ui-stat-pts').innerText = pts;
+        document.getElementById('ui-stat-str').innerText = d.stats.strength || 1;
+        document.getElementById('ui-stat-vit').innerText = d.stats.vitality || 1;
+        document.getElementById('ui-stat-agi').innerText = d.stats.agility || 1;
+        document.getElementById('ui-stat-def').innerText = d.stats.defense || 1;
+        
+        const btnStr = document.getElementById('btn-add-str');
+        const btnVit = document.getElementById('btn-add-vit');
+        const btnAgi = document.getElementById('btn-add-agi');
+        const btnDef = document.getElementById('btn-add-def');
+        
+        if (btnStr) btnStr.disabled = (pts <= 0);
+        if (btnVit) btnVit.disabled = (pts <= 0);
+        if (btnAgi) btnAgi.disabled = (pts <= 0);
+        if (btnDef) btnDef.disabled = (pts <= 0);
+      }
 
       // Update equipped gear boxes
       const wep = d.equipment ? d.equipment.weapon : null;
@@ -3882,9 +4128,96 @@
       });
     }
 
+    function toggleStats() {
+      const s = document.getElementById('stats-ui');
+      s.style.display = s.style.display === 'none' || s.style.display === '' ? 'block' : 'none';
+    }
+
+    function togglePartyWindow() {
+      const p = document.getElementById('party-panel');
+      p.style.display = p.style.display === 'none' || p.style.display === '' ? 'flex' : 'none';
+    }
+
+    let currentParty = [];
+    let pendingInvite = null;
+
+    function inviteParty() {
+      const name = document.getElementById('party-invite-name').value.trim();
+      if (name) {
+        socket.emit('partyInvite', name);
+        document.getElementById('party-invite-name').value = '';
+      }
+    }
+
+    function acceptParty() {
+      if (pendingInvite) {
+        socket.emit('partyAccept', pendingInvite);
+        pendingInvite = null;
+        document.getElementById('party-invite-popup').style.display = 'none';
+      }
+    }
+
+    function declineParty() {
+      pendingInvite = null;
+      document.getElementById('party-invite-popup').style.display = 'none';
+    }
+
+    function leaveParty() {
+      socket.emit('partyLeave');
+      document.getElementById('party-panel').style.display = 'none';
+    }
+
+    function renderParty() {
+      const pList = document.getElementById('party-list');
+      if (!currentParty || currentParty.length === 0) {
+        pList.innerHTML = '<div style="color:#64748b; font-size:11px; text-align:center;">You are not in a party.</div>';
+        return;
+      }
+      document.getElementById('party-panel').style.display = 'flex';
+      let html = '';
+      currentParty.forEach(name => {
+        let hp = 0; let maxHp = 1; let level = 1;
+        // Find player in current state
+        if (currentLatestState && currentLatestState.players) {
+          const pData = currentLatestState.players.find(p => p.username === name);
+          if (pData) {
+            hp = pData.hp; maxHp = pData.maxHp; level = pData.level;
+          }
+        }
+        const pct = Math.max(0, Math.min(100, (hp / maxHp) * 100));
+        html += `
+          <div class="party-member">
+            <div class="party-name"><span>${name}</span> <span style="color:#94a3b8">Lv.${level}</span></div>
+            <div class="party-hp-bg"><div class="party-hp-fill" style="width: ${pct}%"></div></div>
+          </div>
+        `;
+      });
+      pList.innerHTML = html;
+    }
+
+    function allocateStat(statName) {
+      socket.emit('allocateStat', statName);
+    }
+
     function toggleBag() {
       const b = document.getElementById('inv-ui');
       b.style.display = b.style.display === 'none' || b.style.display === '' ? 'block' : 'none';
+    }
+
+    function toggleAdminPanel() {
+      const p = document.getElementById('admin-ui');
+      p.style.display = p.style.display === 'none' || p.style.display === '' ? 'block' : 'none';
+    }
+
+    function adminGiveGold() {
+      const amt = parseInt(document.getElementById('admin-gold-amt').value) || 0;
+      socket.emit('adminCommand', { type: 'addGold', amount: amt });
+    }
+
+    function adminGiveGear() {
+      const id = document.getElementById('admin-gear-id').value.trim();
+      if (!id) return;
+      socket.emit('adminCommand', { type: 'addGear', itemId: id });
     }
 
     function toggleShop() {
@@ -3918,6 +4251,8 @@
         activeKeys['shift'] = true;
       }
       if (key === 'b') toggleBag();
+      if (key === 'y') togglePartyWindow();
+      if (key === 'c') toggleStats();
       if (key === 'p') toggleShop();
       if (key === 'm') toggleExpandMap();
       if (key === 'q') cameraDistance = Math.min(55, cameraDistance + 3);
@@ -3974,7 +4309,7 @@
         return;
       }
       if (e.target !== document.body && e.target.tagName !== 'CANVAS') return;
-      if (e.target.closest('#minimap-container, #ui-top, #hotbar, #inv-ui, #shop-ui, #controls-hint, #chat-panel')) return;
+      if (e.target.closest('#minimap-container, #ui-top, #hotbar, #inv-ui, #stats-ui, #shop-ui, #controls-hint, #chat-panel')) return;
 
       const mouse = new THREE.Vector2(
         (e.clientX / window.innerWidth) * 2 - 1,
@@ -4242,7 +4577,11 @@
           if (len > 0) { moveDirX /= len; moveDirZ /= len; }
           const pPos = meshes.players[myId].position;
           const isRunning = activeKeys['shift'] || activeKeys['Shift'] || (window.event && window.event.shiftKey);
-          const speedMultiplier = isRunning ? 2.6 : 1.0;
+          let agiMod = 1.0;
+          if (myStats && myStats.agility) {
+             agiMod += (myStats.agility - 1) * 0.05; // 5% speed per agility point
+          }
+          const speedMultiplier = (isRunning ? 2.6 : 1.0) * agiMod;
           const step = 9.0 * delta * 7 * speedMultiplier;
           socket.emit('move', { x: pPos.x + moveDirX * step, z: pPos.z + moveDirZ * step });
         }

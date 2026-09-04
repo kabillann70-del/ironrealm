@@ -4,26 +4,45 @@
     <title>IronRealm Admin Dashboard</title>
     <style>
         body { background: #111; color: #eee; font-family: sans-serif; padding: 20px; }
-        h1 { color: #5a5; border-bottom: 2px solid #333; padding-bottom: 10px; }
+        h1 { color: #5a5; border-bottom: 2px solid #333; padding-bottom: 10px; display: flex; justify-content: space-between; align-items: center; }
+        .back-btn { font-size: 13px; background: #333; color: #fff; padding: 6px 12px; border-radius: 4px; text-decoration: none; font-weight: normal; }
+        .back-btn:hover { background: #444; }
         table { width: 100%; border-collapse: collapse; margin-top: 20px; background: #222; }
         th, td { padding: 12px; text-align: left; border-bottom: 1px solid #333; }
         th { background: #333; color: #5a5; }
         tr:hover { background: #2a2a2a; }
-        .error { color: #ff4d4d; background: rgba(255,0,0,0.1); padding: 10px; border-radius: 5px; display: none; }
+        .error { color: #ff4d4d; background: rgba(255,0,0,0.1); padding: 10px; border-radius: 5px; display: none; margin-bottom: 10px; }
+        .success { color: #4dff88; background: rgba(0,255,100,0.1); padding: 10px; border-radius: 5px; display: none; margin-bottom: 10px; }
+        .btn { padding: 5px 10px; font-size: 11px; cursor: pointer; border: none; border-radius: 4px; margin-right: 4px; color: #fff; font-weight: bold; transition: opacity 0.2s; }
+        .btn:hover { opacity: 0.85; }
+        .btn-kick { background: #eab308; color: #000; }
+        .btn-ban { background: #ef4444; }
+        .btn-unban { background: #22c55e; color: #fff; }
+        .btn-delete { background: #dc2626; color: #fff; border: 1px solid #f87171; }
+        .btn-gold { background: #eab308; color: #000; }
+        .btn-xp { background: #3b82f6; }
+        .btn-reset { background: #64748b; }
+        .action-row { margin-top: 4px; display: flex; gap: 4px; flex-wrap: wrap; }
     </style>
 </head>
 <body>
-    <h1>🛡️ IronRealm Admin Dashboard</h1>
+    <h1>
+        <span>🛡️ IronRealm Admin Dashboard</span>
+        <a href="/game.html" class="back-btn">🎮 Return to Game</a>
+    </h1>
     <div id="error-box" class="error"></div>
+    <div id="success-box" class="success"></div>
+
     <table id="player-table">
         <thead>
             <tr>
                 <th>Username</th>
-                <th>Role</th>
-                <th>Level</th>
+                <th>Role/Status</th>
+                <th>Level / XP</th>
                 <th>Gold</th>
                 <th>Health</th>
                 <th>Position</th>
+                <th>Actions</th>
             </tr>
         </thead>
         <tbody id="player-list"></tbody>
@@ -32,6 +51,44 @@
     <script>
         const token = localStorage.getItem('ir_token');
 
+        function showMessage(msg, isError = false) {
+            const errBox = document.getElementById('error-box');
+            const succBox = document.getElementById('success-box');
+            if (isError) {
+                errBox.style.display = 'block';
+                errBox.innerText = msg;
+                succBox.style.display = 'none';
+            } else {
+                succBox.style.display = 'block';
+                succBox.innerText = msg;
+                errBox.style.display = 'none';
+                setTimeout(() => { succBox.style.display = 'none'; }, 3000);
+            }
+        }
+
+        async function adminAction(user, action, amount = 0) {
+            try {
+                const res = await fetch('/api/admin/action', {
+                    method: 'POST',
+                    headers: { 
+                        'Authorization': 'Bearer ' + token,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ targetUser: user, action, amount })
+                });
+                const data = await res.json();
+                if (!res.ok || data.error) {
+                    showMessage("Error: " + (data.error || res.statusText), true);
+                } else {
+                    showMessage(`✅ Success: ${data.message || 'Action completed'}`);
+                    loadPlayers();
+                }
+            } catch(e) {
+                console.error("Admin action error:", e);
+                showMessage("Failed to connect to server: " + e.message, true);
+            }
+        }
+
         async function loadPlayers() {
             try {
                 const res = await fetch('/api/admin/players', {
@@ -39,9 +96,8 @@
                 });
 
                 if (!res.ok) {
-                    const errorData = await res.json();
-                    document.getElementById('error-box').style.display = 'block';
-                    document.getElementById('error-box').innerText = "Access Denied: " + errorData.error;
+                    const errorData = await res.json().catch(() => ({ error: res.statusText }));
+                    showMessage("Access Denied: " + (errorData.error || 'Unauthorized'), true);
                     return;
                 }
 
@@ -51,23 +107,54 @@
 
                 players.forEach(p => {
                     const tr = document.createElement('tr');
+                    const stats = p.stats || {};
+                    const level = stats.level || 1;
+                    const xp = stats.xp || 0;
+                    const gold = stats.gold || 0;
+                    const hp = stats.hp || 100;
+                    const maxHp = stats.maxHp || 100;
+                    const posX = (stats.pos && typeof stats.pos.x === 'number') ? stats.pos.x.toFixed(1) : '0.0';
+                    const posZ = (stats.pos && typeof stats.pos.z === 'number') ? stats.pos.z.toFixed(1) : '0.0';
+                    const reqXp = Math.floor(100 * Math.pow(1.35, level - 1));
+
+                    const safeName = p.username.replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+
                     tr.innerHTML = `
                         <td><strong>${p.username}</strong></td>
-                        <td>${p.role}</td>
-                        <td>${p.stats.level}</td>
-                        <td>💰 ${p.stats.gold}</td>
-                        <td>❤️ ${p.stats.hp} / ${p.stats.maxHp}</td>
-                        <td>X: ${p.stats.pos.x.toFixed(1)}, Z: ${p.stats.pos.z.toFixed(1)}</td>
+                        <td>${p.role} ${p.banned ? '<span style="color:#ef4444; font-weight:bold;">(BANNED)</span>' : ''}</td>
+                        <td>Lv.${level} <div style="font-size:10px; color:#888;">${xp} / ${reqXp} XP</div></td>
+                        <td>💰 ${gold}</td>
+                        <td>❤️ ${hp} / ${maxHp}</td>
+                        <td>X: ${posX}, Z: ${posZ}</td>
+                        <td>
+                            <div class="action-row">
+                                <button class="btn btn-kick" onclick="adminAction('${safeName}', 'kick')">Kick</button>
+                                ${p.banned 
+                                    ? `<button class="btn btn-unban" onclick="adminAction('${safeName}', 'unban')">Unban</button>`
+                                    : `<button class="btn btn-ban" onclick="adminAction('${safeName}', 'ban')">Ban</button>`
+                                }
+                                <button class="btn btn-delete" onclick="adminAction('${safeName}', 'delete')">🗑️ Remove Player</button>
+                            </div>
+                            <div class="action-row">
+                                <button class="btn btn-gold" onclick="adminAction('${safeName}', 'addGold', 1000)">+1k Gold</button>
+                                <button class="btn btn-xp" onclick="adminAction('${safeName}', 'addXp', 500)">+500 XP</button>
+                            </div>
+                            <div class="action-row">
+                                <button class="btn btn-reset" onclick="adminAction('${safeName}', 'resetGold')">Reset Gold</button>
+                                <button class="btn btn-reset" onclick="adminAction('${safeName}', 'resetXp')">Reset XP</button>
+                            </div>
+                        </td>
                     `;
                     list.appendChild(tr);
                 });
             } catch (e) {
                 console.error("Fetch error:", e);
+                showMessage("Failed to load player list: " + e.message, true);
             }
         }
 
         if (!token) {
-            alert("No login found. Go to login page first.");
+            alert("No login token found. Please log in with an admin account first.");
             window.location.href = "/";
         } else {
             loadPlayers();

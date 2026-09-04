@@ -33,8 +33,12 @@ const saveLocalDb = () => {
 mongoose.set('bufferCommands', false);
 const userSchema = new mongoose.Schema({
   username: { type: String, required: true, unique: true },
+  email: { type: String, default: '' },
   passwordHash: { type: String, required: true },
   role: { type: String, default: 'player' },
+  banned: { type: Boolean, default: false },
+  resetToken: { type: String, default: null },
+  resetTokenExpiry: { type: Number, default: null },
   stats: {
     level: { type: Number, default: 1 },
     xp: { type: Number, default: 0 },
@@ -43,6 +47,11 @@ const userSchema = new mongoose.Schema({
     maxHp: { type: Number, default: 100 },
     baseDamage: { type: Number, default: 8 },
     kills: { type: Number, default: 0 },
+    statPoints: { type: Number, default: 0 },
+    strength: { type: Number, default: 1 },
+    vitality: { type: Number, default: 1 },
+    agility: { type: Number, default: 1 },
+    defense: { type: Number, default: 1 },
     pos: {
       x: { type: Number, default: 0 },
       z: { type: Number, default: 0 }
@@ -82,6 +91,19 @@ module.exports = {
     }
     return inMemoryUsers.get(username) || null;
   },
+  getUserByEmailOrUsername: async (query) => {
+    if (!query) return null;
+    const q = query.trim().toLowerCase();
+    if (isConnected) {
+      return User.findOne({ $or: [{ username: new RegExp('^' + q + '$', 'i') }, { email: q }] });
+    }
+    for (const u of inMemoryUsers.values()) {
+      if ((u.username && u.username.toLowerCase() === q) || (u.email && u.email.toLowerCase() === q)) {
+        return u;
+      }
+    }
+    return null;
+  },
   createUser: async (data) => {
     if (isConnected) {
       return new User(data).save();
@@ -108,8 +130,17 @@ module.exports = {
     }
     return Array.from(inMemoryUsers.values());
   },
+  deleteUser: async (username) => {
+    if (isConnected) {
+      return User.deleteOne({ username });
+    }
+    inMemoryUsers.delete(username);
+    saveLocalDb();
+    return true;
+  },
   freshStats: () => ({
     level: 1, xp: 0, gold: 20, hp: 100, maxHp: 100, baseDamage: 8, kills: 0,
+    statPoints: 0, strength: 1, vitality: 1, agility: 1, defense: 1,
     pos: { x: (Math.random() - 0.5) * 10, z: (Math.random() - 0.5) * 10 }
   })
 };

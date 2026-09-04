@@ -20,23 +20,90 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // --- Auth Routes ---
 app.post('/api/register', async (req, res) => {
-    const { username, password } = req.body;
-    if (!username || !password) return res.status(400).json({ error: 'Missing fields' });
+    const { username, password, email } = req.body;
+    if (!username || !password) return res.status(400).json({ error: 'Missing username or password' });
     const existing = await db.getUser(username);
-    if (existing) return res.status(400).json({ error: 'Taken' });
+    if (existing) return res.status(400).json({ error: 'Username already taken' });
+    
+    const userEmail = email ? email.trim().toLowerCase() : '';
     const passwordHash = await bcrypt.hash(password, 10);
-    await db.createUser({ username, passwordHash, role: 'player', stats: db.freshStats(), inventory: [], equipment: { weapon: null } });
+    await db.createUser({ 
+        username, 
+        email: userEmail,
+        passwordHash, 
+        role: 'player', 
+        stats: db.freshStats(), 
+        inventory: [], 
+        equipment: { weapon: null } 
+    });
     res.json({ success: true });
 });
 
 app.post('/api/login', async (req, res) => {
     const { username, password } = req.body;
-    const user = await db.getUser(username);
-    if (!user || !await bcrypt.compare(password, user.passwordHash)) return res.status(400).json({ error: 'Invalid' });
+    const user = await db.getUserByEmailOrUsername(username);
+    if (!user || !await bcrypt.compare(password, user.passwordHash)) return res.status(400).json({ error: 'Invalid credentials' });
+    if (user.banned) return res.status(403).json({ error: 'You are banned from this server.' });
     
     // Include the role in the token so admin panel works
     const token = jwt.sign({ username: user.username, role: user.role }, JWT_SECRET);
     res.json({ token, username: user.username, role: user.role });
+});
+
+app.post('/api/forgot-password', async (req, res) => {
+    const { emailOrUsername } = req.body;
+    if (!emailOrUsername) return res.status(400).json({ error: 'Please enter your account username or email address.' });
+    
+    const user = await db.getUserByEmailOrUsername(emailOrUsername);
+    if (!user) return res.status(404).json({ error: 'No account found with that username or email address.' });
+    
+    // Generate 6-digit verification code
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiry = Date.now() + 15 * 60 * 1000; // 15 mins
+    
+    await db.saveUser(user.username, {
+        resetToken: code,
+        resetTokenExpiry: expiry
+    });
+    
+    let target = user.email || user.username;
+    res.json({
+        success: true,
+        message: `Verification email sent! Your 6-digit reset code is: ${code}`,
+        code: code,
+        targetUser: user.username,
+        email: target
+    });
+});
+
+app.post('/api/reset-password', async (req, res) => {
+    const { emailOrUsername, code, newPassword } = req.body;
+    if (!emailOrUsername || !code || !newPassword) {
+        return res.status(400).json({ error: 'Please fill in all required fields.' });
+    }
+    if (newPassword.length < 4) {
+        return res.status(400).json({ error: 'Password must be at least 4 characters long.' });
+    }
+    
+    const user = await db.getUserByEmailOrUsername(emailOrUsername);
+    if (!user) return res.status(404).json({ error: 'Account not found.' });
+    
+    if (!user.resetToken || user.resetToken !== code.trim()) {
+        return res.status(400).json({ error: 'Invalid verification code.' });
+    }
+    
+    if (!user.resetTokenExpiry || Date.now() > user.resetTokenExpiry) {
+        return res.status(400).json({ error: 'Verification code has expired. Please request a new one.' });
+    }
+    
+    const newPasswordHash = await bcrypt.hash(newPassword, 10);
+    await db.saveUser(user.username, {
+        passwordHash: newPasswordHash,
+        resetToken: null,
+        resetTokenExpiry: null
+    });
+    
+    res.json({ success: true, message: 'Password reset successful! You can now log in.' });
 });
 
 // Admin route with proper role check
@@ -56,6 +123,129 @@ app.get('/api/admin/players', async (req, res) => {
         res.json(users);
     } catch (e) {
         res.status(401).json({ error: 'Unauthorized session' });
+    }
+});
+
+app.post('/api/admin/action', async (req, res) => {
+    try {
+        const header = req.headers.authorization;
+        if (!header) return res.status(401).json({ error: 'No token' });
+        const token = header.replace('Bearer ', '');
+        let decoded;
+        try {
+            decoded = jwt.verify(token, JWT_SECRET);
+        } catch(err) {
+            return res.status(401).json({ error: 'Invalid token' });
+        }
+        if (decoded.role !== 'admin') return res.status(403).json({ error: 'Only admins allowed' });
+
+        const { targetUser, action, amount } = req.body;
+        if (!targetUser || !action) return res.status(400).json({ error: 'Missing parameters' });
+
+        const userRecord = await db.getUser(targetUser);
+        if (!userRecord && action !== 'delete' && action !== 'remove') return res.status(404).json({ error: 'User not found' });
+
+        const amt = parseInt(amount) || 0;
+        let pState = liveWorld.players ? Object.values(liveWorld.players).find(p => p.username === targetUser) : null;
+        let targetSocket = pState ? io.sockets.sockets.get(pState.socketId) : null;
+
+        switch (action) {
+            case 'kick':
+                if (targetSocket) {
+                    targetSocket.emit('notice', '🛑 You have been kicked by an admin.');
+                    targetSocket.disconnect(true);
+                }
+                if (pState) {
+                    delete liveWorld.players[pState.socketId];
+                    broadcastState();
+                }
+                break;
+            case 'ban':
+                if (userRecord) {
+                    userRecord.banned = true;
+                }
+                if (targetSocket) {
+                    targetSocket.emit('notice', '🛑 You have been BANNED by an admin.');
+                    targetSocket.disconnect(true);
+                }
+                if (pState) {
+                    delete liveWorld.players[pState.socketId];
+                    broadcastState();
+                }
+                break;
+            case 'unban':
+                if (userRecord) {
+                    userRecord.banned = false;
+                }
+                break;
+            case 'delete':
+            case 'remove':
+                if (targetSocket) {
+                    targetSocket.emit('notice', '🛑 Your character has been removed by an admin.');
+                    targetSocket.disconnect(true);
+                }
+                if (pState) {
+                    delete liveWorld.players[pState.socketId];
+                    broadcastState();
+                }
+                await db.deleteUser(targetUser);
+                return res.json({ success: true, message: `User ${targetUser} deleted.` });
+            case 'addGold':
+                if (pState) pState.stats.gold += amt;
+                if (userRecord) userRecord.stats.gold = (userRecord.stats.gold || 0) + amt;
+                if (targetSocket) targetSocket.emit('notice', `👑 Admin added ${amt} gold!`);
+                break;
+            case 'resetGold':
+                if (pState) pState.stats.gold = 0;
+                if (userRecord) userRecord.stats.gold = 0;
+                break;
+            case 'addXp':
+                if (pState) {
+                    pState.stats.xp += amt;
+                    let reqXp = xpForLevel(pState.stats.level || 1);
+                    while (pState.stats.xp >= reqXp) {
+                        pState.stats.xp -= reqXp;
+                        pState.stats.level = (pState.stats.level || 1) + 1;
+                        pState.stats.statPoints = (pState.stats.statPoints || 0) + 5;
+                        pState.stats.maxHp += 25;
+                        const armorHp = (pState.equipment && pState.equipment.armor && pState.equipment.armor.hpBonus) ? pState.equipment.armor.hpBonus : 0;
+                        pState.stats.hp = pState.stats.maxHp + armorHp;
+                        pState.stats.baseDamage = (pState.stats.baseDamage || 8) + 4;
+                        if (targetSocket) targetSocket.emit('notice', `⚔️ LEVEL UP! You reached Level ${pState.stats.level}!`);
+                        reqXp = xpForLevel(pState.stats.level || 1);
+                    }
+                }
+                if (userRecord) {
+                    userRecord.stats.xp = pState ? pState.stats.xp : ((userRecord.stats.xp || 0) + amt);
+                    userRecord.stats.level = pState ? pState.stats.level : (userRecord.stats.level || 1);
+                }
+                if (targetSocket) targetSocket.emit('notice', `👑 Admin added ${amt} XP!`);
+                break;
+            case 'resetXp':
+                if (pState) pState.stats.xp = 0;
+                if (userRecord) userRecord.stats.xp = 0;
+                break;
+            default:
+                return res.status(400).json({ error: 'Unknown action' });
+        }
+
+        if (userRecord) {
+            await db.saveUser(targetUser, {
+                stats: pState ? pState.stats : userRecord.stats,
+                inventory: pState ? pState.inventory : userRecord.inventory,
+                equipment: pState ? pState.equipment : userRecord.equipment,
+                banned: !!userRecord.banned
+            });
+        }
+
+        if (targetSocket && pState) {
+            targetSocket.emit('inventory', { stats: pState.stats, inventory: pState.inventory, equipment: pState.equipment });
+        }
+
+        res.json({ success: true, message: `Action ${action} performed on ${targetUser}` });
+    } catch (e) {
+        console.error('Admin action error:', e);
+        res.status(500).json({ error: e.message });
     }
 });
 
@@ -246,35 +436,27 @@ spawnWorldBoss();
 io.use(async (socket, next) => {
     try {
         const token = socket.handshake.auth && socket.handshake.auth.token;
-        if (token) {
-            try {
-                socket.user = jwt.verify(token, JWT_SECRET);
-                return next();
-            } catch (jwtErr) {
-                // Token expired/invalid, fallback below
-            }
+        if (!token) {
+            return next(new Error('Authentication required. Only registered accounts can log in.'));
         }
-        // Auto-assign guest user so preview and game load immediately
-        const guestName = 'Hero_' + Math.floor(Math.random() * 9000 + 1000);
-        let userRec = await db.getUser(guestName);
+        let decoded;
+        try {
+            decoded = jwt.verify(token, JWT_SECRET);
+        } catch (jwtErr) {
+            return next(new Error('Invalid or expired token. Please log in again.'));
+        }
+        const userRec = await db.getUser(decoded.username);
         if (!userRec) {
-            const guestPass = await bcrypt.hash('guestpass123', 10);
-            userRec = await db.createUser({
-                username: guestName,
-                passwordHash: guestPass,
-                role: 'player',
-                stats: db.freshStats(),
-                inventory: [],
-                equipment: { weapon: null, armor: null }
-            });
+            return next(new Error('Account not found. Please register an account.'));
         }
-        const guestToken = jwt.sign({ username: guestName, role: 'player' }, JWT_SECRET);
-        socket.user = { username: guestName, role: 'player' };
-        socket.pendingGuestToken = guestToken;
+        if (userRec.banned) {
+            return next(new Error('You are banned from this server.'));
+        }
+        socket.user = decoded;
         next();
     } catch (e) {
         console.warn('Socket auth middleware note:', e.message);
-        next();
+        next(new Error('Authentication error.'));
     }
 });
 
@@ -409,7 +591,7 @@ io.on('connection', async (socket) => {
         atkCd: 0 
     };
     liveWorld.players[socket.id] = p;
-    socket.emit('init', { socketId: socket.id, username: p.username });
+    socket.emit('init', { socketId: socket.id, username: p.username, role: p.role });
     if (socket.pendingGuestToken) {
         socket.emit('authSuccess', { token: socket.pendingGuestToken, username: p.username });
     }
@@ -494,6 +676,8 @@ io.on('connection', async (socket) => {
             mob.hp -= totalDmg; 
             mob.lastHit = Date.now(); 
             p.atkCd = Date.now() + 800;
+            
+            socket.emit('combatLog', { msg: `Hit ${MONSTER_TYPES[mob.type] ? MONSTER_TYPES[mob.type].name : mob.type} for ${totalDmg} dmg`, type: 'dmg_out' });
 
             const wepType = (p.equipment && p.equipment.weapon) ? p.equipment.weapon.weaponType : 'sword';
             const projType = (p.equipment && p.equipment.weapon && p.equipment.weapon.projectile) ? p.equipment.weapon.projectile : (wepType === 'bow' ? 'arrow' : (wepType === 'staff' ? 'fireball' : null));
@@ -522,10 +706,14 @@ io.on('connection', async (socket) => {
                 }
 
                 const goldGained = Math.floor(Math.random() * (mobDef.gold ? (mobDef.gold[1] - mobDef.gold[0]) : 20)) + (mobDef.gold ? mobDef.gold[0] : 15);
-                p.stats.gold += goldGained;
                 const xpGain = mobDef.xp || 30;
-                p.stats.xp = (p.stats.xp || 0) + xpGain;
-                p.stats.kills = (p.stats.kills || 0) + 1;
+
+                // Shared Party Experience
+                let partyMembers = [p];
+                if (p.partyId) {
+                    partyMembers = Object.values(liveWorld.players).filter(x => x.partyId === p.partyId);
+                }
+                const xpPerMember = Math.max(1, Math.floor(xpGain / partyMembers.length));
 
                 if (mob.type === 'void_emperor') {
                     io.emit('notice', `✨👑 [SUPREME COSMIC DEFEAT] Astraeus the Void Emperor was vanquished by ${p.username}! (+${goldGained.toLocaleString()}g, +${xpGain.toLocaleString()} XP)`);
@@ -537,19 +725,36 @@ io.on('connection', async (socket) => {
                     io.emit('notice', `⚔️ [MINI-BOSS DEFEATED] ${mobDef.name} was slain by ${p.username}! (+${goldGained.toLocaleString()}g)`);
                 }
 
-                const reqXp = xpForLevel(p.stats.level || 1);
-                if (p.stats.xp >= reqXp) {
-                    p.stats.xp -= reqXp;
-                    p.stats.level = (p.stats.level || 1) + 1;
-                    p.stats.maxHp += 25;
-                    const armorHp = (p.equipment && p.equipment.armor && p.equipment.armor.hpBonus) ? p.equipment.armor.hpBonus : 0;
-                    p.stats.hp = p.stats.maxHp + armorHp;
-                    p.stats.baseDamage = (p.stats.baseDamage || 8) + 4;
-                    socket.emit('notice', `⚔️ LEVEL UP! You reached Level ${p.stats.level}! (+25 HP, +4 Base DMG)`);
-                    io.emit('vfx', { type: 'levelup', x: p.stats.pos.x, z: p.stats.pos.z, level: p.stats.level });
-                }
+                partyMembers.forEach(member => {
+                    member.stats.xp = (member.stats.xp || 0) + xpPerMember;
+                    if (member === p) {
+                        member.stats.gold += goldGained; // Killer gets gold
+                        member.stats.kills = (member.stats.kills || 0) + 1;
+                    }
+                    
+                    const reqXp = xpForLevel(member.stats.level || 1);
+                    const mSocket = io.sockets.sockets.get(member.socketId);
+                    
+                    if (member.stats.xp >= reqXp) {
+                        member.stats.xp -= reqXp;
+                        member.stats.level = (member.stats.level || 1) + 1;
+                        member.stats.statPoints = (member.stats.statPoints || 0) + 5;
+                        member.stats.maxHp += 25;
+                        const armorHp = (member.equipment && member.equipment.armor && member.equipment.armor.hpBonus) ? member.equipment.armor.hpBonus : 0;
+                        member.stats.hp = member.stats.maxHp + armorHp;
+                        member.stats.baseDamage = (member.stats.baseDamage || 8) + 4;
+                        
+                        if (mSocket) {
+                            mSocket.emit('notice', `⚔️ LEVEL UP! You reached Level ${member.stats.level}! (+5 Stat Points, +25 HP, +4 Base DMG)`);
+                            mSocket.emit('combatLog', { msg: `LEVEL UP! Reached Lv.${member.stats.level}`, type: 'lvl_up' });
+                        }
+                        io.emit('vfx', { type: 'levelup', x: member.stats.pos.x, z: member.stats.pos.z, level: member.stats.level });
+                    }
+                    if (mSocket) {
+                        mSocket.emit('inventory', { stats: member.stats, inventory: member.inventory, equipment: member.equipment });
+                    }
+                });
 
-                socket.emit('inventory', { stats: p.stats, inventory: p.inventory, equipment: p.equipment });
                 delete liveWorld.monsters[mobId]; 
 
                 if (mob.type === 'boss_dragon' || mob.type === 'void_emperor') {
@@ -698,7 +903,116 @@ io.on('connection', async (socket) => {
         socket.emit('inventory', { stats: p.stats, inventory: p.inventory, equipment: p.equipment }); 
     });
 
+    socket.on('adminCommand', (data) => {
+        if (p.role !== 'admin') return;
+        if (data.type === 'addGold') {
+            p.stats.gold += (data.amount || 1000);
+            socket.emit('notice', `👑 Admin Command: Added ${data.amount || 1000} gold!`);
+        } else if (data.type === 'addGear') {
+            const itemDef = ITEMS[data.itemId];
+            if (itemDef) {
+                p.inventory.push({ ...itemDef, itemId: data.itemId, uid: Date.now().toString() + Math.random().toString() });
+                socket.emit('notice', `👑 Admin Command: Added gear [${itemDef.name}]!`);
+            } else {
+                socket.emit('notice', `❌ Admin Command: Item [${data.itemId}] not found.`);
+            }
+        }
+        socket.emit('inventory', { stats: p.stats, inventory: p.inventory, equipment: p.equipment });
+        broadcastState();
+    });
+
+    socket.on('allocateStat', (statName) => {
+        if (!p.stats.statPoints || p.stats.statPoints <= 0) return;
+        p.stats.strength = p.stats.strength || 1;
+        p.stats.vitality = p.stats.vitality || 1;
+        p.stats.agility = p.stats.agility || 1;
+        p.stats.defense = p.stats.defense || 1;
+
+        if (statName === 'strength') {
+            p.stats.strength++;
+            p.stats.baseDamage += 2;
+        } else if (statName === 'vitality') {
+            p.stats.vitality++;
+            p.stats.maxHp += 15;
+            p.stats.hp += 15;
+        } else if (statName === 'agility') {
+            p.stats.agility++;
+        } else if (statName === 'defense') {
+            p.stats.defense++;
+        } else {
+            return;
+        }
+        
+        p.stats.statPoints--;
+        socket.emit('inventory', { stats: p.stats, inventory: p.inventory, equipment: p.equipment });
+    });
+
+    socket.on('partyInvite', (targetName) => {
+        const target = Object.values(liveWorld.players).find(x => x.username.toLowerCase() === targetName.toLowerCase());
+        if (!target) return socket.emit('notice', `❌ Player '${targetName}' not found.`);
+        if (target.username === p.username) return socket.emit('notice', `❌ You cannot invite yourself.`);
+        if (target.partyId && target.partyId !== p.partyId) return socket.emit('notice', `❌ ${target.username} is already in a party.`);
+        
+        const targetSocket = io.sockets.sockets.get(target.socketId);
+        if (targetSocket) {
+            targetSocket.emit('partyInviteReq', { from: p.username });
+            socket.emit('notice', `📩 Invited ${target.username} to party.`);
+        }
+    });
+
+    socket.on('partyAccept', (inviterName) => {
+        const inviter = Object.values(liveWorld.players).find(x => x.username === inviterName);
+        if (!inviter) return;
+        if (!inviter.partyId) inviter.partyId = 'pty_' + Date.now() + Math.random().toString(36).substring(7);
+        p.partyId = inviter.partyId;
+        
+        const members = Object.values(liveWorld.players).filter(x => x.partyId === p.partyId);
+        const pData = members.map(m => m.username);
+        members.forEach(m => {
+            const ms = io.sockets.sockets.get(m.socketId);
+            if (ms) ms.emit('partyUpdate', pData);
+        });
+        socket.emit('notice', `✅ Joined ${inviterName}'s party.`);
+    });
+
+    socket.on('partyLeave', () => {
+        const oldParty = p.partyId;
+        p.partyId = null;
+        socket.emit('partyUpdate', []);
+        socket.emit('notice', `🚪 You left the party.`);
+        
+        if (oldParty) {
+            const members = Object.values(liveWorld.players).filter(x => x.partyId === oldParty);
+            if (members.length === 1) {
+                members[0].partyId = null;
+                const ms = io.sockets.sockets.get(members[0].socketId);
+                if (ms) { ms.emit('partyUpdate', []); ms.emit('notice', `Party disbanded.`); }
+            } else if (members.length > 1) {
+                const pData = members.map(m => m.username);
+                members.forEach(m => {
+                    const ms = io.sockets.sockets.get(m.socketId);
+                    if (ms) ms.emit('partyUpdate', pData);
+                });
+            }
+        }
+    });
+
     socket.on('disconnect', async () => { 
+        const oldParty = p.partyId;
+        if (oldParty) {
+            const members = Object.values(liveWorld.players).filter(x => x.partyId === oldParty && x.socketId !== socket.id);
+            if (members.length === 1) {
+                members[0].partyId = null;
+                const ms = io.sockets.sockets.get(members[0].socketId);
+                if (ms) { ms.emit('partyUpdate', []); ms.emit('notice', `Party disbanded.`); }
+            } else if (members.length > 1) {
+                const pData = members.map(m => m.username);
+                members.forEach(m => {
+                    const ms = io.sockets.sockets.get(m.socketId);
+                    if (ms) ms.emit('partyUpdate', pData);
+                });
+            }
+        }
         await db.saveUser(p.username, { stats: p.stats, inventory: p.inventory, equipment: p.equipment }); 
         delete liveWorld.players[socket.id]; 
     });
@@ -732,9 +1046,18 @@ setInterval(() => {
                 m.z += (dz/minDist) * stepSpeed; 
             } else if (Date.now() > m.atkCd) {
                 const baseMobDmg = mobDef.dmg || 10;
-                const def = (nearest.equipment && nearest.equipment.armor && nearest.equipment.armor.defense) ? nearest.equipment.armor.defense : 0;
+                const equipDef = (nearest.equipment && nearest.equipment.armor && nearest.equipment.armor.defense) ? nearest.equipment.armor.defense : 0;
+                const statDef = (nearest.stats.defense ? nearest.stats.defense - 1 : 0) * 2; 
+                const def = equipDef + statDef;
                 const netDmg = Math.max(3, baseMobDmg - def);
                 nearest.stats.hp -= netDmg;
+                
+                // Get the socket for the player taking damage
+                const nearestSocket = io.sockets.sockets.get(nearest.socketId);
+                if (nearestSocket) {
+                    nearestSocket.emit('combatLog', { msg: `Took ${netDmg} dmg from ${mobDef.name || m.type}`, type: 'dmg_in' });
+                }
+                
                 m.atkCd = Date.now() + (m.isBoss ? 1100 : 1400);
 
                 if (m.isBoss) {
@@ -764,13 +1087,17 @@ server.listen(PORT, '0.0.0.0', () => {
 db.connect().then(async () => { 
     try {
         const name = process.env.ADMIN_USERNAME || 'admin';
+        const pass = process.env.ADMIN_PASSWORD || 'admin123';
+        const passwordHash = await bcrypt.hash(pass, 10);
         const existing = await db.getUser(name);
         if (!existing) {
-            const pass = process.env.ADMIN_PASSWORD || 'admin123';
-            const passwordHash = await bcrypt.hash(pass, 10);
             await db.createUser({ username: name, passwordHash, role: 'admin', stats: db.freshStats(), inventory: [], equipment: {weapon:null} });
+        } else {
+            existing.passwordHash = passwordHash;
+            existing.role = 'admin';
+            await db.saveUser(name, existing);
         }
-        console.log('Admin account verified');
+        console.log('Admin account verified and synced with environment variables');
     } catch (e) {
         console.warn('Admin account init note:', e.message);
     }

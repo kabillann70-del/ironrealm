@@ -222,6 +222,52 @@
     .footer-links a:hover {
       color: #38bdf8;
     }
+    .forgot-link {
+      font-size: 11px;
+      color: #38bdf8;
+      text-decoration: none;
+      cursor: pointer;
+      float: right;
+      margin-top: 2px;
+      transition: color 0.2s ease;
+    }
+    .forgot-link:hover {
+      color: #7dd3fc;
+      text-decoration: underline;
+    }
+    .email-banner {
+      background: rgba(56, 189, 248, 0.1);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      border-radius: 8px;
+      padding: 10px 12px;
+      margin-top: 12px;
+      font-size: 12px;
+      color: #bae6fd;
+      text-align: left;
+    }
+    .code-badge {
+      font-family: monospace;
+      font-size: 16px;
+      font-weight: bold;
+      color: #fef08a;
+      letter-spacing: 2px;
+      background: rgba(0, 0, 0, 0.4);
+      padding: 2px 8px;
+      border-radius: 4px;
+      display: inline-block;
+      margin-left: 4px;
+    }
+    .btn-autofill {
+      background: rgba(250, 204, 21, 0.2);
+      border: 1px solid rgba(250, 204, 21, 0.4);
+      color: #fef08a;
+      font-size: 10px;
+      font-weight: bold;
+      padding: 2px 6px;
+      border-radius: 4px;
+      cursor: pointer;
+      margin-left: 8px;
+    }
   </style>
 </head>
 <body>
@@ -238,29 +284,83 @@
       </div>
     </div>
 
-    <button class="btn-quickplay" id="btn-quickplay" onclick="quickPlay()">
-      <span>⚔️</span>
-      <span>ENTER REALM (QUICK PLAY)</span>
-    </button>
+    <!-- MAIN AUTH FORM -->
+    <div id="main-auth-view">
+      <div class="tab-row">
+        <button class="tab-btn active" id="tab-login" onclick="setMode('login')">Login</button>
+        <button class="tab-btn" id="tab-register" onclick="setMode('register')">Register</button>
+      </div>
 
-    <div class="divider">or account access</div>
+      <div class="input-group">
+        <label for="u">Adventurer Name</label>
+        <input class="input-field" id="u" placeholder="Enter username..." autocomplete="username">
+      </div>
 
-    <div class="tab-row">
-      <button class="tab-btn active" id="tab-login" onclick="setMode('login')">Login</button>
-      <button class="tab-btn" id="tab-register" onclick="setMode('register')">Register</button>
+      <div class="input-group" id="group-email" style="display: none;">
+        <label for="email">Email Address (for password recovery)</label>
+        <input class="input-field" id="email" type="email" placeholder="e.g. hero@example.com" autocomplete="email">
+      </div>
+
+      <div class="input-group">
+        <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+          <label for="p" style="margin-bottom: 0;">Passphrase</label>
+          <span class="forgot-link" id="forgot-link" onclick="showForgotView()">Forgot Password?</span>
+        </div>
+        <input class="input-field" id="p" type="password" placeholder="Enter password..." autocomplete="current-password" style="margin-top: 6px;">
+      </div>
+
+      <button class="btn-submit" id="btn-submit" onclick="submitAuth()">Sign In to IronRealm</button>
     </div>
 
-    <div class="input-group">
-      <label for="u">Adventurer Name</label>
-      <input class="input-field" id="u" placeholder="Enter username..." autocomplete="username">
+    <!-- FORGOT PASSWORD VIEW -->
+    <div id="forgot-auth-view" style="display: none;">
+      <div style="font-size: 14px; font-weight: 700; color: #f8fafc; margin-bottom: 4px; text-align: left;">🔐 Account Recovery</div>
+      <div style="font-size: 12px; color: #94a3b8; margin-bottom: 14px; text-align: left;">Enter your Adventurer Name or Email address to receive a 6-digit verification code.</div>
+
+      <!-- Step 1: Request Code -->
+      <div id="forgot-step-1">
+        <div class="input-group">
+          <label for="recovery-identifier">Username or Email</label>
+          <input class="input-field" id="recovery-identifier" placeholder="Enter username or email...">
+        </div>
+        <button class="btn-submit" onclick="requestResetCode()">Send Verification Code</button>
+      </div>
+
+      <!-- Step 2: Code Verification & Reset -->
+      <div id="forgot-step-2" style="display: none;">
+        <div id="simulated-email-box" class="email-banner" style="display: none;">
+          <div>✉️ <strong>Verification Email Dispatched!</strong></div>
+          <div style="margin-top: 4px;">Code sent to <span id="target-email-lbl" style="font-weight: bold; color: #fff;"></span>:</div>
+          <div style="margin-top: 6px; display: flex; align-items: center;">
+            <span>Code:</span>
+            <span class="code-badge" id="dispatched-code"></span>
+            <button class="btn-autofill" onclick="autofillCode()">Autofill</button>
+          </div>
+        </div>
+
+        <div class="input-group" style="margin-top: 12px;">
+          <label for="reset-code">6-Digit Verification Code</label>
+          <input class="input-field" id="reset-code" placeholder="e.g. 123456" maxlength="6" style="letter-spacing: 2px; font-weight: bold; text-align: center;">
+        </div>
+
+        <div class="input-group">
+          <label for="new-pass">New Passphrase</label>
+          <input class="input-field" id="new-pass" type="password" placeholder="Enter new password...">
+        </div>
+
+        <div class="input-group">
+          <label for="confirm-pass">Confirm New Passphrase</label>
+          <input class="input-field" id="confirm-pass" type="password" placeholder="Re-enter new password...">
+        </div>
+
+        <button class="btn-submit" onclick="submitPasswordReset()">Reset Password & Sign In</button>
+      </div>
+
+      <div style="margin-top: 12px; text-align: center;">
+        <span class="forgot-link" style="float: none;" onclick="showMainAuthView()">← Back to Login</span>
+      </div>
     </div>
 
-    <div class="input-group">
-      <label for="p">Passphrase</label>
-      <input class="input-field" id="p" type="password" placeholder="Enter password..." autocomplete="current-password">
-    </div>
-
-    <button class="btn-submit" id="btn-submit" onclick="submitAuth()">Sign In to IronRealm</button>
     <div class="status-msg" id="status-msg"></div>
 
     <div class="footer-links">
@@ -271,6 +371,7 @@
 
   <script>
     let currentMode = 'login';
+    let generatedCode = '';
 
     // Check if a saved session is present and render banner without redirecting
     function checkSavedSession() {
@@ -304,29 +405,130 @@
       currentMode = mode;
       document.getElementById('tab-login').classList.toggle('active', mode === 'login');
       document.getElementById('tab-register').classList.toggle('active', mode === 'register');
+      document.getElementById('group-email').style.display = mode === 'register' ? 'block' : 'none';
+      document.getElementById('forgot-link').style.display = mode === 'login' ? 'inline' : 'none';
       document.getElementById('btn-submit').innerText = mode === 'login' ? 'Sign In to IronRealm' : 'Create New Adventurer';
+      showStatus('', '');
+    }
+
+    function showForgotView() {
+      document.getElementById('main-auth-view').style.display = 'none';
+      document.getElementById('forgot-auth-view').style.display = 'block';
+      document.getElementById('forgot-step-1').style.display = 'block';
+      document.getElementById('forgot-step-2').style.display = 'none';
+      document.getElementById('simulated-email-box').style.display = 'none';
+      const existingUser = document.getElementById('u').value.trim();
+      if (existingUser) {
+        document.getElementById('recovery-identifier').value = existingUser;
+      }
+      showStatus('', '');
+    }
+
+    function showMainAuthView() {
+      document.getElementById('main-auth-view').style.display = 'block';
+      document.getElementById('forgot-auth-view').style.display = 'none';
       showStatus('', '');
     }
 
     function showStatus(text, type) {
       const el = document.getElementById('status-msg');
-      el.className = 'status-msg ' + type;
+      el.className = 'status-msg ' + (type || '');
       el.innerText = text;
     }
 
-    async function quickPlay() {
-      const btn = document.getElementById('btn-quickplay');
-      if (btn) {
-        btn.disabled = true;
-        btn.innerText = 'Entering Realm...';
+    async function requestResetCode() {
+      const id = document.getElementById('recovery-identifier').value.trim();
+      if (!id) {
+        showStatus('Please enter your username or email address.', 'error');
+        return;
       }
-      showStatus('Entering IronRealm...', 'success');
-      window.location.href = '/game.html';
+      showStatus('Sending verification email...', '');
+      try {
+        const res = await fetch('/api/forgot-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ emailOrUsername: id })
+        });
+        const data = await res.json();
+        if (!res.ok || data.error) {
+          showStatus(data.error || 'Failed to generate code.', 'error');
+        } else {
+          generatedCode = data.code;
+          document.getElementById('target-email-lbl').innerText = data.email || id;
+          document.getElementById('dispatched-code').innerText = data.code;
+          document.getElementById('simulated-email-box').style.display = 'block';
+          document.getElementById('forgot-step-1').style.display = 'none';
+          document.getElementById('forgot-step-2').style.display = 'block';
+          showStatus('Verification code sent to email!', 'success');
+        }
+      } catch (e) {
+        showStatus('Network error while requesting reset code.', 'error');
+      }
+    }
+
+    function autofillCode() {
+      if (generatedCode) {
+        document.getElementById('reset-code').value = generatedCode;
+      }
+    }
+
+    async function submitPasswordReset() {
+      const id = document.getElementById('recovery-identifier').value.trim();
+      const code = document.getElementById('reset-code').value.trim();
+      const p1 = document.getElementById('new-pass').value;
+      const p2 = document.getElementById('confirm-pass').value;
+
+      if (!code || !p1 || !p2) {
+        showStatus('Please fill in all fields.', 'error');
+        return;
+      }
+      if (p1 !== p2) {
+        showStatus('Passphrases do not match.', 'error');
+        return;
+      }
+      if (p1.length < 4) {
+        showStatus('Passphrase must be at least 4 characters long.', 'error');
+        return;
+      }
+
+      showStatus('Resetting password...', '');
+      try {
+        const res = await fetch('/api/reset-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ emailOrUsername: id, code, newPassword: p1 })
+        });
+        const data = await res.json();
+        if (!res.ok || data.error) {
+          showStatus(data.error || 'Failed to reset password.', 'error');
+        } else {
+          showStatus('Password reset successful! Logging you in...', 'success');
+          // Automatically log in with new password
+          const logRes = await fetch('/api/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username: id, password: p1 })
+          });
+          const logData = await logRes.json();
+          if (logData.token) {
+            localStorage.setItem('ir_token', logData.token);
+            window.location.href = '/game.html';
+          } else {
+            showMainAuthView();
+            setMode('login');
+            showStatus('Password reset successfully. Please sign in.', 'success');
+          }
+        }
+      } catch (e) {
+        showStatus('Network error while resetting password.', 'error');
+      }
     }
 
     async function submitAuth() {
       const u = document.getElementById('u').value.trim();
       const p = document.getElementById('p').value;
+      const email = document.getElementById('email').value.trim();
+
       if (!u || !p) {
         showStatus('Please enter both username and password.', 'error');
         return;
@@ -337,7 +539,7 @@
         const res = await fetch('/api/' + currentMode, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username: u, password: p })
+          body: JSON.stringify({ username: u, password: p, email: email })
         });
         const data = await res.json();
         if (currentMode === 'login') {
