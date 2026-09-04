@@ -298,10 +298,90 @@ function areAllBaseQuestsClaimed(userQuests) {
     return QUESTS_CATALOG.every(q => userQuests[q.id] && userQuests[q.id].status === 'claimed');
 }
 
+function areAllEndgameQuestsClaimed(userQuests) {
+    if (!userQuests) return false;
+    return ENDGAME_QUESTS_CATALOG.every(q => userQuests[q.id] && userQuests[q.id].status === 'claimed');
+}
+
+function getProceduralWave(userQuests) {
+    if (!userQuests) return 1;
+    let wave = 1;
+    while (true) {
+        const id1 = `q_inf_hunt_${wave}`;
+        const id2 = `q_inf_gather_${wave}`;
+        const id3 = `q_inf_craft_${wave}`;
+        
+        const c1 = userQuests[id1] && userQuests[id1].status === 'claimed';
+        const c2 = userQuests[id2] && userQuests[id2].status === 'claimed';
+        const c3 = userQuests[id3] && userQuests[id3].status === 'claimed';
+        
+        if (c1 && c2 && c3) {
+            wave++;
+        } else {
+            break;
+        }
+    }
+    return wave;
+}
+
+function getProceduralQuestDefs(wave) {
+    const romanNumerals = ["", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII", "XIII", "XIV", "XV", "XVI", "XVII", "XVIII", "XIX", "XX"];
+    const roman = romanNumerals[wave] || `Wave ${wave}`;
+    
+    return [
+        {
+            id: `q_inf_hunt_${wave}`,
+            title: `Infinite Slayer ${roman}`,
+            category: 'Infinite Hunt',
+            desc: `Slay ${wave * 5} monsters of any type across the realm.`,
+            type: 'kill_any',
+            goal: wave * 5,
+            rewardGold: wave * 3000,
+            rewardXp: wave * 4000,
+            rewardItems: [
+                { itemId: wave % 2 === 0 ? 'starfall_crystal' : 'void_shard', qty: Math.min(8, Math.ceil(wave / 2)) }
+            ],
+            reqLevel: 10
+        },
+        {
+            id: `q_inf_gather_${wave}`,
+            title: `Infinite Harvester ${roman}`,
+            category: 'Infinite Gathering',
+            desc: `Harvest ${wave * 4} wood logs or mineral ores from any biome.`,
+            type: 'gather_ore',
+            goal: wave * 4,
+            rewardGold: wave * 2500,
+            rewardXp: wave * 3500,
+            rewardItems: [
+                { itemId: wave % 2 === 0 ? 'celestial_wood' : 'dragon_scale', qty: Math.min(8, Math.ceil(wave / 2)) }
+            ],
+            reqLevel: 10
+        },
+        {
+            id: `q_inf_craft_${wave}`,
+            title: `Infinite Forge Artisan ${roman}`,
+            category: 'Infinite Crafting',
+            desc: `Forge ${Math.max(1, Math.min(5, Math.floor(wave / 2)))} equipment pieces at the anvil.`,
+            type: 'craft_item',
+            goal: Math.max(1, Math.min(5, Math.floor(wave / 2))),
+            rewardGold: wave * 3500,
+            rewardXp: wave * 4500,
+            rewardItems: [
+                { itemId: 'abyssal_core', qty: Math.min(3, Math.ceil(wave / 3)) }
+            ],
+            reqLevel: 10
+        }
+    ];
+}
+
 function getAllAvailableQuestDefs(userQuests) {
     let list = [...QUESTS_CATALOG];
     if (areAllBaseQuestsClaimed(userQuests)) {
         list = list.concat(ENDGAME_QUESTS_CATALOG);
+        if (areAllEndgameQuestsClaimed(userQuests)) {
+            const wave = getProceduralWave(userQuests);
+            list = list.concat(getProceduralQuestDefs(wave));
+        }
     }
     return list;
 }
@@ -1512,6 +1592,35 @@ function processMonsterDeath(mob, mobId, p) {
 }
 
 io.on('connection', async (socket) => {
+    // Prevent duplicate logins / ghost sessions by disconnecting any existing socket for this username
+    if (socket.user && socket.user.username) {
+        const username = socket.user.username;
+        const existingPlayer = Object.values(liveWorld.players).find(p => p.username === username);
+        if (existingPlayer) {
+            console.log(`[Auth] Existing active session found for ${username}. Cleaning up old socket ${existingPlayer.socketId}`);
+            // Save their state first to ensure no progress is lost
+            try {
+                await db.saveUser(existingPlayer.username, {
+                    stats: existingPlayer.stats,
+                    inventory: existingPlayer.inventory,
+                    equipment: existingPlayer.equipment,
+                    quests: existingPlayer.quests,
+                    dailyReward: existingPlayer.dailyReward
+                });
+            } catch (saveErr) {
+                console.error('[Auth Error] Failed to save existing player session:', saveErr);
+            }
+            // Disconnect the old socket connection
+            const oldSocket = io.sockets.sockets.get(existingPlayer.socketId);
+            if (oldSocket) {
+                oldSocket.emit('notice', '🛑 You have logged in from another device or window.');
+                oldSocket.disconnect(true);
+            }
+            // Clean up the old player from liveWorld.players immediately
+            delete liveWorld.players[existingPlayer.socketId];
+        }
+    }
+
     let userRec = socket.user ? await db.getUser(socket.user.username) : null;
     if (!userRec) {
         userRec = {
@@ -1843,8 +1952,10 @@ io.on('connection', async (socket) => {
     socket.on('lootItem', (lid) => {
         const item = liveWorld.loot[lid];
         if (!item || Math.hypot(item.x - p.stats.pos.x, item.z - p.stats.pos.z) > 4) return;
-        p.inventory.push({ ...ITEMS[item.itemId], itemId: item.itemId, uid: Date.now().toString() });
+        const itemInfo = ITEMS[item.itemId] || { name: 'Unknown Item' };
+        p.inventory.push({ ...itemInfo, itemId: item.itemId, uid: Date.now().toString() });
         delete liveWorld.loot[lid]; 
+        socket.emit('notice', `🎒 Collected: ${itemInfo.name}!`);
         socket.emit('inventory', { stats: p.stats, inventory: p.inventory, equipment: p.equipment });
         broadcastState();
     });
@@ -2081,13 +2192,17 @@ io.on('connection', async (socket) => {
                 });
             }
         }
-        await db.saveUser(p.username, { 
-            stats: p.stats, 
-            inventory: p.inventory, 
-            equipment: p.equipment,
-            quests: p.quests,
-            dailyReward: p.dailyReward
-        }); 
+        try {
+            await db.saveUser(p.username, { 
+                stats: p.stats, 
+                inventory: p.inventory, 
+                equipment: p.equipment,
+                quests: p.quests,
+                dailyReward: p.dailyReward
+            }); 
+        } catch (saveErr) {
+            console.error(`[Disconnect Save Error] Failed to save progress for ${p.username}:`, saveErr);
+        }
         delete liveWorld.players[socket.id]; 
     });
 });

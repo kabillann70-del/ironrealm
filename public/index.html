@@ -390,7 +390,12 @@
     checkSavedSession();
 
     function resumeGame() {
-      window.location.href = '/game.html';
+      const token = localStorage.getItem('ir_token');
+      if (token) {
+        window.location.href = '/game.html#token=' + encodeURIComponent(token);
+      } else {
+        window.location.href = '/game.html';
+      }
     }
 
     function clearSavedSession() {
@@ -512,7 +517,7 @@
           const logData = await logRes.json();
           if (logData.token) {
             localStorage.setItem('ir_token', logData.token);
-            window.location.href = '/game.html';
+            window.location.href = '/game.html#token=' + encodeURIComponent(logData.token);
           } else {
             showMainAuthView();
             setMode('login');
@@ -546,7 +551,7 @@
           if (data.token) {
             localStorage.setItem('ir_token', data.token);
             showStatus('Success! Entering IronRealm...', 'success');
-            window.location.href = '/game.html';
+            window.location.href = '/game.html#token=' + encodeURIComponent(data.token);
           } else {
             showStatus(data.error || 'Invalid credentials', 'error');
           }
@@ -561,7 +566,7 @@
             const logData = await logRes.json();
             if (logData.token) {
               localStorage.setItem('ir_token', logData.token);
-              window.location.href = '/game.html';
+              window.location.href = '/game.html#token=' + encodeURIComponent(logData.token);
             } else {
               setMode('login');
               showStatus('Account created. Please log in.', 'success');

@@ -1051,9 +1051,12 @@
     </div>
   </div>
 
-  <div id="loading-screen">
-    <div class="loading-spinner"></div>
-    <div>ENTERING IRONREALM...</div>
+  <div id="loading-screen" style="flex-direction: column; gap: 15px; padding: 20px;">
+    <div id="loading-spinner" class="loading-spinner"></div>
+    <div id="loading-text">ENTERING IRONREALM...</div>
+    <div id="loading-error-actions" style="display: none; flex-direction: column; align-items: center; gap: 10px;">
+      <button onclick="window.location.href='/'" style="background: linear-gradient(135deg, #0284c7, #2563eb); border: 1px solid rgba(56, 189, 248, 0.4); border-radius: 8px; color: #fff; font-family: 'Plus Jakarta Sans', sans-serif; font-size: 13px; font-weight: 700; padding: 10px 20px; cursor: pointer; text-shadow: 0 1px 2px rgba(0,0,0,0.5); box-shadow: 0 4px 12px rgba(37,99,235,0.3); transition: all 0.2s ease;">Go to Login Portal</button>
+    </div>
   </div>
 
   <!-- Hero Top HUD -->
@@ -1258,9 +1261,10 @@
       <span style="font-size: 20px;">👥</span>
       <span class="h-slot-key">Y</span>
     </div>
-    <div class="h-slot" title="Character Stats [C]" onclick="toggleStats()">
+    <div class="h-slot" id="hslot-stats" title="Character Stats [C]" onclick="toggleStats()" style="position: relative;">
       <span style="font-size: 20px;">👤</span>
       <span class="h-slot-key">C</span>
+      <div id="stats-badge-dot" style="display:none; position:absolute; top:-2px; right:-2px; width:10px; height:10px; background:#ef4444; border:2px solid #0f172a; border-radius:50%; box-shadow:0 0 6px #ef4444;"></div>
     </div>
     <div class="h-slot" id="hslot-quest" title="Quest Log [L]" onclick="toggleQuestLog()">
       <span style="font-size: 20px;">📜</span>
@@ -1270,7 +1274,7 @@
     <div class="h-slot" id="hslot-daily" title="Daily Reward [K]" onclick="toggleDailyRewardModal()">
       <span style="font-size: 20px;">🎁</span>
       <span class="h-slot-key">K</span>
-      <div id="daily-badge-dot" style="display:none; position:absolute; top:-2px; right:-2px; width:10px; height:10px; background:#38bdf8; border:2px solid #0f172a; border-radius:50%; box-shadow:0 0 6px #38bdf8;"></div>
+      <div id="daily-badge-dot" style="display:none; position:absolute; top:-2px; right:-2px; width:10px; height:10px; background:#ef4444; border:2px solid #0f172a; border-radius:50%; box-shadow:0 0 6px #ef4444;"></div>
     </div>
     <div class="h-slot" title="Village Blacksmith & Forge [P]" onclick="toggleShop()">
       <span style="font-size: 20px;">🔨</span>
@@ -1538,7 +1542,8 @@
     // -------------------------------------------------------------
     // LOADING OVERLAY DISMISSAL
     // -------------------------------------------------------------
-    function dismissLoadingScreen(username) {
+    function dismissLoadingScreen(username, force = false) {
+      if (!myId && !force) return; // Wait until authenticated / connected with an active socket ID
       const ls = document.getElementById('loading-screen');
       if (ls && ls.style.display !== 'none') {
         ls.style.opacity = '0';
@@ -1549,8 +1554,20 @@
         if (hn) hn.innerText = username;
       }
     }
-    // Failsafe: never lock the user behind the loading screen
-    setTimeout(() => dismissLoadingScreen(), 2000);
+    // Smart Connection Timeout Failsafe
+    setTimeout(() => {
+      if (!myId) {
+        console.warn('Socket connection timeout (6s) - showing portal redirect options.');
+        const textEl = document.getElementById('loading-text');
+        if (textEl) {
+          textEl.innerHTML = `<span style="color: #fca5a5; font-size: 16px;">⏳ Connection taking longer than usual...<br><span style="font-size: 12px; font-family: sans-serif; text-transform: none; color: #94a3b8; font-weight: normal; margin-top: 6px; display: inline-block;">The server database is starting up, or your login session has expired.</span></span>`;
+        }
+        const spinner = document.getElementById('loading-spinner');
+        if (spinner) spinner.style.display = 'none';
+        const errActions = document.getElementById('loading-error-actions');
+        if (errActions) errActions.style.display = 'flex';
+      }
+    }, 6000);
 
     function exitToPortal() {
       window.location.href = '/';
@@ -1566,19 +1583,54 @@
     // -------------------------------------------------------------
     let token = null;
     try {
-      token = localStorage.getItem('ir_token');
+      // 1. Try reading from URL query parameter or hash
+      const urlParams = new URLSearchParams(window.location.search);
+      let t = urlParams.get('token');
+      if (!t) {
+        const hash = window.location.hash;
+        if (hash && hash.includes('token=')) {
+          const match = hash.match(/token=([^&]+)/);
+          if (match) t = match[1];
+        }
+      }
+      if (t) {
+        token = decodeURIComponent(t);
+        try { localStorage.setItem('ir_token', token); } catch(e){}
+        // Clean URL hash so token isn't permanently displayed in the browser bar
+        try {
+          window.history.replaceState(null, document.title, window.location.pathname + window.location.search);
+        } catch(e){}
+      } else {
+        // 2. Fallback to localStorage
+        token = localStorage.getItem('ir_token');
+      }
     } catch(e) {
       console.warn('Storage read note:', e);
     }
 
     if (!token) {
-      alert('Authentication required. Only registered accounts can access the game.');
-      window.location.href = '/';
+      console.warn('No authentication token found. Redirecting to portal...');
+      const textEl = document.getElementById('loading-text');
+      if (textEl) {
+        textEl.innerHTML = `<span style="color: #f87171;">⚠️ Authentication Required<br><span style="font-size: 12px; font-family: sans-serif; text-transform: none; color: #94a3b8; font-weight: normal; margin-top: 4px; display: inline-block;">Redirecting you back to the login portal...</span></span>`;
+      }
+      const spinner = document.getElementById('loading-spinner');
+      if (spinner) spinner.style.display = 'none';
+      const errActions = document.getElementById('loading-error-actions');
+      if (errActions) errActions.style.display = 'flex';
+      setTimeout(() => { window.location.href = '/'; }, 1500);
     }
 
-    let socket, myId = null;
+    let socket = null;
+    let myId = null;
     let myStats = null;
     let currentLatestState = null;
+    let latestInventoryData = null;
+    let clientQuestsData = [];
+    let currentQuestFilter = 'all';
+    let clientDailyRewardData = null;
+    let currentParty = [];
+    let pendingInvite = null;
     let minimapZoom = 1.0; // scale factor
     let isMinimapExpanded = false;
 
@@ -1588,16 +1640,45 @@
 
       socket.on('connect', () => {
         dismissLoadingScreen();
+        showToast('🔌 Connected to server successfully!', 'success');
       });
 
       socket.on('connect_error', (err) => {
-        alert(err.message || 'Authentication error. Please log in with a registered account.');
-        try { localStorage.removeItem('ir_token'); } catch(e){}
-        window.location.href = '/';
+        const errMsg = err && err.message ? err.message : '';
+        console.warn('Socket connection error:', errMsg);
+        
+        // Only treat as fatal if it is a registered auth/ban failure from our middleware
+        const isFatalAuth = errMsg.includes('Authentication') || 
+                            errMsg.includes('token') || 
+                            errMsg.includes('Token') || 
+                            errMsg.includes('Account') || 
+                            errMsg.includes('banned') ||
+                            errMsg.includes('register');
+                            
+        if (isFatalAuth) {
+          console.error('Fatal authentication socket error:', errMsg);
+          const textEl = document.getElementById('loading-text');
+          if (textEl) {
+            textEl.innerHTML = `<span style="color: #f87171; font-size: 16px;">⚠️ Authentication Failed<br><span style="font-size: 12px; font-family: sans-serif; text-transform: none; color: #fca5a5; font-weight: normal; margin-top: 6px; display: inline-block;">${err.message || 'Please log in again.'}</span></span>`;
+          }
+          const spinner = document.getElementById('loading-spinner');
+          if (spinner) spinner.style.display = 'none';
+          const errActions = document.getElementById('loading-error-actions');
+          if (errActions) errActions.style.display = 'flex';
+          
+          try { localStorage.removeItem('ir_token'); } catch(e){}
+        } else {
+          // Otherwise, show a subtle connection warning but let Socket.io try to reconnect automatically
+          showToast('🔌 Lost connection to server. Retrying...', 'error');
+        }
       });
 
       socket.on('init', (d) => {
         myId = d.socketId;
+        if (d.username) {
+          const hn = document.getElementById('hero-name');
+          if (hn) hn.innerText = d.username;
+        }
         if (d.role === 'admin') {
           document.getElementById('btn-admin').style.display = 'block';
         }
@@ -1606,6 +1687,15 @@
         
         socket.emit('getQuests');
         socket.emit('getDailyReward');
+
+        // Periodically refresh quests and daily reward status to show live red dot badges
+        if (window.badgePollingInterval) clearInterval(window.badgePollingInterval);
+        window.badgePollingInterval = setInterval(() => {
+          if (socket && socket.connected) {
+            socket.emit('getQuests');
+            socket.emit('getDailyReward');
+          }
+        }, 5000);
       });
 
       socket.on('questsUpdate', (quests) => {
@@ -2099,71 +2189,412 @@
       return g;
     }
 
-    // MULTI-TIER TREE MODEL
-    function createTreeModel() {
+    // MULTI-TIER TREE MODEL WITH UNIQUE SHAPES AND COLORS PER TIER
+    function createTreeModel(r) {
       const g = new THREE.Group();
-      // Trunk
-      const trunkGeo = new THREE.CylinderGeometry(0.35, 0.6, 3.2, 8);
-      const trunkMat = new THREE.MeshStandardMaterial({ color: 0x452a17, roughness: 0.9 });
+      const tier = r && r.tier ? r.tier : 2;
+
+      let trunkColor = 0x452a17;
+      let leafColors = [0x1f4722, 0x2e6633, 0x3d7e42];
+      let hasSnow = false;
+      let isSpooky = false;
+      let isFiery = false;
+      let isBlood = false;
+      let isAstral = false;
+      let isBirch = false;
+
+      if (tier === 2) {
+        // Birch Tree (Woodlands)
+        trunkColor = 0xe2e8f0; // White/grey trunk
+        leafColors = [0x16a34a, 0x22c55e, 0x4ade80];
+        isBirch = true;
+      } else if (tier === 3) {
+        // Frostpeak / Chestnut Tree (Snowcaps)
+        trunkColor = 0x5c4033;
+        leafColors = [0x0891b2, 0x06b6d4, 0x22d3ee]; // Frost teal
+        hasSnow = true;
+      } else if (tier === 4) {
+        // Necropolis / Pine (Spooky Dark purple/indigo)
+        trunkColor = 0x27272a;
+        leafColors = [0x3b0764, 0x581c87, 0x7e22ce]; // Dark purple
+        isSpooky = true;
+      } else if (tier === 5) {
+        // Abyss / Cedar (Fiery molten crimson/orange)
+        trunkColor = 0x450a0a;
+        leafColors = [0x7f1d1d, 0x991b1b, 0xdc2626]; // Molten red
+        isFiery = true;
+      } else if (tier === 6) {
+        // Obsidian Throne / Bloodoak
+        trunkColor = 0x18181b;
+        leafColors = [0x450a0a, 0xdc2626, 0xef4444];
+        isBlood = true;
+      } else if (tier >= 7) {
+        // Celestial World-Tree (Astral Expanse)
+        trunkColor = 0x1e1b4b;
+        leafColors = [0x0284c7, 0x0369a1, 0x38bdf8];
+        isAstral = true;
+      }
+
+      // Trunk creation
+      let trunkGeo;
+      if (isFiery) {
+        trunkGeo = new THREE.CylinderGeometry(0.2, 0.75, 3.4, 6);
+      } else if (isAstral) {
+        trunkGeo = new THREE.CylinderGeometry(0.25, 0.5, 3.6, 12);
+      } else if (isBirch) {
+        trunkGeo = new THREE.CylinderGeometry(0.25, 0.45, 3.4, 8);
+      } else {
+        trunkGeo = new THREE.CylinderGeometry(0.35, 0.6, 3.2, 8);
+      }
+
+      const trunkMat = new THREE.MeshStandardMaterial({
+        color: trunkColor,
+        roughness: isAstral ? 0.2 : 0.9,
+        metalness: isAstral ? 0.7 : 0.1
+      });
       const trunk = new THREE.Mesh(trunkGeo, trunkMat);
-      trunk.position.y = 1.6;
+      trunk.position.y = isAstral ? 1.8 : 1.6;
       trunk.castShadow = true;
       trunk.receiveShadow = true;
       g.add(trunk);
 
-      // Leaves Canopies
-      const cMat1 = new THREE.MeshStandardMaterial({ color: 0x1f4722, roughness: 0.85 });
-      const cMat2 = new THREE.MeshStandardMaterial({ color: 0x2e6633, roughness: 0.8 });
-      const cMat3 = new THREE.MeshStandardMaterial({ color: 0x3d7e42, roughness: 0.8 });
+      // Add dark horizontal lines for Birch
+      if (isBirch) {
+        for (let i = 0; i < 4; i++) {
+          const band = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.32, 0.35, 0.1, 8),
+            new THREE.MeshStandardMaterial({ color: 0x18181b, roughness: 0.9 })
+          );
+          band.position.set(0, 0.8 + i * 0.7, 0);
+          g.add(band);
+        }
+      }
 
-      const tier1 = new THREE.Mesh(new THREE.DodecahedronGeometry(2.3, 1), cMat1);
-      tier1.position.y = 3.6;
-      tier1.castShadow = true;
-      g.add(tier1);
+      // Canopy configuration
+      const cMat1 = new THREE.MeshStandardMaterial({
+        color: leafColors[0],
+        roughness: isAstral ? 0.1 : 0.85,
+        emissive: isAstral ? 0x0369a1 : (isFiery ? 0x7f1d1d : 0x000000),
+        emissiveIntensity: isAstral ? 0.5 : (isFiery ? 0.4 : 0)
+      });
+      const cMat2 = new THREE.MeshStandardMaterial({
+        color: leafColors[1],
+        roughness: isAstral ? 0.1 : 0.8,
+        emissive: isAstral ? 0x0284c7 : (isFiery ? 0x991b1b : 0x000000),
+        emissiveIntensity: isAstral ? 0.6 : (isFiery ? 0.5 : 0)
+      });
+      const cMat3 = new THREE.MeshStandardMaterial({
+        color: leafColors[2],
+        roughness: isAstral ? 0.1 : 0.8,
+        emissive: isAstral ? 0x38bdf8 : (isFiery ? 0xdc2626 : 0x000000),
+        emissiveIntensity: isAstral ? 0.8 : (isFiery ? 0.6 : 0)
+      });
 
-      const tier2 = new THREE.Mesh(new THREE.DodecahedronGeometry(1.7, 1), cMat2);
-      tier2.position.set(0.2, 4.9, -0.1);
-      tier2.castShadow = true;
-      g.add(tier2);
+      // Different geometries for different tiers
+      if (hasSnow) {
+        // Tier 3: Overlapping snowcapped cones
+        for (let i = 0; i < 3; i++) {
+          const cone = new THREE.Mesh(new THREE.ConeGeometry(2.4 - i * 0.6, 1.8, 8), cMat2);
+          cone.position.y = 3.2 + i * 1.3;
+          cone.castShadow = true;
+          g.add(cone);
 
-      const tier3 = new THREE.Mesh(new THREE.DodecahedronGeometry(1.1, 1), cMat3);
-      tier3.position.set(-0.2, 6.0, 0.1);
-      tier3.castShadow = true;
-      g.add(tier3);
+          const cap = new THREE.Mesh(
+            new THREE.ConeGeometry(1.6 - i * 0.6, 0.4, 8),
+            new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.9 })
+          );
+          cap.position.set(0, 3.9 + i * 1.3, 0);
+          cap.castShadow = true;
+          g.add(cap);
+        }
+      } else if (isSpooky) {
+        // Tier 4: Jagged, spooky vertical pine
+        for (let i = 0; i < 4; i++) {
+          const cone = new THREE.Mesh(new THREE.ConeGeometry(2.0 - i * 0.5, 1.5, 5), cMat1);
+          cone.position.y = 2.8 + i * 1.1;
+          cone.rotation.y = i * 0.4;
+          cone.castShadow = true;
+          g.add(cone);
+        }
+        // Floating purple spooky wisp spheres
+        for (let i = 0; i < 3; i++) {
+          const wisp = new THREE.Mesh(
+            new THREE.SphereGeometry(0.18, 4, 4),
+            new THREE.MeshBasicMaterial({ color: 0xa855f7 })
+          );
+          const a = (i / 3) * Math.PI * 2;
+          wisp.position.set(Math.cos(a) * 1.1, 4.0 + i * 0.8, Math.sin(a) * 1.1);
+          g.add(wisp);
+        }
+      } else if (isFiery) {
+        // Tier 5: Volcanic cedar
+        const mainOrb = new THREE.Mesh(new THREE.DodecahedronGeometry(2.2, 1), cMat2);
+        mainOrb.position.y = 4.0;
+        mainOrb.castShadow = true;
+        g.add(mainOrb);
+
+        const subOrb1 = new THREE.Mesh(new THREE.SphereGeometry(1.2, 6, 6), cMat3);
+        subOrb1.position.set(1.0, 5.0, -0.5);
+        g.add(subOrb1);
+
+        const subOrb2 = new THREE.Mesh(new THREE.SphereGeometry(1.0, 6, 6), cMat1);
+        subOrb2.position.set(-1.0, 4.5, 0.8);
+        g.add(subOrb2);
+
+        // Ember sparks
+        for (let i = 0; i < 4; i++) {
+          const ember = new THREE.Mesh(
+            new THREE.SphereGeometry(0.12, 4, 4),
+            new THREE.MeshBasicMaterial({ color: 0xf97316 })
+          );
+          const a = (i / 4) * Math.PI * 2;
+          ember.position.set(Math.cos(a) * 1.3, 4.2 + i * 0.5, Math.sin(a) * 1.3);
+          g.add(ember);
+        }
+      } else if (isBlood) {
+        // Tier 6: Bloodoak (Broad oak)
+        const t1 = new THREE.Mesh(new THREE.DodecahedronGeometry(2.5, 1), cMat1);
+        t1.position.y = 3.6;
+        t1.scale.set(1.4, 0.8, 1.4);
+        t1.castShadow = true;
+        g.add(t1);
+
+        const t2 = new THREE.Mesh(new THREE.DodecahedronGeometry(1.8, 1), cMat2);
+        t2.position.set(0.4, 4.6, -0.4);
+        t2.castShadow = true;
+        g.add(t2);
+
+        const t3 = new THREE.Mesh(new THREE.DodecahedronGeometry(1.4, 1), cMat3);
+        t3.position.set(-0.5, 5.2, 0.4);
+        t3.castShadow = true;
+        g.add(t3);
+      } else if (isAstral) {
+        // Tier 7: Astral World Tree
+        const centerOrb = new THREE.Mesh(new THREE.IcosahedronGeometry(2.0, 2), cMat3);
+        centerOrb.position.y = 4.4;
+        centerOrb.castShadow = true;
+        g.add(centerOrb);
+
+        const ring = new THREE.Mesh(
+          new THREE.TorusGeometry(2.4, 0.08, 6, 24),
+          new THREE.MeshStandardMaterial({ color: 0xa855f7, emissive: 0x9333ea, emissiveIntensity: 1.0 })
+        );
+        ring.position.y = 4.4;
+        ring.rotation.x = Math.PI / 3;
+        g.add(ring);
+
+        for (let i = 0; i < 3; i++) {
+          const sat = new THREE.Mesh(
+            new THREE.OctahedronGeometry(0.35, 0),
+            new THREE.MeshStandardMaterial({ color: 0x38bdf8, emissive: 0x0284c7, emissiveIntensity: 1.2 })
+          );
+          const a = (i / 3) * Math.PI * 2;
+          sat.position.set(Math.cos(a) * 2.2, 4.4, Math.sin(a) * 2.2);
+          g.add(sat);
+        }
+      } else {
+        // Default Tier 2 Fallback Oak
+        const tier1 = new THREE.Mesh(new THREE.DodecahedronGeometry(2.3, 1), cMat1);
+        tier1.position.y = 3.6;
+        tier1.castShadow = true;
+        g.add(tier1);
+
+        const tier2 = new THREE.Mesh(new THREE.DodecahedronGeometry(1.7, 1), cMat2);
+        tier2.position.set(0.2, 4.9, -0.1);
+        tier2.castShadow = true;
+        g.add(tier2);
+
+        const tier3 = new THREE.Mesh(new THREE.DodecahedronGeometry(1.1, 1), cMat3);
+        tier3.position.set(-0.2, 6.0, 0.1);
+        tier3.castShadow = true;
+        g.add(tier3);
+      }
 
       return g;
     }
 
-    // MINERAL ORE ROCK MODEL
-    function createRockModel() {
+    // MINERAL ORE ROCK MODEL WITH UNIQUE SHAPES AND COLORS PER TIER
+    function createRockModel(r) {
       const g = new THREE.Group();
-      // Boulder
-      const baseGeo = new THREE.DodecahedronGeometry(1.3, 1);
-      const baseMat = new THREE.MeshStandardMaterial({ color: 0x475569, roughness: 0.85 });
+      const tier = r && r.tier ? r.tier : 2;
+
+      let baseColor = 0x475569; // slate grey
+      let crystalColor = 0xfbbf24; // copper/gold
+      let emissiveColor = 0xd97706;
+      let isCubic = false;
+      let isHexagonal = false;
+      let isBasalt = false;
+      let isObsidian = false;
+      let isCelestial = false;
+
+      if (tier === 2) {
+        // Copper Ore (Woodlands)
+        baseColor = 0x475569;
+        crystalColor = 0xea580c; // Copper orange/red
+        emissiveColor = 0x9a3412;
+      } else if (tier === 3) {
+        // Bronze Ore (Frostpeak)
+        baseColor = 0x334155; // Dark slate
+        crystalColor = 0xd97706; // Bronze
+        emissiveColor = 0xb45309;
+        isHexagonal = true; // Flat hexagonal pillars
+      } else if (tier === 4) {
+        // Iron Ore (Necropolis)
+        baseColor = 0x1e1b4b; // graveyard indigo base
+        crystalColor = 0xa21caf; // glowing purple iron
+        emissiveColor = 0x701a75;
+        isCubic = true; // Cubic blocky geometry
+      } else if (tier === 5) {
+        // Titanium Ore (Abyss)
+        baseColor = 0x1c1917; // volcanic dark rock
+        crystalColor = 0xf97316; // fiery titanium
+        emissiveColor = 0xe0f2fe; // white hot glow
+        isBasalt = true; // tall volcanic pillars
+      } else if (tier === 6) {
+        // Runite Ore (Obsidian Throne)
+        baseColor = 0x090d16; // obsidian black
+        crystalColor = 0x0ea5e9; // Runite azure/cyan
+        emissiveColor = 0x0284c7;
+        isObsidian = true; // Monolithic spikes
+      } else if (tier >= 7) {
+        // Starfall Crystal (Celestial Expanse)
+        baseColor = 0x1e1b4b; // Astral deep space indigo
+        crystalColor = 0xa855f7; // celestial purple/cyan starfall crystal
+        emissiveColor = 0x38bdf8;
+        isCelestial = true; // Anti-gravity floating octahedron
+      }
+
+      // 1. Build Base Boulder
+      let baseGeo;
+      if (isBasalt) {
+        baseGeo = new THREE.CylinderGeometry(0.7, 1.2, 1.5, 5);
+      } else if (isObsidian) {
+        baseGeo = new THREE.CylinderGeometry(0.3, 1.5, 1.8, 6);
+      } else if (isCelestial) {
+        baseGeo = new THREE.DodecahedronGeometry(0.9, 0); // sharp facets
+      } else {
+        baseGeo = new THREE.DodecahedronGeometry(1.3, 1);
+      }
+
+      const baseMat = new THREE.MeshStandardMaterial({
+        color: baseColor,
+        roughness: isObsidian ? 0.1 : 0.85,
+        metalness: isObsidian ? 0.9 : 0.2
+      });
       const base = new THREE.Mesh(baseGeo, baseMat);
-      base.position.y = 0.8;
-      base.scale.set(1.2, 0.85, 1.1);
+      base.position.y = isCelestial ? 0.6 : 0.75;
+      if (!isBasalt && !isObsidian && !isCelestial) {
+        base.scale.set(1.2, 0.85, 1.1);
+      }
       base.castShadow = true;
       base.receiveShadow = true;
       g.add(base);
 
-      // Glowing Iron & Gold Crystal Clusters
+      // 2. Build Crystal / Mineral protrusions
       const oreMat = new THREE.MeshStandardMaterial({
-        color: 0xfbbf24,
-        emissive: 0xd97706,
-        emissiveIntensity: 0.35,
+        color: crystalColor,
+        emissive: emissiveColor,
+        emissiveIntensity: isCelestial ? 1.5 : (isObsidian ? 1.1 : 0.75),
         metalness: 0.9,
-        roughness: 0.25
+        roughness: 0.15
       });
-      for (let i = 0; i < 4; i++) {
-        const angle = (i / 4) * Math.PI * 2;
-        const crys = new THREE.Mesh(new THREE.ConeGeometry(0.24, 0.7, 5), oreMat);
-        crys.position.set(Math.cos(angle) * 0.7, 1.05, Math.sin(angle) * 0.7);
-        crys.rotation.x = Math.sin(angle) * 0.4;
-        crys.rotation.z = -Math.cos(angle) * 0.4;
-        crys.castShadow = true;
-        g.add(crys);
+
+      if (isHexagonal) {
+        // Hexagonal pillars for bronze/frostpeak
+        for (let i = 0; i < 3; i++) {
+          const pillar = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.18, 1.2, 6), oreMat);
+          const a = (i / 3) * Math.PI * 2;
+          pillar.position.set(Math.cos(a) * 0.6, 0.9, Math.sin(a) * 0.6);
+          pillar.rotation.x = 0.3;
+          pillar.rotation.z = -Math.cos(a) * 0.4;
+          pillar.castShadow = true;
+          g.add(pillar);
+        }
+        // Add a thin snow layer on the boulder
+        const snow = new THREE.Mesh(
+          new THREE.DodecahedronGeometry(1.0, 1),
+          new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.9 })
+        );
+        snow.position.set(0, 0.8, 0);
+        snow.scale.set(1.3, 0.2, 1.2);
+        g.add(snow);
+      } else if (isCubic) {
+        // Necropolis blocky purple iron
+        for (let i = 0; i < 4; i++) {
+          const box = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.35, 0.35), oreMat);
+          const a = (i / 4) * Math.PI * 2;
+          box.position.set(Math.cos(a) * 0.62, 0.9, Math.sin(a) * 0.62);
+          box.rotation.set(Math.random() * 0.5, Math.random() * 0.5, Math.random() * 0.5);
+          box.castShadow = true;
+          g.add(box);
+        }
+      } else if (isBasalt) {
+        // Red glowing volcanic needles
+        for (let i = 0; i < 5; i++) {
+          const spike = new THREE.Mesh(new THREE.ConeGeometry(0.12, 1.5, 4), oreMat);
+          const a = (i / 5) * Math.PI * 2;
+          spike.position.set(Math.cos(a) * 0.5, 1.1, Math.sin(a) * 0.5);
+          spike.rotation.x = Math.sin(a) * 0.5;
+          spike.rotation.z = -Math.cos(a) * 0.5;
+          spike.castShadow = true;
+          g.add(spike);
+        }
+      } else if (isObsidian) {
+        // Giant central runite shard
+        const centralShard = new THREE.Mesh(new THREE.CylinderGeometry(0, 0.25, 1.9, 4), oreMat);
+        centralShard.position.set(0, 1.4, 0);
+        centralShard.castShadow = true;
+        g.add(centralShard);
+
+        for (let i = 0; i < 3; i++) {
+          const sub = new THREE.Mesh(new THREE.ConeGeometry(0.1, 1.0, 4), oreMat);
+          const a = (i / 3) * Math.PI * 2;
+          sub.position.set(Math.cos(a) * 0.45, 0.8, Math.sin(a) * 0.45);
+          sub.rotation.x = Math.sin(a) * 0.4;
+          sub.rotation.z = -Math.cos(a) * 0.4;
+          sub.castShadow = true;
+          g.add(sub);
+        }
+      } else if (isCelestial) {
+        // Floating diamond/octahedron
+        const floatGroup = new THREE.Group();
+        floatGroup.position.y = 1.35;
+
+        const mainGem = new THREE.Mesh(new THREE.OctahedronGeometry(0.55, 0), oreMat);
+        mainGem.castShadow = true;
+        floatGroup.add(mainGem);
+
+        const ring = new THREE.Mesh(
+          new THREE.TorusGeometry(0.9, 0.04, 4, 16),
+          new THREE.MeshStandardMaterial({ color: 0x38bdf8, emissive: 0x38bdf8, emissiveIntensity: 1.0 })
+        );
+        ring.rotation.x = Math.PI / 3;
+        floatGroup.add(ring);
+
+        for (let i = 0; i < 3; i++) {
+          const p = new THREE.Mesh(
+            new THREE.SphereGeometry(0.08, 4, 4),
+            new THREE.MeshBasicMaterial({ color: 0x38bdf8 })
+          );
+          const a = (i / 3) * Math.PI * 2;
+          p.position.set(Math.cos(a) * 0.75, Math.sin(i) * 0.3, Math.sin(a) * 0.75);
+          floatGroup.add(p);
+        }
+
+        g.add(floatGroup);
+      } else {
+        // Default copper/gold ore spikes
+        for (let i = 0; i < 4; i++) {
+          const angle = (i / 4) * Math.PI * 2;
+          const crys = new THREE.Mesh(new THREE.ConeGeometry(0.24, 0.7, 5), oreMat);
+          crys.position.set(Math.cos(angle) * 0.7, 1.05, Math.sin(angle) * 0.7);
+          crys.rotation.x = Math.sin(angle) * 0.4;
+          crys.rotation.z = -Math.cos(angle) * 0.4;
+          crys.castShadow = true;
+          g.add(crys);
+        }
       }
+
       return g;
     }
 
@@ -4620,12 +5051,48 @@
       
       const myPlayer = st.players.find(p => p.id === myId);
 
+      // Autocollect loot within close proximity (<= 3.5 game units)
+      if (myPlayer && st.loot && st.loot.length > 0) {
+        st.loot.forEach(l => {
+          const dist = Math.hypot(l.x - myPlayer.x, l.z - myPlayer.z);
+          if (dist <= 3.5) {
+            if (!window.recentAutocollects) window.recentAutocollects = new Set();
+            if (!window.recentAutocollects.has(l.id)) {
+              window.recentAutocollects.add(l.id);
+              socket.emit('lootItem', l.id);
+              setTimeout(() => {
+                if (window.recentAutocollects) {
+                  window.recentAutocollects.delete(l.id);
+                }
+              }, 2000);
+            }
+          }
+        });
+      }
+
       // 1. PLAYERS
       st.players.forEach(p => {
+        const isActuallyMe = (myId !== null && p.id === myId);
         if (!meshes.players[p.id]) {
-          meshes.players[p.id] = createCharMesh(p.id === myId, p.username);
+          meshes.players[p.id] = createCharMesh(isActuallyMe, p.username);
           scene.add(meshes.players[p.id]);
-          if (p.id === myId) {
+          if (isActuallyMe) {
+            dismissLoadingScreen(p.username);
+          }
+        } else {
+          // If the player mesh was created before myId was resolved, update its state & materials
+          const m = meshes.players[p.id];
+          if (isActuallyMe && !m.userData.isMe) {
+            m.userData.isMe = true;
+            if (m.userData.bodyMesh && !p.armorId && !p.armorType) {
+              m.userData.bodyMesh.material.color.setHex(0x2563eb);
+            }
+            if (m.userData.cape && !p.armorId && !p.armorType) {
+              m.userData.cape.material.color.setHex(0x1d4ed8);
+            }
+            if (m.userData.visor) {
+              m.userData.visor.material.color.setHex(0x38bdf8);
+            }
             dismissLoadingScreen(p.username);
           }
         }
@@ -4729,6 +5196,10 @@
         }
 
         if (p.id === myId) {
+          const hn = document.getElementById('hero-name');
+          if (hn && hn.innerText !== p.username) {
+            hn.innerText = p.username;
+          }
           const hpPct = Math.max(0, (p.hp / p.maxHp) * 100);
           document.getElementById('hp-fill').style.width = hpPct + '%';
           document.getElementById('hp-txt').innerText = `${Math.round(p.hp)} / ${p.maxHp}`;
@@ -4883,7 +5354,7 @@
       // 4. RESOURCES (TREES & ROCKS)
       st.resources.forEach(r => {
         if (!meshes.resources[r.id]) {
-          const mesh = r.type === 'tree' ? createTreeModel() : createRockModel();
+          const mesh = r.type === 'tree' ? createTreeModel(r) : createRockModel(r);
           mesh.position.set(r.x, 0, r.z);
           mesh.userData = { id: r.id, type: 'resource' };
           scene.add(mesh);
@@ -4902,7 +5373,7 @@
     // -------------------------------------------------------------
     // INVENTORY, CRAFTING & SHOP UI (EXPANDED ALBION TIERS & PRICING)
     // -------------------------------------------------------------
-    let latestInventoryData = null;
+    // latestInventoryData is declared at the top of the script
     let currentShopTab = 'buy';
     let selectedInventoryUid = null;
 
@@ -5009,6 +5480,10 @@
         // Update Stats UI
         const pts = d.stats.statPoints || 0;
         document.getElementById('ui-stat-pts').innerText = pts;
+        const statsBadge = document.getElementById('stats-badge-dot');
+        if (statsBadge) {
+          statsBadge.style.display = pts > 0 ? 'block' : 'none';
+        }
         document.getElementById('ui-stat-str').innerText = d.stats.strength || 1;
         document.getElementById('ui-stat-vit').innerText = d.stats.vitality || 1;
         document.getElementById('ui-stat-agi').innerText = d.stats.agility || 1;
@@ -5382,8 +5857,7 @@
       p.style.display = p.style.display === 'none' || p.style.display === '' ? 'flex' : 'none';
     }
 
-    let currentParty = [];
-    let pendingInvite = null;
+    // currentParty and pendingInvite are declared at the top of the script
 
     function inviteParty() {
       const name = document.getElementById('party-invite-name').value.trim();
@@ -5483,9 +5957,7 @@
     // -------------------------------------------------------------
     // QUEST LOG & DAILY REWARD CLIENT SYSTEM
     // -------------------------------------------------------------
-    let clientQuestsData = [];
-    let currentQuestFilter = 'all';
-    let clientDailyRewardData = null;
+    // clientQuestsData, currentQuestFilter, and clientDailyRewardData are declared at the top of the script
 
     function toggleQuestLog() {
       const el = document.getElementById('quest-ui');
