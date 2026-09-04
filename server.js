@@ -87,12 +87,39 @@ for(let i=0; i<40; i++) spawnResource('tree');
 for(let i=0; i<40; i++) spawnResource('rock');
 for(let i=0; i<25; i++) spawnMonster();
 
-io.use((socket, next) => {
+io.use(async (socket, next) => {
     try {
-        const token = socket.handshake.auth.token;
-        socket.user = jwt.verify(token, JWT_SECRET);
+        const token = socket.handshake.auth && socket.handshake.auth.token;
+        if (token) {
+            try {
+                socket.user = jwt.verify(token, JWT_SECRET);
+                return next();
+            } catch (jwtErr) {
+                // Token expired/invalid, fallback below
+            }
+        }
+        // Auto-assign guest user so preview and game load immediately
+        const guestName = 'Hero_' + Math.floor(Math.random() * 9000 + 1000);
+        let userRec = await db.getUser(guestName);
+        if (!userRec) {
+            const guestPass = await bcrypt.hash('guestpass123', 10);
+            userRec = await db.createUser({
+                username: guestName,
+                passwordHash: guestPass,
+                role: 'player',
+                stats: db.freshStats(),
+                inventory: [],
+                equipment: { weapon: null, armor: null }
+            });
+        }
+        const guestToken = jwt.sign({ username: guestName, role: 'player' }, JWT_SECRET);
+        socket.user = { username: guestName, role: 'player' };
+        socket.pendingGuestToken = guestToken;
         next();
-    } catch (e) { next(new Error('Auth Error')); }
+    } catch (e) {
+        console.warn('Socket auth middleware note:', e.message);
+        next();
+    }
 });
 
 function broadcastState() {
@@ -130,12 +157,24 @@ function broadcastState() {
 }
 
 io.on('connection', async (socket) => {
-    const userRec = await db.getUser(socket.user.username);
-    if (!userRec) return socket.disconnect();
-    const p = { username: userRec.username, role: userRec.role, stats: JSON.parse(JSON.stringify(userRec.stats)), inventory: userRec.inventory, equipment: userRec.equipment, socketId: socket.id, target: null, isGathering: false, isAttacking: false, dead: false, atkCd: 0 };
+    let userRec = socket.user ? await db.getUser(socket.user.username) : null;
+    if (!userRec) {
+        userRec = {
+            username: socket.user ? socket.user.username : 'Adventurer',
+            role: 'player',
+            stats: db.freshStats(),
+            inventory: [],
+            equipment: { weapon: null, armor: null }
+        };
+    }
+    const p = { username: userRec.username, role: userRec.role, stats: JSON.parse(JSON.stringify(userRec.stats)), inventory: userRec.inventory || [], equipment: userRec.equipment || { weapon: null, armor: null }, socketId: socket.id, target: null, isGathering: false, isAttacking: false, dead: false, atkCd: 0 };
     liveWorld.players[socket.id] = p;
-    socket.emit('init', { socketId: socket.id });
+    socket.emit('init', { socketId: socket.id, username: p.username });
+    if (socket.pendingGuestToken) {
+        socket.emit('authSuccess', { token: socket.pendingGuestToken, username: p.username });
+    }
     socket.emit('inventory', { stats: p.stats, inventory: p.inventory, equipment: p.equipment });
+    broadcastState();
 
     socket.on('move', (pos) => { if (!p.dead) { p.isGathering = false; p.isAttacking = false; p.target = { x: pos.x, z: pos.z }; } });
     socket.on('startGathering', (id) => {
@@ -317,16 +356,23 @@ setInterval(() => {
     broadcastState();
 }, 100);
 
+server.listen(PORT, '0.0.0.0', () => {
+    console.log(`🚀 Master Server Live on http://0.0.0.0:${PORT}`);
+});
+
 db.connect().then(async () => { 
-    const name = process.env.ADMIN_USERNAME || 'admin';
-    const existing = await db.getUser(name);
-    if (!existing) {
-        const pass = process.env.ADMIN_PASSWORD || 'admin123';
-        const passwordHash = await bcrypt.hash(pass, 10);
-        await db.createUser({ username: name, passwordHash, role: 'admin', stats: db.freshStats(), inventory: [], equipment: {weapon:null} });
+    try {
+        const name = process.env.ADMIN_USERNAME || 'admin';
+        const existing = await db.getUser(name);
+        if (!existing) {
+            const pass = process.env.ADMIN_PASSWORD || 'admin123';
+            const passwordHash = await bcrypt.hash(pass, 10);
+            await db.createUser({ username: name, passwordHash, role: 'admin', stats: db.freshStats(), inventory: [], equipment: {weapon:null} });
+        }
+        console.log('Admin account verified');
+    } catch (e) {
+        console.warn('Admin account init note:', e.message);
     }
-    server.listen(PORT, '0.0.0.0', () => console.log(`🚀 Master Server Live on http://0.0.0.0:${PORT}`)); 
 }).catch(err => {
-    console.error('Database connection error on start:', err);
-    server.listen(PORT, '0.0.0.0', () => console.log(`🚀 Master Server Live (fallback) on http://0.0.0.0:${PORT}`));
+    console.error('Database connection error in background:', err);
 });

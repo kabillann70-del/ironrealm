@@ -7,7 +7,7 @@
   "scripts": {
     "dev": "node server.js",
     "build": "echo 'Build complete'",
-    "lint": "node --check server.js db.js items.js",
+    "lint": "node --check server.js db.js items.js itemModels.js",
     "start": "node server.js"
   },
   "dependencies": {

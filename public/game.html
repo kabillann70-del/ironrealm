@@ -3,9 +3,18 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Persistent 3D Sandbox RPG with Leveling, Anvil Crafting, Monster Hunting, Gear Progression, and Economy">
+  <meta property="og:title" content="IronRealm">
+  <meta property="og:description" content="Persistent 3D Sandbox RPG with Leveling, Anvil Crafting, Monster Hunting, Gear Progression, and Economy">
   <title>IronRealm - 3D Sandbox RPG & PvP</title>
   <script src="/socket.io/socket.io.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="/three.min.js"></script>
+  <script>
+    if (typeof THREE === 'undefined') {
+      document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"><\/script>');
+    }
+  </script>
+  <script src="/itemModels.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;900&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -193,7 +202,25 @@
       border-color: rgba(255, 255, 255, 0.3);
       transform: translateY(-2px);
     }
-    .h-slot img { width: 75%; height: 75%; object-fit: contain; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.6)); }
+    .h-slot img, .item-3d-thumb {
+      width: 82%; height: 82%; object-fit: contain;
+      filter: drop-shadow(0 4px 8px rgba(0,0,0,0.65));
+      image-rendering: -webkit-optimize-contrast;
+      transition: transform 0.15s ease;
+    }
+    .h-slot:hover img, .slot:hover .item-3d-thumb {
+      transform: scale(1.1);
+    }
+    .shop-item-3d-img {
+      width: 36px; height: 36px; object-fit: contain; flex-shrink: 0;
+      filter: drop-shadow(0 3px 6px rgba(0,0,0,0.7));
+      image-rendering: -webkit-optimize-contrast;
+    }
+    .equip-3d-thumb {
+      width: 26px; height: 26px; object-fit: contain; flex-shrink: 0;
+      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.6));
+      image-rendering: -webkit-optimize-contrast;
+    }
     .h-slot-key {
       position: absolute; bottom: 2px; right: 4px;
       font-size: 9px; font-weight: 700; color: #94a3b8;
@@ -500,99 +527,117 @@
   <div id="notice"></div>
 
   <script>
-    // -------------------------------------------------------------
-    // AUDIO SYNTHESIZER FOR ACTIONS & COMBAT
-    // -------------------------------------------------------------
-    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    function playSfx(type) {
-      if (audioCtx.state === 'suspended') audioCtx.resume();
-      const t = audioCtx.currentTime;
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-      osc.connect(gain);
-      gain.connect(audioCtx.destination);
+    // Initialize 3D Item Models & Thumbnail Pre-renderer
+    if (typeof Item3D !== 'undefined' && Item3D.init) {
+      Item3D.init();
+    }
 
-      if (type === 'hit') {
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(160, t);
-        osc.frequency.exponentialRampToValueAtTime(30, t + 0.12);
-        gain.gain.setValueAtTime(0.3, t);
-        gain.gain.linearRampToValueAtTime(0.01, t + 0.12);
-        osc.start(t); osc.stop(t + 0.12);
-      } else if (type === 'chop') {
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(380, t);
-        osc.frequency.exponentialRampToValueAtTime(90, t + 0.1);
-        gain.gain.setValueAtTime(0.25, t);
-        gain.gain.linearRampToValueAtTime(0.01, t + 0.1);
-        osc.start(t); osc.stop(t + 0.1);
-      } else if (type === 'loot') {
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(523.25, t);
-        osc.frequency.setValueAtTime(659.25, t + 0.08);
-        gain.gain.setValueAtTime(0.2, t);
-        gain.gain.linearRampToValueAtTime(0.01, t + 0.2);
-        osc.start(t); osc.stop(t + 0.2);
-      } else if (type === 'levelup') {
-        const notes = [261.63, 329.63, 392.00, 523.25];
-        notes.forEach((freq, idx) => {
-          const o = audioCtx.createOscillator();
-          const g = audioCtx.createGain();
-          o.type = 'triangle';
-          o.frequency.setValueAtTime(freq, t + idx * 0.08);
-          g.gain.setValueAtTime(0.25, t + idx * 0.08);
-          g.gain.linearRampToValueAtTime(0.01, t + idx * 0.08 + 0.28);
-          o.connect(g);
-          g.connect(audioCtx.destination);
-          o.start(t + idx * 0.08);
-          o.stop(t + idx * 0.08 + 0.28);
-        });
-      } else if (type === 'craft') {
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(587.33, t);
-        osc.frequency.exponentialRampToValueAtTime(880, t + 0.05);
-        osc.frequency.exponentialRampToValueAtTime(440, t + 0.25);
-        gain.gain.setValueAtTime(0.3, t);
-        gain.gain.linearRampToValueAtTime(0.01, t + 0.25);
-        osc.start(t); osc.stop(t + 0.25);
-      } else if (type === 'equip') {
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(320, t);
-        osc.frequency.exponentialRampToValueAtTime(540, t + 0.08);
-        gain.gain.setValueAtTime(0.2, t);
-        gain.gain.linearRampToValueAtTime(0.01, t + 0.1);
-        osc.start(t); osc.stop(t + 0.1);
+    // Safe Audio Context
+    let audioCtx = null;
+    function getAudioCtx() {
+      if (!audioCtx) {
+        try {
+          const AudioCtor = window.AudioContext || window.webkitAudioContext;
+          if (AudioCtor) audioCtx = new AudioCtor();
+        } catch (e) {
+          console.warn('AudioContext init note:', e);
+        }
+      }
+      return audioCtx;
+    }
+
+    function playSfx(type) {
+      try {
+        const ctx = getAudioCtx();
+        if (!ctx) return;
+        if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+        const t = ctx.currentTime;
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        if (type === 'hit') {
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(160, t);
+          osc.frequency.exponentialRampToValueAtTime(30, t + 0.12);
+          gain.gain.setValueAtTime(0.3, t);
+          gain.gain.linearRampToValueAtTime(0.01, t + 0.12);
+          osc.start(t); osc.stop(t + 0.12);
+        } else if (type === 'chop') {
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(380, t);
+          osc.frequency.exponentialRampToValueAtTime(90, t + 0.1);
+          gain.gain.setValueAtTime(0.25, t);
+          gain.gain.linearRampToValueAtTime(0.01, t + 0.1);
+          osc.start(t); osc.stop(t + 0.1);
+        } else if (type === 'loot') {
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(523.25, t);
+          osc.frequency.setValueAtTime(659.25, t + 0.08);
+          gain.gain.setValueAtTime(0.2, t);
+          gain.gain.linearRampToValueAtTime(0.01, t + 0.2);
+          osc.start(t); osc.stop(t + 0.2);
+        } else if (type === 'levelup') {
+          const notes = [261.63, 329.63, 392.00, 523.25];
+          notes.forEach((freq, idx) => {
+            const o = ctx.createOscillator();
+            const g = ctx.createGain();
+            o.type = 'triangle';
+            o.frequency.setValueAtTime(freq, t + idx * 0.08);
+            g.gain.setValueAtTime(0.25, t + idx * 0.08);
+            g.gain.linearRampToValueAtTime(0.01, t + idx * 0.08 + 0.28);
+            o.connect(g);
+            g.connect(ctx.destination);
+            o.start(t + idx * 0.08);
+            o.stop(t + idx * 0.08 + 0.28);
+          });
+        } else if (type === 'craft') {
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(587.33, t);
+          osc.frequency.exponentialRampToValueAtTime(880, t + 0.05);
+          osc.frequency.exponentialRampToValueAtTime(440, t + 0.25);
+          gain.gain.setValueAtTime(0.3, t);
+          gain.gain.linearRampToValueAtTime(0.01, t + 0.25);
+          osc.start(t); osc.stop(t + 0.25);
+        } else if (type === 'equip') {
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(320, t);
+          osc.frequency.exponentialRampToValueAtTime(540, t + 0.08);
+          gain.gain.setValueAtTime(0.2, t);
+          gain.gain.linearRampToValueAtTime(0.01, t + 0.1);
+          osc.start(t); osc.stop(t + 0.1);
+        }
+      } catch (err) {
+        // Audio playback failed silently
       }
     }
 
     // -------------------------------------------------------------
+    // LOADING OVERLAY DISMISSAL
+    // -------------------------------------------------------------
+    function dismissLoadingScreen(username) {
+      const ls = document.getElementById('loading-screen');
+      if (ls && ls.style.display !== 'none') {
+        ls.style.opacity = '0';
+        setTimeout(() => { ls.style.display = 'none'; }, 350);
+      }
+      if (username) {
+        const hn = document.getElementById('hero-name');
+        if (hn) hn.innerText = username;
+      }
+    }
+    // Failsafe: never lock the user behind the loading screen
+    setTimeout(() => dismissLoadingScreen(), 2000);
+
+    // -------------------------------------------------------------
     // AUTHENTICATION & SOCKET SETUP
     // -------------------------------------------------------------
-    let token = localStorage.getItem('ir_token');
-
-    async function ensureToken() {
-      if (!token) {
-        // Auto register guest if none exists
-        try {
-          const guestName = 'Adventurer_' + Math.floor(Math.random() * 9000 + 1000);
-          const reg = await fetch('/api/register', {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username: guestName, password: 'password123' })
-          });
-          const log = await fetch('/api/login', {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username: guestName, password: 'password123' })
-          });
-          const d = await log.json();
-          if (d.token) {
-            token = d.token;
-            localStorage.setItem('ir_token', token);
-          }
-        } catch (err) {
-          console.warn('Auto guest login failed', err);
-        }
-      }
-      initSocket();
+    let token = null;
+    try {
+      token = localStorage.getItem('ir_token');
+    } catch(e) {
+      console.warn('Storage read note:', e);
     }
 
     let socket, myId = null;
@@ -602,15 +647,27 @@
 
     function initSocket() {
       socket = io({ auth: { token } });
+
+      socket.on('connect', () => {
+        dismissLoadingScreen();
+      });
+
       socket.on('connect_error', (err) => {
-        console.warn('Socket connection error, retrying auth...', err);
-        localStorage.removeItem('ir_token');
-        token = null;
-        ensureToken();
+        console.warn('Socket connect warning, continuing as guest...', err);
+        dismissLoadingScreen();
       });
 
       socket.on('init', (d) => {
         myId = d.socketId;
+        if (d.username) dismissLoadingScreen(d.username);
+        else dismissLoadingScreen();
+      });
+
+      socket.on('authSuccess', (d) => {
+        if (d && d.token) {
+          try { localStorage.setItem('ir_token', d.token); } catch(e){}
+        }
+        if (d && d.username) dismissLoadingScreen(d.username);
       });
 
       socket.on('vfx', (d) => {
@@ -659,7 +716,7 @@
       });
     }
 
-    ensureToken();
+    initSocket();
 
     // -------------------------------------------------------------
     // THREE.JS GRAPHICS SCENE SETUP
@@ -853,6 +910,10 @@
     }
 
     function createWeaponModel(type) {
+      if (typeof Item3D !== 'undefined' && Item3D.createItemMesh) {
+        const item3dMesh = Item3D.createItemMesh(type);
+        if (item3dMesh) return item3dMesh;
+      }
       const group = new THREE.Group();
       if (type === 'sword') {
         // Wood Sword / Practice Blade
@@ -1365,8 +1426,12 @@
       return g;
     }
 
-    // GOLDEN LOOT POUCH
-    function createLootModel() {
+    // 3D LOOT MODEL GENERATOR (Connected via Item3D Registry)
+    function createLootModel(itemId) {
+      if (typeof Item3D !== 'undefined' && Item3D.createWorldLootMesh) {
+        const itemMesh = Item3D.createWorldLootMesh(itemId);
+        if (itemMesh) return itemMesh;
+      }
       const g = new THREE.Group();
       const pouchGeo = new THREE.DodecahedronGeometry(0.45);
       const pouchMat = new THREE.MeshStandardMaterial({
@@ -1655,16 +1720,14 @@
     // SERVER STATE SYNCHRONIZATION
     // -------------------------------------------------------------
     function handleState(st) {
+      dismissLoadingScreen();
       // 1. PLAYERS
       st.players.forEach(p => {
         if (!meshes.players[p.id]) {
           meshes.players[p.id] = createCharMesh(p.id === myId, p.username);
           scene.add(meshes.players[p.id]);
           if (p.id === myId) {
-            const ls = document.getElementById('loading-screen');
-            ls.style.opacity = '0';
-            setTimeout(() => ls.style.display = 'none', 500);
-            document.getElementById('hero-name').innerText = p.username;
+            dismissLoadingScreen(p.username);
           }
         }
         const m = meshes.players[p.id];
@@ -1782,12 +1845,12 @@
         }
       });
 
-      // 3. LOOT POUCHES
+      // 3. LOOT ITEMS (3D WORLD MODELS)
       st.loot.forEach(l => {
         if (!meshes.loot[l.id]) {
-          const m = createLootModel();
+          const m = createLootModel(l.itemId);
           m.position.set(l.x, 0, l.z);
-          m.userData = { id: l.id, type: 'loot' };
+          m.userData = { id: l.id, itemId: l.itemId, type: 'loot' };
           scene.add(m);
           meshes.loot[l.id] = m;
         }
@@ -1868,7 +1931,8 @@
       const wepName = document.getElementById('inv-wep-name');
       const wepBtn = document.getElementById('inv-wep-btn');
       if (wep) {
-        wepName.innerText = `${wep.name} (+${wep.dmg || 0}D)`;
+        const wepThumb = (typeof Item3D !== 'undefined') ? Item3D.getThumbnail(wep.itemId || wep.id) : wep.image;
+        wepName.innerHTML = `<div style="display:flex; align-items:center; gap:6px; justify-content:center;">${wepThumb ? `<img src="${wepThumb}" class="equip-3d-thumb" alt="${wep.name}">` : ''}<span>${wep.name} (+${wep.dmg || 0}D)</span></div>`;
         wepBtn.style.display = 'inline-block';
       } else {
         wepName.innerText = 'None';
@@ -1878,7 +1942,8 @@
       const armName = document.getElementById('inv-arm-name');
       const armBtn = document.getElementById('inv-arm-btn');
       if (arm) {
-        armName.innerText = `${arm.name} (+${arm.defense || 0}A)`;
+        const armThumb = (typeof Item3D !== 'undefined') ? Item3D.getThumbnail(arm.itemId || arm.id) : arm.image;
+        armName.innerHTML = `<div style="display:flex; align-items:center; gap:6px; justify-content:center;">${armThumb ? `<img src="${armThumb}" class="equip-3d-thumb" alt="${arm.name}">` : ''}<span>${arm.name} (+${arm.defense || 0}A)</span></div>`;
         armBtn.style.display = 'inline-block';
       } else {
         armName.innerText = 'None';
@@ -1888,7 +1953,8 @@
       // Hotbar slots
       const s1 = document.getElementById('slot-1');
       if (wep) {
-        s1.innerHTML = wep.image ? `<img src="${wep.image}">` : `<span style="font-size:18px;">🗡️</span>`;
+        const thumb = (typeof Item3D !== 'undefined') ? Item3D.getThumbnail(wep.itemId || wep.id) : wep.image;
+        s1.innerHTML = thumb ? `<img src="${thumb}" class="item-3d-thumb" alt="${wep.name}">` : `<span style="font-size:18px;">🗡️</span>`;
         document.getElementById('dmg-txt').innerText = `${(d.stats ? d.stats.baseDamage || 8 : 8) + (wep.dmg || 0)} DMG`;
       } else {
         s1.innerHTML = '';
@@ -1897,7 +1963,8 @@
 
       const s2 = document.getElementById('slot-2');
       if (arm) {
-        s2.innerHTML = arm.image ? `<img src="${arm.image}">` : `<span style="font-size:18px;">🛡️</span>`;
+        const thumb = (typeof Item3D !== 'undefined') ? Item3D.getThumbnail(arm.itemId || arm.id) : arm.image;
+        s2.innerHTML = thumb ? `<img src="${thumb}" class="item-3d-thumb" alt="${arm.name}">` : `<span style="font-size:18px;">🛡️</span>`;
         document.getElementById('def-txt').innerText = `${arm.defense || 0} DEF`;
       } else {
         s2.innerHTML = '';
@@ -1926,8 +1993,9 @@
         const s = document.createElement('div');
         s.className = 'slot';
         s.title = `${it.name} (${it.type})`;
-        if (it.image) {
-          s.innerHTML = `<img src="${it.image}">`;
+        const thumb = (typeof Item3D !== 'undefined') ? Item3D.getThumbnail(it.itemId || it.id) : it.image;
+        if (thumb) {
+          s.innerHTML = `<img src="${thumb}" class="item-3d-thumb" alt="${it.name}">`;
         } else {
           const emoji = it.type === 'weapon' ? '⚔️' : it.type === 'armor' ? '🛡️' : '📦';
           s.innerHTML = `<span style="font-size:18px;">${emoji}</span><span style="font-size:8px; font-weight:700; text-align:center; color:#cbd5e1; line-height:1.1;">${it.name.substr(0, 6)}</span>`;
@@ -2000,10 +2068,14 @@
         const card = document.createElement('div');
         card.className = 'shop-item-card';
         const canAfford = gold >= it.price;
+        const thumb = (typeof Item3D !== 'undefined') ? Item3D.getThumbnail(it.id) : '';
         card.innerHTML = `
-          <div class="shop-item-info">
-            <span class="shop-item-name">${it.icon} ${it.name}</span>
-            <span class="shop-item-desc">${it.desc} &bull; <span style="color:#fbbf24; font-weight:700;">${it.price}g</span></span>
+          <div style="display:flex; align-items:center; gap:8px;">
+            ${thumb ? `<img src="${thumb}" class="shop-item-3d-img" alt="${it.name}">` : `<span style="font-size:20px;">${it.icon}</span>`}
+            <div class="shop-item-info">
+              <span class="shop-item-name">${it.name}</span>
+              <span class="shop-item-desc">${it.desc} &bull; <span style="color:#fbbf24; font-weight:700;">${it.price}g</span></span>
+            </div>
           </div>
           <button class="shop-btn" ${canAfford ? '' : 'disabled'} onclick="socket.emit('buyItem', '${it.id}')">
             ${canAfford ? 'Buy' : 'Need Gold'}
@@ -2032,14 +2104,19 @@
           if (have < req) canCraft = false;
           const label = MAT_NAMES[matId] || matId;
           const check = have >= req ? '✓' : `${have}/${req}`;
-          matParts.push(`<span style="color:${have >= req ? '#4ade80' : '#f87171'}">${label} ${check}</span>`);
+          const matThumb = (typeof Item3D !== 'undefined') ? Item3D.getThumbnail(matId) : '';
+          matParts.push(`<span style="display:inline-flex; align-items:center; gap:3px; color:${have >= req ? '#4ade80' : '#f87171'}">${matThumb ? `<img src="${matThumb}" style="width:14px; height:14px; object-fit:contain;">` : ''}${label} ${check}</span>`);
         }
         const card = document.createElement('div');
         card.className = 'shop-item-card';
+        const thumb = (typeof Item3D !== 'undefined') ? Item3D.getThumbnail(r.id) : '';
         card.innerHTML = `
-          <div class="shop-item-info">
-            <span class="shop-item-name">${r.icon} ${r.name} <span style="color:#38bdf8; font-size:10px;">(${r.stat})</span></span>
-            <span class="shop-item-desc">${matParts.join(', ')} &bull; <span style="color:#fbbf24;">${r.gold}g</span></span>
+          <div style="display:flex; align-items:center; gap:8px;">
+            ${thumb ? `<img src="${thumb}" class="shop-item-3d-img" alt="${r.name}">` : `<span style="font-size:20px;">${r.icon}</span>`}
+            <div class="shop-item-info">
+              <span class="shop-item-name">${r.name} <span style="color:#38bdf8; font-size:10px;">(${r.stat})</span></span>
+              <span class="shop-item-desc" style="display:flex; flex-wrap:wrap; gap:5px; align-items:center;">${matParts.join(' ')} &bull; <span style="color:#fbbf24; font-weight:700;">${r.gold}g</span></span>
+            </div>
           </div>
           <button class="shop-btn" ${canCraft ? '' : 'disabled'} onclick="playSfx('craft'); socket.emit('craftItem', '${r.id}')">
             ${canCraft ? 'Forge' : 'Need Mats'}
@@ -2177,10 +2254,19 @@
       }
       embers.geometry.attributes.position.needsUpdate = true;
 
-      // Bob loot pouches
+      // Bob and rotate 3D world loot items
       Object.values(meshes.loot).forEach(m => {
-        m.position.y = 0.4 + Math.sin(now * 0.005 + m.position.x) * 0.15;
-        m.rotation.y += delta * 1.5;
+        if (m.userData.itemModel) {
+          m.userData.itemModel.position.y = (m.userData.baseY || 0.5) + Math.sin(now * 0.004 + (m.position.x * 1.5)) * 0.12;
+          m.userData.itemModel.rotation.y += delta * (m.userData.rotSpeed || 1.4);
+        } else {
+          m.position.y = 0.4 + Math.sin(now * 0.005 + m.position.x) * 0.15;
+          m.rotation.y += delta * 1.5;
+        }
+        if (m.userData.ring) {
+          m.userData.ring.rotation.z += delta * 0.7;
+          m.userData.ring.material.opacity = 0.45 + Math.sin(now * 0.004) * 0.2;
+        }
       });
 
       // Player animations (Smooth Movement & Swinging)

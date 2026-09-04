@@ -3,13 +3,20 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Persistent 3D Sandbox RPG with Leveling, Anvil Crafting, Monster Hunting, Gear Progression, and Economy">
+  <meta property="og:title" content="IronRealm">
+  <meta property="og:description" content="Persistent 3D Sandbox RPG with Leveling, Anvil Crafting, Monster Hunting, Gear Progression, and Economy">
   <title>IronRealm - 3D Sandbox RPG & PvP</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;900&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
   <script>
-    if (localStorage.getItem('ir_token')) {
-      window.location.replace('/game.html');
+    try {
+      if (window.localStorage && localStorage.getItem('ir_token')) {
+        window.location.replace('/game.html');
+      }
+    } catch (e) {
+      console.warn('Storage check note:', e);
     }
   </script>
   <style>
@@ -238,33 +245,12 @@
 
     async function quickPlay() {
       const btn = document.getElementById('btn-quickplay');
-      btn.disabled = true;
-      btn.innerText = 'Creating Guest Adventurer...';
-      const guestName = 'Hero_' + Math.floor(Math.random() * 9000 + 1000);
-      try {
-        await fetch('/api/register', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username: guestName, password: 'guestpassword123' })
-        });
-        const logRes = await fetch('/api/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username: guestName, password: 'guestpassword123' })
-        });
-        const data = await logRes.json();
-        if (data.token) {
-          localStorage.setItem('ir_token', data.token);
-          window.location.href = '/game.html';
-        } else {
-          showStatus(data.error || 'Failed to initialize guest session', 'error');
-          btn.disabled = false;
-          btn.innerHTML = '<span>⚔️</span><span>ENTER REALM (QUICK PLAY)</span>';
-        }
-      } catch (e) {
-        showStatus('Connection error. Retrying directly in game...', 'error');
-        window.location.href = '/game.html';
+      if (btn) {
+        btn.disabled = true;
+        btn.innerText = 'Entering Realm...';
       }
+      showStatus('Entering IronRealm...', 'success');
+      window.location.href = '/game.html';
     }
 
     async function submitAuth() {
