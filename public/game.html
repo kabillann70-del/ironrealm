@@ -807,7 +807,7 @@
 
   <!-- Controls Hints -->
   <div id="controls-hint">
-    <b>Right-Click + Drag</b>: 3D Orbit Camera &bull; <b>Scroll</b>: Zoom &bull; <b>[Q]/[E]</b>: Rotate &bull; <b>[Space]</b>: Jump &bull; <b>[Enter]</b>: Chat &bull; <b>[B]</b>: Bag &bull; <b>[P]</b>: Forge &bull; <b>[M]</b>: Map
+    <b>Right-Click + Drag</b>: Orbit &bull; <b>WASD</b>: Move &bull; <b>Shift + WASD</b>: Run &bull; <b>Space</b>: Dodge &bull; <b>[Q]/[E]</b>: Zoom &bull; <b>[Enter]</b>: Chat &bull; <b>[B]</b>: Bag &bull; <b>[P]</b>: Forge &bull; <b>[M]</b>: Map
   </div>
 
   <!-- Public Chat Docked System -->
@@ -2723,6 +2723,36 @@
       activeSparks.push({ pts, vels, life: 1.0 });
     }
 
+    function spawnJumpDust(x, z) {
+      const count = 12;
+      const geo = new THREE.BufferGeometry();
+      const posArr = new Float32Array(count * 3);
+      const vels = [];
+      for (let i = 0; i < count; i++) {
+        posArr[i * 3] = x + (Math.random() - 0.5) * 1.2;
+        posArr[i * 3 + 1] = 0.2;
+        posArr[i * 3 + 2] = z + (Math.random() - 0.5) * 1.2;
+        const angle = Math.random() * Math.PI * 2;
+        const speed = Math.random() * 2 + 0.5;
+        vels.push({
+          vx: Math.cos(angle) * speed,
+          vy: Math.random() * 1.5 + 0.5,
+          vz: Math.sin(angle) * speed
+        });
+      }
+      geo.setAttribute('position', new THREE.BufferAttribute(posArr, 3));
+      const mat = new THREE.PointsMaterial({
+        color: 0x94a3b8,
+        size: 0.28,
+        transparent: true,
+        opacity: 0.8,
+        blending: THREE.NormalBlending
+      });
+      const pts = new THREE.Points(geo, mat);
+      scene.add(pts);
+      activeSparks.push({ pts, vels, life: 0.8 });
+    }
+
     function spawnLevelUpVFX(x, z, level) {
       // Screen banner text
       const vector = new THREE.Vector3(x, 3.2, z).project(camera);
@@ -3860,26 +3890,54 @@
     // -------------------------------------------------------------
     // CONTROLS & RAYCASTING INTERACTION
     // -------------------------------------------------------------
+    const activeKeys = {};
+
     window.addEventListener('keydown', (e) => {
       if (document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA')) return;
       const key = e.key.toLowerCase();
+      if (['w', 'a', 's', 'd'].includes(key)) {
+        activeKeys[key] = true;
+      }
+      if (e.shiftKey) {
+        activeKeys['shift'] = true;
+      }
       if (key === 'b') toggleBag();
       if (key === 'p') toggleShop();
       if (key === 'm') toggleExpandMap();
       if (key === 'q') cameraDistance = Math.min(55, cameraDistance + 3);
       if (key === 'e') cameraDistance = Math.max(10, cameraDistance - 3);
 
-      // WASD Directional Walking
-      if (['w', 'a', 's', 'd'].includes(key) && myId && meshes.players[myId]) {
-        const pPos = meshes.players[myId].position;
-        let dx = 0, dz = 0;
-        if (key === 'w') dz -= 6;
-        if (key === 's') dz += 6;
-        if (key === 'a') dx -= 6;
-        if (key === 'd') dx += 6;
-        socket.emit('move', { x: pPos.x + dx, z: pPos.z + dz });
+      if (key === ' ' || e.code === 'Space') {
+        e.preventDefault();
+        triggerDodgeDash();
       }
     });
+
+    window.addEventListener('keyup', (e) => {
+      const key = e.key.toLowerCase();
+      if (['w', 'a', 's', 'd'].includes(key)) {
+        activeKeys[key] = false;
+      }
+      if (!e.shiftKey) {
+        activeKeys['shift'] = false;
+      }
+    });
+
+    let lastDodgeTime = 0;
+    function triggerDodgeDash() {
+      const now = performance.now();
+      if (now - lastDodgeTime < 1000) return;
+      lastDodgeTime = now;
+      playSfx('jump');
+      if (myId && meshes.players[myId]) {
+        const pPos = meshes.players[myId].position;
+        const dashDist = 6.0;
+        const dx = -Math.sin(cameraAngleYaw) * dashDist;
+        const dz = -Math.cos(cameraAngleYaw) * dashDist;
+        socket.emit('move', { x: pPos.x + dx, z: pPos.z + dz });
+        socket.emit('jump');
+      }
+    }
 
     let isRightMouseDown = false;
     let lastMouseX = 0, lastMouseY = 0;
@@ -3929,11 +3987,7 @@
         }
       }
 
-      const gHit = ray.intersectObject(floor);
-      if (gHit[0]) {
-        socket.emit('move', { x: gHit[0].point.x, z: gHit[0].point.z });
-        triggerClickRipple(gHit[0].point.x, gHit[0].point.z);
-      }
+
     });
 
     window.addEventListener('mouseup', (e) => {
@@ -4149,6 +4203,37 @@
           }
         }
       });
+
+      // Camera-relative multi-key WASD movement (e.g. W+D diagonal)
+      if (myId && meshes.players[myId]) {
+        let moveDirX = 0, moveDirZ = 0;
+        if (activeKeys['w']) {
+          moveDirX -= Math.sin(cameraAngleYaw);
+          moveDirZ -= Math.cos(cameraAngleYaw);
+        }
+        if (activeKeys['s']) {
+          moveDirX += Math.sin(cameraAngleYaw);
+          moveDirZ += Math.cos(cameraAngleYaw);
+        }
+        if (activeKeys['a']) {
+          moveDirX -= Math.cos(cameraAngleYaw);
+          moveDirZ += Math.sin(cameraAngleYaw);
+        }
+        if (activeKeys['d']) {
+          moveDirX += Math.cos(cameraAngleYaw);
+          moveDirZ -= Math.sin(cameraAngleYaw);
+        }
+
+        if (moveDirX !== 0 || moveDirZ !== 0) {
+          const len = Math.hypot(moveDirX, moveDirZ);
+          if (len > 0) { moveDirX /= len; moveDirZ /= len; }
+          const pPos = meshes.players[myId].position;
+          const isRunning = activeKeys['shift'] || activeKeys['Shift'] || (window.event && window.event.shiftKey);
+          const speedMultiplier = isRunning ? 1.85 : 1.0;
+          const step = 9.0 * delta * 7 * speedMultiplier;
+          socket.emit('move', { x: pPos.x + moveDirX * step, z: pPos.z + moveDirZ * step });
+        }
+      }
 
       // Smooth 3rd-Person Camera Follow & Orbit on local player
       if (myId && meshes.players[myId]) {
