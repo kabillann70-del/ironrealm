@@ -232,13 +232,100 @@
 
     /* Controls Guide Pill */
     #controls-hint {
-      position: absolute; bottom: 100px; left: 24px;
-      background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(12px);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      color: #94a3b8; font-size: 11px; padding: 8px 14px; border-radius: 10px;
+      position: absolute; bottom: 250px; left: 24px;
+      background: rgba(15, 23, 42, 0.88); backdrop-filter: blur(14px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #94a3b8; font-size: 11px; padding: 7px 14px; border-radius: 10px;
       box-shadow: 0 8px 24px rgba(0,0,0,0.5); z-index: 10;
+      pointer-events: none; transition: all 0.2s ease;
     }
     #controls-hint b { color: #f8fafc; }
+
+    /* Public Chat Docked Panel */
+    #chat-panel {
+      position: absolute; bottom: 20px; left: 24px;
+      width: 340px; height: 215px;
+      background: linear-gradient(180deg, rgba(15, 23, 42, 0.94), rgba(9, 14, 26, 0.98));
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-top: 1px solid rgba(56, 189, 248, 0.4);
+      border-radius: 14px;
+      display: flex; flex-direction: column;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.75);
+      z-index: 60; transition: height 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    #chat-panel.collapsed {
+      height: 38px;
+    }
+    #chat-panel.collapsed .chat-log, #chat-panel.collapsed .chat-input-row {
+      display: none;
+    }
+    .chat-header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 6px 12px; background: rgba(0, 0, 0, 0.35);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 14px 14px 0 0;
+    }
+    .chat-tabs { display: flex; gap: 4px; }
+    .chat-tab-btn {
+      background: transparent; border: none; color: #94a3b8;
+      font-size: 10px; font-weight: 700; padding: 3px 7px;
+      border-radius: 4px; cursor: pointer; transition: all 0.15s;
+    }
+    .chat-tab-btn:hover { color: #f8fafc; background: rgba(255, 255, 255, 0.06); }
+    .chat-tab-btn.active {
+      background: rgba(56, 189, 248, 0.18); color: #38bdf8;
+      border: 1px solid rgba(56, 189, 248, 0.3);
+    }
+    .chat-collapse-btn {
+      background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #94a3b8; font-size: 10px; font-weight: 700;
+      width: 18px; height: 18px; border-radius: 4px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; transition: all 0.15s;
+    }
+    .chat-collapse-btn:hover { color: #fff; background: rgba(56, 189, 248, 0.3); }
+    .chat-log {
+      flex: 1; overflow-y: auto; padding: 8px 10px;
+      display: flex; flex-direction: column; gap: 5px;
+      font-size: 11px; line-height: 1.35;
+    }
+    .chat-msg {
+      word-break: break-word; color: #e2e8f0;
+      text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+    }
+    .chat-time { color: #64748b; font-size: 9px; margin-right: 4px; }
+    .chat-badge {
+      font-size: 9px; font-weight: 800; padding: 1px 4px;
+      border-radius: 3px; margin-right: 4px;
+    }
+    .chat-badge-lvl { background: rgba(56, 189, 248, 0.2); color: #38bdf8; }
+    .chat-badge-admin { background: rgba(239, 68, 68, 0.25); color: #f87171; border: 1px solid rgba(239, 68, 68, 0.4); }
+    .chat-badge-zone { background: rgba(168, 85, 247, 0.2); color: #c084fc; }
+    .chat-sender { font-weight: 700; color: #38bdf8; margin-right: 4px; }
+    .chat-text { color: #f1f5f9; }
+    .chat-input-row {
+      display: flex; padding: 6px 8px; gap: 6px;
+      background: rgba(0, 0, 0, 0.4); border-top: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 0 0 14px 14px;
+    }
+    .chat-input {
+      flex: 1; background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 6px;
+      color: #fff; padding: 5px 8px; font-size: 11px;
+      font-family: inherit; outline: none; transition: border-color 0.15s;
+    }
+    .chat-input:focus {
+      border-color: #38bdf8; background: rgba(255, 255, 255, 0.08);
+      box-shadow: 0 0 8px rgba(56, 189, 248, 0.3);
+    }
+    .chat-send-btn {
+      background: linear-gradient(135deg, #0284c7, #2563eb);
+      border: none; border-radius: 6px; color: #fff;
+      font-size: 11px; font-weight: 700; padding: 5px 10px;
+      cursor: pointer; transition: filter 0.15s;
+    }
+    .chat-send-btn:hover { filter: brightness(1.15); }
 
     /* Inventory Panel (Docked cleanly beside Minimap on the right) */
     #inv-ui {
@@ -491,10 +578,145 @@
       from { transform: translateY(0) scale(1); opacity: 1; }
       to { transform: translateY(-15px) scale(0.9); opacity: 0; }
     }
+
+    /* =========================================================
+       ZONE DISCOVERY & LEVEL RECOMMENDATION BANNER
+       ========================================================= */
+    #zone-banner {
+      position: absolute; top: 18%; left: 50%; transform: translate(-50%, -50%);
+      display: none; flex-direction: column; align-items: center; text-align: center;
+      background: radial-gradient(circle at center, rgba(15, 23, 42, 0.96) 0%, rgba(9, 14, 26, 0.98) 100%);
+      backdrop-filter: blur(24px);
+      border: 2px solid rgba(56, 189, 248, 0.5);
+      border-radius: 20px; padding: 22px 36px; min-width: 360px; max-width: 90vw;
+      box-shadow: 0 24px 60px rgba(0, 0, 0, 0.9), 0 0 40px rgba(56, 189, 248, 0.3);
+      z-index: 150; pointer-events: none;
+      animation: zoneBannerPop 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    #zone-banner.fading {
+      animation: zoneBannerFade 0.6s ease forwards;
+    }
+    .zone-banner-icon {
+      font-size: 38px; margin-bottom: 4px;
+      filter: drop-shadow(0 4px 12px rgba(0,0,0,0.6));
+    }
+    .zone-banner-title {
+      font-family: 'Cinzel', serif; font-size: 26px; font-weight: 900;
+      color: #f8fafc; letter-spacing: 2px; text-transform: uppercase;
+      text-shadow: 0 2px 16px rgba(56, 189, 248, 0.8), 0 2px 4px #000;
+      margin-bottom: 6px;
+    }
+    .zone-banner-rec {
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      font-size: 13px; font-weight: 800; color: #38bdf8;
+      background: rgba(56, 189, 248, 0.12);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      padding: 4px 14px; border-radius: 9999px; margin-bottom: 8px;
+    }
+    .zone-banner-danger {
+      font-size: 11px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 1px; color: #94a3b8; margin-bottom: 6px;
+    }
+    .zone-banner-desc {
+      font-size: 11px; color: #cbd5e1; max-width: 320px; line-height: 1.4;
+    }
+    .zone-banner-warning {
+      margin-top: 10px; padding: 6px 12px; border-radius: 8px;
+      background: rgba(239, 68, 68, 0.2); border: 1px solid rgba(239, 68, 68, 0.5);
+      color: #fca5a5; font-size: 11px; font-weight: 700;
+      animation: pulseWarn 1.2s infinite ease-in-out;
+    }
+    @keyframes pulseWarn {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.8; transform: scale(0.98); }
+    }
+    @keyframes zoneBannerPop {
+      from { transform: translate(-50%, -60%) scale(0.85); opacity: 0; }
+      to { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+    }
+    @keyframes zoneBannerFade {
+      from { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+      to { transform: translate(-50%, -40%) scale(0.92); opacity: 0; }
+    }
+
+    /* =========================================================
+       WORLD BOSS & MINI-BOSS TOP HEALTH BAR
+       ========================================================= */
+    #boss-bar-hud {
+      position: absolute; top: 16px; left: 50%; transform: translateX(-50%);
+      display: none; flex-direction: column; align-items: center;
+      background: linear-gradient(180deg, rgba(15, 23, 42, 0.95), rgba(9, 14, 26, 0.98));
+      backdrop-filter: blur(20px);
+      border: 2px solid rgba(239, 68, 68, 0.6);
+      border-top: 2px solid rgba(245, 158, 11, 0.9);
+      border-radius: 16px; padding: 12px 24px; min-width: 380px; max-width: 90vw;
+      box-shadow: 0 16px 50px rgba(0, 0, 0, 0.9), 0 0 30px rgba(239, 68, 68, 0.4);
+      z-index: 120;
+      animation: bossBarDrop 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    @keyframes bossBarDrop {
+      from { transform: translate(-50%, -30px); opacity: 0; }
+      to { transform: translate(-50%, 0); opacity: 1; }
+    }
+    .boss-header {
+      display: flex; align-items: center; justify-content: space-between; width: 100%; margin-bottom: 6px;
+    }
+    .boss-title {
+      font-family: 'Cinzel', serif; font-size: 15px; font-weight: 900;
+      color: #f87171; letter-spacing: 1px; text-shadow: 0 0 12px rgba(239, 68, 68, 0.8);
+      display: flex; align-items: center; gap: 6px;
+    }
+    .boss-lvl {
+      font-size: 11px; font-weight: 800; color: #fbbf24;
+      background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.4);
+      padding: 2px 8px; border-radius: 6px;
+    }
+    .boss-bar-track {
+      width: 100%; height: 16px;
+      background: rgba(0, 0, 0, 0.7);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 9999px; overflow: hidden; position: relative;
+    }
+    .boss-bar-fill {
+      height: 100%; border-radius: 9999px;
+      background: linear-gradient(90deg, #b91c1c, #ef4444, #f87171);
+      box-shadow: 0 0 16px rgba(239, 68, 68, 0.8);
+      transition: width 0.2s ease;
+    }
+    .boss-hp-label {
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      font-size: 10px; font-weight: 800; color: #fff;
+      text-shadow: 0 1px 4px #000, 0 0 8px #000; letter-spacing: 0.5px;
+    }
   </style>
 </head>
 <body>
   <div id="screen-vignette"></div>
+
+  <!-- Zone Discovery Overlay Banner -->
+  <div id="zone-banner">
+    <div id="zone-banner-icon" class="zone-banner-icon">🛡️</div>
+    <div id="zone-banner-title" class="zone-banner-title">SANCTUARY OF LIGHT</div>
+    <div id="zone-banner-rec" class="zone-banner-rec">⚔️ Recommended: Lv. 1 (Safe Hub)</div>
+    <div id="zone-banner-danger" class="zone-banner-danger">🛡️ Safe Zone</div>
+    <div id="zone-banner-desc" class="zone-banner-desc">Protected capital with Forge, Traders, and Portal Stones.</div>
+    <div id="zone-banner-warn" class="zone-banner-warning" style="display:none;">⚠️ UNDERLEVELED FOR THIS ZONE! Extreme Monster Threat.</div>
+  </div>
+
+  <!-- World Boss Health Bar HUD -->
+  <div id="boss-bar-hud">
+    <div class="boss-header">
+      <div class="boss-title">
+        <span>☠️</span>
+        <span id="boss-hud-name">Ignisrax the Abyssal Dragon Lord</span>
+      </div>
+      <span id="boss-hud-lvl" class="boss-lvl">Lv. 60 [WORLD BOSS]</span>
+    </div>
+    <div class="boss-bar-track">
+      <div id="boss-hud-fill" class="boss-bar-fill" style="width: 100%;"></div>
+      <div id="boss-hud-txt" class="boss-hp-label">6,500 / 6,500 HP</div>
+    </div>
+  </div>
 
   <div id="loading-screen">
     <div class="loading-spinner"></div>
@@ -511,6 +733,14 @@
       <button id="btn-portal-exit" onclick="exitToPortal()" title="Return to Login Portal / Switch Account" style="background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.16); color: #cbd5e1; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 4px; transition: all 0.2s ease;">
         <span>🚪</span><span>Portal</span>
       </button>
+    </div>
+    <!-- Zone Location & Level Recommendation HUD Pill -->
+    <div id="zone-hud-row" style="display: flex; align-items: center; justify-content: space-between; background: rgba(0,0,0,0.35); padding: 4px 8px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.06); margin-top: -2px;">
+      <div style="display: flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 700;">
+        <span id="hud-zone-icon">🛡️</span>
+        <span id="hud-zone-name" style="color:#f8fafc;">Sanctuary of Light</span>
+      </div>
+      <span id="hud-zone-rec" style="font-size: 9.5px; font-weight: 700; color: #38bdf8; background: rgba(56, 189, 248, 0.15); padding: 1px 6px; border-radius: 4px;">Rec: Lv. 1</span>
     </div>
     <div class="bar-row">
       <div class="bar-label">
@@ -577,7 +807,29 @@
 
   <!-- Controls Hints -->
   <div id="controls-hint">
-    <b>Click / WASD</b>: Move &bull; <b>Click Mob</b>: Attack &bull; <b>Click Node</b>: Gather &bull; <b>[B]</b>: Bag &bull; <b>[P]</b>: Shop &bull; <b>[M]</b>: Map
+    <b>Right-Click + Drag</b>: 3D Orbit Camera &bull; <b>Scroll</b>: Zoom &bull; <b>[Q]/[E]</b>: Rotate &bull; <b>[Space]</b>: Jump &bull; <b>[Enter]</b>: Chat &bull; <b>[B]</b>: Bag &bull; <b>[P]</b>: Forge &bull; <b>[M]</b>: Map
+  </div>
+
+  <!-- Public Chat Docked System -->
+  <div id="chat-panel">
+    <div class="chat-header">
+      <div class="chat-tabs">
+        <button class="chat-tab-btn active" id="chat-tab-all" onclick="setChatTab('all')">All</button>
+        <button class="chat-tab-btn" id="chat-tab-global" onclick="setChatTab('global')">Global</button>
+        <button class="chat-tab-btn" id="chat-tab-zone" onclick="setChatTab('zone')">Zone</button>
+        <button class="chat-tab-btn" id="chat-tab-combat" onclick="setChatTab('combat')">Combat</button>
+      </div>
+      <button class="chat-collapse-btn" id="chat-collapse-toggle" onclick="toggleChatCollapse()" title="Minimize / Expand Chat">_</button>
+    </div>
+    <div class="chat-log" id="chat-log">
+      <div class="chat-msg" style="color: #94a3b8; font-style: italic;">
+        <span class="chat-time">[System]</span> Welcome to IronRealm 3D! Press [Enter] or type below to chat with adventurers.
+      </div>
+    </div>
+    <div class="chat-input-row">
+      <input type="text" id="chat-input" class="chat-input" placeholder="Type message... [Enter]" maxlength="120" onkeydown="handleChatKeyDown(event)">
+      <button class="chat-send-btn" onclick="sendChatMessage()">Send</button>
+    </div>
   </div>
 
   <!-- Action Hotbar -->
@@ -834,7 +1086,21 @@
         } else if (d.type === 'levelup') {
           playSfx('levelup');
           spawnLevelUpVFX(d.x, d.z, d.level);
+        } else if (d.type === 'jump') {
+          playSfx('jump');
+          if (meshes.players[d.playerId]) {
+            meshes.players[d.playerId].userData.jumpStartTime = performance.now();
+          }
+          spawnJumpDust(d.x, d.z);
         }
+      });
+
+      socket.on('chatMessage', (msg) => {
+        handleIncomingChatMessage(msg);
+      });
+
+      socket.on('playerChatBubble', (d) => {
+        showPlayer3DChatBubble(d.socketId, d.username, d.text);
       });
 
       socket.on('state', (st) => {
@@ -1306,12 +1572,622 @@
       return g;
     }
 
-    // MONSTER MODELS (OGRE, WOLF, DEMON, SPIDER, SKELETON)
+    // -------------------------------------------------------------
+    // ZONE DIVIDERS & PHYSICAL BOUNDARY WALLS / OBELISKS
+    // -------------------------------------------------------------
+    function buildZoneDividers(targetScene) {
+      const zoneDividerGroup = new THREE.Group();
+      zoneDividerGroup.name = "ZONE_DIVIDERS";
+
+      // 1. SANCTUARY OF LIGHT BOUNDARY RUNES & BEACON PYLONS ([-22, 22] x [-22, 22])
+      const pylonPositions = [
+        [-22, -22], [22, -22], [-22, 22], [22, 22],
+        [0, -22], [0, 22], [-22, 0], [22, 0]
+      ];
+      
+      const pylonGeo = new THREE.CylinderGeometry(0.5, 0.9, 4.5, 6);
+      const pylonMat = new THREE.MeshStandardMaterial({
+        color: 0x1e293b,
+        metalness: 0.8,
+        roughness: 0.3
+      });
+
+      const crystalGeo = new THREE.OctahedronGeometry(0.65, 0);
+      const crystalMat = new THREE.MeshStandardMaterial({
+        color: 0x38bdf8,
+        emissive: 0x0284c7,
+        emissiveIntensity: 0.9,
+        metalness: 0.9,
+        roughness: 0.1
+      });
+
+      pylonPositions.forEach(([px, pz]) => {
+        const pylon = new THREE.Mesh(pylonGeo, pylonMat);
+        pylon.position.set(px, 2.25, pz);
+        pylon.castShadow = true;
+        pylon.receiveShadow = true;
+        zoneDividerGroup.add(pylon);
+
+        const crys = new THREE.Mesh(crystalGeo, crystalMat);
+        crys.position.set(px, 5.2, pz);
+        zoneDividerGroup.add(crys);
+
+        // Light beam upward
+        const beamGeo = new THREE.CylinderGeometry(0.08, 0.08, 14, 8);
+        const beamMat = new THREE.MeshBasicMaterial({
+          color: 0x38bdf8,
+          transparent: true,
+          opacity: 0.45,
+          blending: THREE.AdditiveBlending
+        });
+        const beam = new THREE.Mesh(beamGeo, beamMat);
+        beam.position.set(px, 12, pz);
+        zoneDividerGroup.add(beam);
+      });
+
+      // Sanctuary perimeter rune lines
+      const runeWallMat = new THREE.MeshBasicMaterial({
+        color: 0x38bdf8,
+        transparent: true,
+        opacity: 0.25,
+        side: THREE.DoubleSide
+      });
+      
+      // North & South sanctuary border lines
+      [-22, 22].forEach(z => {
+        const lineGeo = new THREE.PlaneGeometry(44, 0.4);
+        const line = new THREE.Mesh(lineGeo, runeWallMat);
+        line.rotation.x = -Math.PI / 2;
+        line.position.set(0, 0.08, z);
+        zoneDividerGroup.add(line);
+      });
+      // East & West sanctuary border lines
+      [-22, 22].forEach(x => {
+        const lineGeo = new THREE.PlaneGeometry(0.4, 44);
+        const line = new THREE.Mesh(lineGeo, runeWallMat);
+        line.rotation.x = -Math.PI / 2;
+        line.position.set(x, 0.08, 0);
+        zoneDividerGroup.add(line);
+      });
+
+      // 2. FROSTPEAK GLACIER BORDER (x = 22, z: [-22 to 35])
+      const iceMat = new THREE.MeshStandardMaterial({
+        color: 0x38bdf8,
+        emissive: 0x0284c7,
+        emissiveIntensity: 0.35,
+        roughness: 0.1,
+        metalness: 0.8,
+        transparent: true,
+        opacity: 0.88
+      });
+      for (let z = -20; z <= 34; z += 9) {
+        const icePillar = new THREE.Mesh(new THREE.ConeGeometry(1.2, 7.5, 5), iceMat);
+        icePillar.position.set(22.5, 3.75, z);
+        icePillar.rotation.y = (z % 3) * 0.7;
+        icePillar.castShadow = true;
+        zoneDividerGroup.add(icePillar);
+
+        const subSpike = new THREE.Mesh(new THREE.ConeGeometry(0.6, 4.5, 4), iceMat);
+        subSpike.position.set(23.8, 2.25, z + 1.8);
+        subSpike.rotation.z = -0.3;
+        zoneDividerGroup.add(subSpike);
+      }
+
+      // 3. NECROPOLIS OF THE DAMNED BORDER (x = -22, z: [-40 to 35])
+      const necroMat = new THREE.MeshStandardMaterial({
+        color: 0x1e1b4b,
+        emissive: 0x581c87,
+        emissiveIntensity: 0.45,
+        roughness: 0.7,
+        metalness: 0.3
+      });
+      const soulFlameMat = new THREE.MeshBasicMaterial({ color: 0xc084fc });
+      for (let z = -36; z <= 34; z += 10) {
+        // Cursed Skull Obelisk
+        const pillar = new THREE.Mesh(new THREE.BoxGeometry(1.2, 6.5, 1.2), necroMat);
+        pillar.position.set(-22.5, 3.25, z);
+        pillar.castShadow = true;
+        zoneDividerGroup.add(pillar);
+
+        // Hovering Soul Flame
+        const flame = new THREE.Mesh(new THREE.OctahedronGeometry(0.4, 0), soulFlameMat);
+        flame.position.set(-22.5, 7.2, z);
+        zoneDividerGroup.add(flame);
+      }
+
+      // 4. BRIMSTONE ABYSS BORDER (z = 22, x: [-70 to 35])
+      const magmaBasaltMat = new THREE.MeshStandardMaterial({
+        color: 0x18181b,
+        emissive: 0x7f1d1d,
+        emissiveIntensity: 0.5,
+        roughness: 0.9,
+        metalness: 0.4
+      });
+      const lavaCoreMat = new THREE.MeshBasicMaterial({ color: 0xf97316 });
+      for (let x = -65; x <= 32; x += 11) {
+        if (Math.abs(x) < 20) continue; // Skip sanctuary
+        const basalt = new THREE.Mesh(new THREE.CylinderGeometry(0.9, 1.6, 6.2, 6), magmaBasaltMat);
+        basalt.position.set(x, 3.1, 22.5);
+        basalt.rotation.y = (x % 5) * 0.6;
+        basalt.castShadow = true;
+        zoneDividerGroup.add(basalt);
+
+        const lavaGlow = new THREE.Mesh(new THREE.SphereGeometry(0.45, 6, 6), lavaCoreMat);
+        lavaGlow.position.set(x, 6.6, 22.5);
+        zoneDividerGroup.add(lavaGlow);
+      }
+
+      // 5. THE OBSIDIAN THRONE (WORLD BOSS ARENA) - (Center at x=80, z=80, Ring radius ~24)
+      const bossCenterX = 80, bossCenterZ = 80;
+      
+      // Grand Dragon Gate Entryway at (35, 35)
+      const gateArchMat = new THREE.MeshStandardMaterial({
+        color: 0x0f172a,
+        emissive: 0x991b1b,
+        emissiveIntensity: 0.6,
+        roughness: 0.4,
+        metalness: 0.8
+      });
+      const leftGate = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.8, 11, 8), gateArchMat);
+      leftGate.position.set(35, 5.5, 31);
+      leftGate.castShadow = true;
+      zoneDividerGroup.add(leftGate);
+
+      const rightGate = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.8, 11, 8), gateArchMat);
+      rightGate.position.set(31, 5.5, 35);
+      rightGate.castShadow = true;
+      zoneDividerGroup.add(rightGate);
+
+      const crossBeam = new THREE.Mesh(new THREE.BoxGeometry(2.0, 1.2, 8.5), gateArchMat);
+      crossBeam.position.set(33, 10.5, 33);
+      crossBeam.rotation.y = -Math.PI / 4;
+      crossBeam.castShadow = true;
+      zoneDividerGroup.add(crossBeam);
+
+      // Skull crest on gate
+      const crest = new THREE.Mesh(new THREE.OctahedronGeometry(1.1, 0), new THREE.MeshBasicMaterial({ color: 0xef4444 }));
+      crest.position.set(33, 12, 33);
+      zoneDividerGroup.add(crest);
+
+      // Arena Perimeter Spires (8 Colossal Spikes)
+      const spireGeo = new THREE.ConeGeometry(2.2, 14, 6);
+      const spireMat = new THREE.MeshStandardMaterial({
+        color: 0x18181b,
+        emissive: 0x450a0a,
+        emissiveIntensity: 0.4,
+        roughness: 0.3,
+        metalness: 0.9
+      });
+      const flameUrnMat = new THREE.MeshBasicMaterial({ color: 0xf59e0b });
+
+      for (let i = 0; i < 8; i++) {
+        const angle = (i / 8) * Math.PI * 2;
+        const sx = bossCenterX + Math.cos(angle) * 25;
+        const sz = bossCenterZ + Math.sin(angle) * 25;
+        
+        const spire = new THREE.Mesh(spireGeo, spireMat);
+        spire.position.set(sx, 7, sz);
+        spire.castShadow = true;
+        zoneDividerGroup.add(spire);
+
+        const flame = new THREE.Mesh(new THREE.SphereGeometry(0.8, 8, 8), flameUrnMat);
+        flame.position.set(sx, 14.5, sz);
+        zoneDividerGroup.add(flame);
+      }
+
+      // Burning Ring in ground
+      const ringGeo = new THREE.RingGeometry(24, 25.5, 48);
+      const ringMat = new THREE.MeshBasicMaterial({
+        color: 0xef4444,
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 0.7
+      });
+      const arenaRing = new THREE.Mesh(ringGeo, ringMat);
+      arenaRing.rotation.x = -Math.PI / 2;
+      arenaRing.position.set(bossCenterX, 0.12, bossCenterZ);
+      zoneDividerGroup.add(arenaRing);
+
+      // Inner Dragon Rune Pentagram
+      const pentGeo = new THREE.RingGeometry(9.5, 10.2, 32);
+      const pentMat = new THREE.MeshBasicMaterial({
+        color: 0xf59e0b,
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 0.8
+      });
+      const pent = new THREE.Mesh(pentGeo, pentMat);
+      pent.rotation.x = -Math.PI / 2;
+      pent.position.set(bossCenterX, 0.14, bossCenterZ);
+      zoneDividerGroup.add(pent);
+
+      // 6. THE ASTRAL DOMINION (WORLD-CLASS ARENA - Center at x=85, z=-85)
+      const astralCenterX = 85, astralCenterZ = -85;
+      const astralPillarGeo = new THREE.CylinderGeometry(0.8, 1.4, 16, 6);
+      const astralPillarMat = new THREE.MeshStandardMaterial({
+        color: 0x0f172a,
+        emissive: 0x3b0764,
+        emissiveIntensity: 0.7,
+        metalness: 0.9,
+        roughness: 0.2
+      });
+      const astralCrystalMat = new THREE.MeshStandardMaterial({
+        color: 0x38bdf8,
+        emissive: 0xa855f7,
+        emissiveIntensity: 1.2,
+        metalness: 0.95
+      });
+
+      for (let i = 0; i < 8; i++) {
+        const angle = (i / 8) * Math.PI * 2;
+        const ax = astralCenterX + Math.cos(angle) * 26;
+        const az = astralCenterZ + Math.sin(angle) * 26;
+
+        const pillar = new THREE.Mesh(astralPillarGeo, astralPillarMat);
+        pillar.position.set(ax, 8, az);
+        pillar.castShadow = true;
+        zoneDividerGroup.add(pillar);
+
+        const crys = new THREE.Mesh(new THREE.OctahedronGeometry(1.2, 0), astralCrystalMat);
+        crys.position.set(ax, 17, az);
+        zoneDividerGroup.add(crys);
+      }
+
+      // Astral Singularity Outer Ring
+      const astralRingGeo = new THREE.RingGeometry(25, 26.5, 48);
+      const astralRingMat = new THREE.MeshBasicMaterial({
+        color: 0xa855f7,
+        side: THREE.DoubleSide,
+        transparent: true,
+        opacity: 0.85
+      });
+      const astralRing = new THREE.Mesh(astralRingGeo, astralRingMat);
+      astralRing.rotation.x = -Math.PI / 2;
+      astralRing.position.set(astralCenterX, 0.15, astralCenterZ);
+      zoneDividerGroup.add(astralRing);
+
+      // Inner Starfall Glyph Ring
+      const astralInnerRing = new THREE.Mesh(
+        new THREE.RingGeometry(11, 11.8, 32),
+        new THREE.MeshBasicMaterial({ color: 0x38bdf8, side: THREE.DoubleSide, transparent: true, opacity: 0.9 })
+      );
+      astralInnerRing.rotation.x = -Math.PI / 2;
+      astralInnerRing.position.set(astralCenterX, 0.16, astralCenterZ);
+      zoneDividerGroup.add(astralInnerRing);
+
+      targetScene.add(zoneDividerGroup);
+      return zoneDividerGroup;
+    }
+
+    buildZoneDividers(scene);
+
+    // =============================================================
+    // HIGH FIDELITY 3D MONSTER MODELS (ALL ZONES & WORLD BOSS)
+    // =============================================================
     function createMonsterModel(type) {
       const g = new THREE.Group();
       let hpY = 2.0;
 
-      if (type === 'ogre') {
+      if (type === 'boss_dragon') {
+        hpY = 6.2;
+        // WORLD BOSS: IGNISRAX THE ABYSSAL DRAGON LORD
+        const scale = 2.4;
+        
+        // Dragon Muscular Torso & Chest
+        const bodyGeo = new THREE.BoxGeometry(1.8 * scale, 1.4 * scale, 3.2 * scale);
+        const bodyMat = new THREE.MeshStandardMaterial({
+          color: 0x450a0a,
+          emissive: 0x7f1d1d,
+          emissiveIntensity: 0.6,
+          roughness: 0.35,
+          metalness: 0.8
+        });
+        const body = new THREE.Mesh(bodyGeo, bodyMat);
+        body.position.y = 1.4 * scale;
+        body.castShadow = true;
+        g.add(body);
+        g.userData.bodyMesh = body;
+
+        // Blazing Molten Dragon Chest Core
+        const coreGeo = new THREE.OctahedronGeometry(0.7 * scale, 1);
+        const coreMat = new THREE.MeshBasicMaterial({ color: 0xf59e0b });
+        const core = new THREE.Mesh(coreGeo, coreMat);
+        core.position.set(0, 1.4 * scale, 1.4 * scale);
+        g.add(core);
+
+        // Dragon Neck & Horned Head
+        const neckGeo = new THREE.BoxGeometry(0.9 * scale, 1.1 * scale, 1.6 * scale);
+        const neck = new THREE.Mesh(neckGeo, bodyMat);
+        neck.position.set(0, 2.2 * scale, 1.6 * scale);
+        neck.rotation.x = -0.35;
+        neck.castShadow = true;
+        g.add(neck);
+
+        const headGeo = new THREE.BoxGeometry(1.0 * scale, 0.8 * scale, 1.6 * scale);
+        const head = new THREE.Mesh(headGeo, bodyMat);
+        head.position.set(0, 2.7 * scale, 2.4 * scale);
+        head.castShadow = true;
+        g.add(head);
+
+        // Large Dragon Horns
+        const hornGeo = new THREE.ConeGeometry(0.2 * scale, 1.6 * scale, 6);
+        const hornMat = new THREE.MeshStandardMaterial({ color: 0x18181b, emissive: 0xef4444, emissiveIntensity: 0.6 });
+        const hL = new THREE.Mesh(hornGeo, hornMat);
+        hL.position.set(-0.55 * scale, 3.4 * scale, 2.0 * scale);
+        hL.rotation.z = 0.55;
+        hL.rotation.x = -0.6;
+        g.add(hL);
+
+        const hR = new THREE.Mesh(hornGeo, hornMat);
+        hR.position.set(0.55 * scale, 3.4 * scale, 2.0 * scale);
+        hR.rotation.z = -0.55;
+        hR.rotation.x = -0.6;
+        g.add(hR);
+
+        // Flaming Dragon Eyes
+        const eyeMat = new THREE.MeshBasicMaterial({ color: 0xff0033 });
+        const eL = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.14, 0.1), eyeMat);
+        eL.position.set(-0.45 * scale, 2.8 * scale, 3.0 * scale);
+        g.add(eL);
+        const eR = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.14, 0.1), eyeMat);
+        eR.position.set(0.45 * scale, 2.8 * scale, 3.0 * scale);
+        g.add(eR);
+
+        // Colossal Dragon Wings (Left & Right)
+        const wingMat = new THREE.MeshStandardMaterial({
+          color: 0x7f1d1d,
+          emissive: 0x991b1b,
+          emissiveIntensity: 0.4,
+          side: THREE.DoubleSide,
+          roughness: 0.5
+        });
+        const wingGeo = new THREE.PlaneGeometry(3.6 * scale, 2.2 * scale);
+        
+        const wL = new THREE.Mesh(wingGeo, wingMat);
+        wL.position.set(-2.2 * scale, 2.6 * scale, -0.2 * scale);
+        wL.rotation.y = Math.PI / 4;
+        wL.rotation.x = 0.2;
+        wL.castShadow = true;
+        g.add(wL);
+
+        const wR = new THREE.Mesh(wingGeo, wingMat);
+        wR.position.set(2.2 * scale, 2.6 * scale, -0.2 * scale);
+        wR.rotation.y = -Math.PI / 4;
+        wR.rotation.x = 0.2;
+        wR.castShadow = true;
+        g.add(wR);
+
+        // Spiked Tail
+        const tailGeo = new THREE.CylinderGeometry(0.18 * scale, 0.6 * scale, 3.5 * scale, 6);
+        const tail = new THREE.Mesh(tailGeo, bodyMat);
+        tail.position.set(0, 0.9 * scale, -2.4 * scale);
+        tail.rotation.x = Math.PI / 2.3;
+        tail.castShadow = true;
+        g.add(tail);
+
+      } else if (type === 'infernal_warlord') {
+        hpY = 4.2;
+        // Mini-Boss Gorgaroth the Warlord
+        const bodyGeo = new THREE.BoxGeometry(1.6, 2.4, 1.2);
+        const bodyMat = new THREE.MeshStandardMaterial({ color: 0x450a0a, metalness: 0.8, roughness: 0.3 });
+        const body = new THREE.Mesh(bodyGeo, bodyMat);
+        body.position.y = 1.8;
+        body.castShadow = true;
+        g.add(body);
+        g.userData.bodyMesh = body;
+
+        // Double-headed Battleaxe
+        const handleGeo = new THREE.CylinderGeometry(0.08, 0.08, 3.2, 8);
+        const axeMat = new THREE.MeshStandardMaterial({ color: 0x18181b, metalness: 0.9, roughness: 0.2 });
+        const axeHandle = new THREE.Mesh(handleGeo, axeMat);
+        axeHandle.position.set(1.4, 2.0, 0.4);
+        axeHandle.rotation.z = -0.25;
+        g.add(axeHandle);
+
+        const bladeGeo = new THREE.BoxGeometry(0.06, 1.2, 0.8);
+        const bladeMat = new THREE.MeshStandardMaterial({ color: 0xef4444, emissive: 0xb91c1c, emissiveIntensity: 0.6 });
+        const blade = new THREE.Mesh(bladeGeo, bladeMat);
+        blade.position.set(1.4, 3.2, 0.4);
+        g.add(blade);
+
+        // Crown
+        const crownGeo = new THREE.CylinderGeometry(0.5, 0.4, 0.3, 6);
+        const crownMat = new THREE.MeshBasicMaterial({ color: 0xf59e0b });
+        const crown = new THREE.Mesh(crownGeo, crownMat);
+        crown.position.set(0, 3.3, 0.1);
+        g.add(crown);
+
+      } else if (type === 'hellhound') {
+        hpY = 2.4;
+        // Cerberus Hellhound (Dual Headed Fiery Wolf)
+        const bodyGeo = new THREE.BoxGeometry(1.2, 1.1, 2.1);
+        const bodyMat = new THREE.MeshStandardMaterial({ color: 0x7f1d1d, emissive: 0x450a0a, emissiveIntensity: 0.5 });
+        const body = new THREE.Mesh(bodyGeo, bodyMat);
+        body.position.y = 0.9;
+        body.castShadow = true;
+        g.add(body);
+        g.userData.bodyMesh = body;
+
+        // Head Left & Right
+        const headGeo = new THREE.BoxGeometry(0.5, 0.5, 0.7);
+        const h1 = new THREE.Mesh(headGeo, bodyMat);
+        h1.position.set(-0.35, 1.35, 1.1);
+        g.add(h1);
+        const h2 = new THREE.Mesh(headGeo, bodyMat);
+        h2.position.set(0.35, 1.35, 1.1);
+        g.add(h2);
+
+        // Glowing Fiery Jaws
+        const jawMat = new THREE.MeshBasicMaterial({ color: 0xf59e0b });
+        const j1 = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.12, 0.1), jawMat);
+        j1.position.set(-0.35, 1.2, 1.45);
+        g.add(j1);
+        const j2 = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.12, 0.1), jawMat);
+        j2.position.set(0.35, 1.2, 1.45);
+        g.add(j2);
+
+      } else if (type === 'death_knight') {
+        hpY = 3.2;
+        // Dark Plate Death Knight
+        const bodyGeo = new THREE.BoxGeometry(1.1, 1.8, 0.8);
+        const bodyMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.9, roughness: 0.25 });
+        const body = new THREE.Mesh(bodyGeo, bodyMat);
+        body.position.y = 1.4;
+        body.castShadow = true;
+        g.add(body);
+        g.userData.bodyMesh = body;
+
+        // Dark Helm with Purple Visor Glow
+        const helm = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.65, 0.65), bodyMat);
+        helm.position.set(0, 2.45, 0);
+        g.add(helm);
+
+        const visorMat = new THREE.MeshBasicMaterial({ color: 0xa855f7 });
+        const visor = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.1, 0.08), visorMat);
+        visor.position.set(0, 2.45, 0.34);
+        g.add(visor);
+
+        // Dark Claymore
+        const swordGeo = new THREE.BoxGeometry(0.12, 2.2, 0.06);
+        const swordMat = new THREE.MeshStandardMaterial({ color: 0x64748b, metalness: 0.9, roughness: 0.2 });
+        const sword = new THREE.Mesh(swordGeo, swordMat);
+        sword.position.set(0.9, 1.6, 0.3);
+        sword.rotation.z = -0.3;
+        g.add(sword);
+
+      } else if (type === 'dread_lich') {
+        hpY = 3.4;
+        // Floating Dread Lich with hovering Arcane Orb
+        const robeGeo = new THREE.ConeGeometry(0.9, 2.6, 8);
+        const robeMat = new THREE.MeshStandardMaterial({ color: 0x3b0764, emissive: 0x6b21a8, emissiveIntensity: 0.5 });
+        const body = new THREE.Mesh(robeGeo, robeMat);
+        body.position.y = 1.6;
+        body.castShadow = true;
+        g.add(body);
+        g.userData.bodyMesh = body;
+
+        // Floating Skull Head
+        const skullGeo = new THREE.BoxGeometry(0.5, 0.5, 0.5);
+        const skullMat = new THREE.MeshStandardMaterial({ color: 0xd4d4d8 });
+        const head = new THREE.Mesh(skullGeo, skullMat);
+        head.position.set(0, 2.8, 0);
+        g.add(head);
+
+        const crown = new THREE.Mesh(new THREE.ConeGeometry(0.35, 0.6, 5), new THREE.MeshBasicMaterial({ color: 0xa855f7 }));
+        crown.position.set(0, 3.3, 0);
+        g.add(crown);
+
+        // Floating Cursed Skull Orb
+        const orbGeo = new THREE.SphereGeometry(0.28, 8, 8);
+        const orbMat = new THREE.MeshBasicMaterial({ color: 0xc084fc });
+        const orb = new THREE.Mesh(orbGeo, orbMat);
+        orb.position.set(0.8, 2.1, 0.6);
+        g.add(orb);
+
+      } else if (type === 'frost_golem') {
+        hpY = 3.8;
+        // Massive Glacial Golem
+        const bodyGeo = new THREE.BoxGeometry(2.0, 2.2, 1.5);
+        const bodyMat = new THREE.MeshStandardMaterial({
+          color: 0x0284c7,
+          emissive: 0x38bdf8,
+          emissiveIntensity: 0.35,
+          roughness: 0.2,
+          metalness: 0.8
+        });
+        const body = new THREE.Mesh(bodyGeo, bodyMat);
+        body.position.y = 1.7;
+        body.castShadow = true;
+        g.add(body);
+        g.userData.bodyMesh = body;
+
+        // Big Ice Shoulders
+        const shL = new THREE.Mesh(new THREE.DodecahedronGeometry(0.7), bodyMat);
+        shL.position.set(-1.4, 2.4, 0);
+        g.add(shL);
+        const shR = new THREE.Mesh(new THREE.DodecahedronGeometry(0.7), bodyMat);
+        shR.position.set(1.4, 2.4, 0);
+        g.add(shR);
+
+        // Glowing Frost Core
+        const core = new THREE.Mesh(new THREE.OctahedronGeometry(0.4, 0), new THREE.MeshBasicMaterial({ color: 0xbae6fd }));
+        core.position.set(0, 1.7, 0.76);
+        g.add(core);
+
+      } else if (type === 'ice_wraith') {
+        hpY = 2.9;
+        // Hovering Frost Wraith
+        const bodyGeo = new THREE.ConeGeometry(0.65, 2.0, 6);
+        const bodyMat = new THREE.MeshStandardMaterial({
+          color: 0x0369a1,
+          emissive: 0x7dd3fc,
+          emissiveIntensity: 0.8,
+          transparent: true,
+          opacity: 0.85
+        });
+        const body = new THREE.Mesh(bodyGeo, bodyMat);
+        body.position.y = 1.7;
+        g.add(body);
+        g.userData.bodyMesh = body;
+
+        const eyeMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+        const e1 = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.08, 0.06), eyeMat);
+        e1.position.set(-0.15, 2.4, 0.3);
+        g.add(e1);
+        const e2 = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.08, 0.06), eyeMat);
+        e2.position.set(0.15, 2.4, 0.3);
+        g.add(e2);
+
+      } else if (type === 'boar') {
+        hpY = 1.8;
+        // Dire Boar with Tusks
+        const bodyGeo = new THREE.BoxGeometry(1.2, 1.0, 1.9);
+        const bodyMat = new THREE.MeshStandardMaterial({ color: 0x451a03, roughness: 0.8 });
+        const body = new THREE.Mesh(bodyGeo, bodyMat);
+        body.position.y = 0.75;
+        body.castShadow = true;
+        g.add(body);
+        g.userData.bodyMesh = body;
+
+        const headGeo = new THREE.BoxGeometry(0.7, 0.7, 0.8);
+        const head = new THREE.Mesh(headGeo, bodyMat);
+        head.position.set(0, 0.95, 0.95);
+        g.add(head);
+
+        // Tusks
+        const tuskMat = new THREE.MeshStandardMaterial({ color: 0xfef08a, roughness: 0.3 });
+        const t1 = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.45, 5), tuskMat);
+        t1.position.set(-0.35, 0.9, 1.35);
+        t1.rotation.x = -0.4;
+        g.add(t1);
+        const t2 = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.45, 5), tuskMat);
+        t2.position.set(0.35, 0.9, 1.35);
+        t2.rotation.x = -0.4;
+        g.add(t2);
+
+      } else if (type === 'bandit') {
+        hpY = 2.6;
+        // Forest Bandit (Cloaked Rogue)
+        const bodyGeo = new THREE.BoxGeometry(0.9, 1.4, 0.6);
+        const bodyMat = new THREE.MeshStandardMaterial({ color: 0x14532d, roughness: 0.7 });
+        const body = new THREE.Mesh(bodyGeo, bodyMat);
+        body.position.y = 1.2;
+        body.castShadow = true;
+        g.add(body);
+        g.userData.bodyMesh = body;
+
+        const hood = new THREE.Mesh(new THREE.BoxGeometry(0.65, 0.65, 0.65), new THREE.MeshStandardMaterial({ color: 0x052e16 }));
+        hood.position.set(0, 2.15, 0);
+        g.add(hood);
+
+        // Dual Daggers
+        const dagMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.8 });
+        const d1 = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.7, 0.04), dagMat);
+        d1.position.set(0.65, 1.1, 0.3);
+        d1.rotation.x = 0.5;
+        g.add(d1);
+
+      } else if (type === 'ogre') {
         hpY = 3.4;
         // Massive Ogre Brute
         const bodyGeo = new THREE.BoxGeometry(1.8, 2.4, 1.4);
@@ -1356,7 +2232,6 @@
         g.add(body);
         g.userData.bodyMesh = body;
 
-        // Demon Head
         const headGeo = new THREE.BoxGeometry(0.65, 0.65, 0.65);
         const headMat = new THREE.MeshStandardMaterial({ color: 0x991b1b, roughness: 0.3 });
         const head = new THREE.Mesh(headGeo, headMat);
@@ -1364,7 +2239,6 @@
         head.castShadow = true;
         g.add(head);
 
-        // Curved Horns
         const hornGeo = new THREE.ConeGeometry(0.14, 0.9, 6);
         const hornMat = new THREE.MeshStandardMaterial({ color: 0x18181b, emissive: 0xe11d48, emissiveIntensity: 0.5 });
         const hL = new THREE.Mesh(hornGeo, hornMat);
@@ -1379,7 +2253,6 @@
         hR.rotation.x = -0.2;
         g.add(hR);
 
-        // Blazing Yellow-Orange Eyes
         const eyeMat = new THREE.MeshBasicMaterial({ color: 0xf59e0b });
         const e1 = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.08, 0.05), eyeMat);
         e1.position.set(-0.18, 2.38, 0.38);
@@ -1388,15 +2261,11 @@
         e2.position.set(0.18, 2.38, 0.38);
         g.add(e2);
 
-        // Molten Chest Core
-        const coreGeo = new THREE.OctahedronGeometry(0.24, 0);
-        const coreMat = new THREE.MeshBasicMaterial({ color: 0xf97316 });
-        const core = new THREE.Mesh(coreGeo, coreMat);
+        const core = new THREE.Mesh(new THREE.OctahedronGeometry(0.24, 0), new THREE.MeshBasicMaterial({ color: 0xf97316 }));
         core.position.set(0, 1.45, 0.48);
         g.add(core);
       } else if (type === 'spider') {
         hpY = 1.6;
-        // Frost Spider Body
         const bodyGeo = new THREE.SphereGeometry(0.7, 8, 8);
         const bodyMat = new THREE.MeshStandardMaterial({
           color: 0x0369a1,
@@ -1412,7 +2281,6 @@
         g.add(body);
         g.userData.bodyMesh = body;
 
-        // Cephalothorax (Head)
         const headGeo = new THREE.BoxGeometry(0.65, 0.45, 0.6);
         const headMat = new THREE.MeshStandardMaterial({ color: 0x0c4a6e, roughness: 0.4 });
         const head = new THREE.Mesh(headGeo, headMat);
@@ -1420,7 +2288,6 @@
         head.castShadow = true;
         g.add(head);
 
-        // Multiple glowing cyan eyes
         const eyeMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8 });
         for (let i = -1; i <= 1; i += 2) {
           const eye1 = new THREE.Mesh(new THREE.SphereGeometry(0.06, 4, 4), eyeMat);
@@ -1431,7 +2298,6 @@
           g.add(eye2);
         }
 
-        // 6 Angled Legs
         const legMat = new THREE.MeshStandardMaterial({ color: 0x075985, roughness: 0.6 });
         for (let side of [-1, 1]) {
           for (let row = -1; row <= 1; row++) {
@@ -1445,7 +2311,6 @@
         }
       } else if (type === 'skeleton') {
         hpY = 2.8;
-        // Cursed Skeleton Warrior
         const bodyMat = new THREE.MeshStandardMaterial({ color: 0xe2e8f0, roughness: 0.8 });
         const bodyGeo = new THREE.BoxGeometry(0.7, 1.0, 0.4);
         const body = new THREE.Mesh(bodyGeo, bodyMat);
@@ -1454,14 +2319,12 @@
         g.add(body);
         g.userData.bodyMesh = body;
 
-        // Skull
         const skullGeo = new THREE.BoxGeometry(0.5, 0.5, 0.5);
         const skull = new THREE.Mesh(skullGeo, bodyMat);
         skull.position.set(0, 2.05, 0.05);
         skull.castShadow = true;
         g.add(skull);
 
-        // Glowing Emerald Eyes
         const eyeMat = new THREE.MeshBasicMaterial({ color: 0x10b981 });
         const e1 = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.08, 0.05), eyeMat);
         e1.position.set(-0.13, 2.08, 0.31);
@@ -1470,7 +2333,6 @@
         e2.position.set(0.13, 2.08, 0.31);
         g.add(e2);
 
-        // Rusty Blade in hand
         const swordGeo = new THREE.BoxGeometry(0.08, 1.2, 0.04);
         const swordMat = new THREE.MeshStandardMaterial({ color: 0x64748b, metalness: 0.7, roughness: 0.4 });
         const sword = new THREE.Mesh(swordGeo, swordMat);
@@ -1478,8 +2340,8 @@
         sword.rotation.x = 0.4;
         sword.castShadow = true;
         g.add(sword);
-      } else {
-        // Shadow Wolf
+      } else if (type === 'wolf' || type === 'shadow_wolf') {
+        // Shadow Wolf (Default)
         hpY = 1.9;
         const bodyGeo = new THREE.BoxGeometry(1.0, 1.0, 1.8);
         const bodyMat = new THREE.MeshStandardMaterial({ color: 0x3f3f46, roughness: 0.7 });
@@ -1489,14 +2351,12 @@
         g.add(body);
         g.userData.bodyMesh = body;
 
-        // Wolf Head & Snout
         const headGeo = new THREE.BoxGeometry(0.6, 0.6, 0.7);
         const head = new THREE.Mesh(headGeo, bodyMat);
         head.position.set(0, 1.2, 0.85);
         head.castShadow = true;
         g.add(head);
 
-        // Pointed Ears
         const earGeo = new THREE.ConeGeometry(0.12, 0.35, 4);
         const eL = new THREE.Mesh(earGeo, bodyMat);
         eL.position.set(-0.25, 1.6, 0.75);
@@ -1505,7 +2365,6 @@
         eR.position.set(0.25, 1.6, 0.75);
         g.add(eR);
 
-        // Glowing predatory eyes
         const eyeMat = new THREE.MeshBasicMaterial({ color: 0xfbbf24 });
         const e1 = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.08, 0.05), eyeMat);
         e1.position.set(-0.18, 1.25, 1.22);
@@ -1513,19 +2372,218 @@
         const e2 = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.08, 0.05), eyeMat);
         e2.position.set(0.18, 1.25, 1.22);
         g.add(e2);
+      } else if (type === 'void_emperor') {
+        hpY = 6.8;
+        // SUPREME WORLD-CLASS BOSS: ASTRAEUS THE VOID EMPEROR
+        const scale = 2.6;
+        const cosmicMat = new THREE.MeshStandardMaterial({
+          color: 0x0f172a,
+          emissive: 0x3b0764,
+          emissiveIntensity: 0.8,
+          roughness: 0.2,
+          metalness: 0.9
+        });
+        const bodyGeo = new THREE.BoxGeometry(1.6 * scale, 2.2 * scale, 1.1 * scale);
+        const body = new THREE.Mesh(bodyGeo, cosmicMat);
+        body.position.y = 1.6 * scale;
+        body.castShadow = true;
+        g.add(body);
+        g.userData.bodyMesh = body;
+
+        // Glowing Cosmic Singularity Core
+        const coreGeo = new THREE.SphereGeometry(0.6 * scale, 16, 16);
+        const coreMat = new THREE.MeshStandardMaterial({
+          color: 0x38bdf8,
+          emissive: 0xa855f7,
+          emissiveIntensity: 1.2,
+          roughness: 0.1,
+          metalness: 0.95
+        });
+        const core = new THREE.Mesh(coreGeo, coreMat);
+        core.position.set(0, 1.6 * scale, 0.5 * scale);
+        g.add(core);
+
+        // Astral Crown & Head
+        const headGeo = new THREE.BoxGeometry(0.9 * scale, 1.0 * scale, 0.9 * scale);
+        const head = new THREE.Mesh(headGeo, cosmicMat);
+        head.position.set(0, 2.9 * scale, 0);
+        head.castShadow = true;
+        g.add(head);
+
+        const crownRing = new THREE.Mesh(new THREE.TorusGeometry(0.8 * scale, 0.1 * scale, 8, 24), new THREE.MeshBasicMaterial({ color: 0x38bdf8 }));
+        crownRing.rotation.x = Math.PI / 2;
+        crownRing.position.set(0, 3.6 * scale, 0);
+        g.add(crownRing);
+
+        // Orbital Singularity Ring 1 & 2
+        const ring1 = new THREE.Mesh(new THREE.TorusGeometry(2.4 * scale, 0.08 * scale, 8, 32), new THREE.MeshBasicMaterial({ color: 0xc084fc }));
+        ring1.position.set(0, 1.6 * scale, 0);
+        ring1.rotation.x = 0.6;
+        ring1.rotation.y = 0.4;
+        g.add(ring1);
+
+        // Colossal Void Greatsword in right hand
+        const swordBlade = new THREE.Mesh(new THREE.BoxGeometry(0.35 * scale, 3.8 * scale, 0.12 * scale), new THREE.MeshStandardMaterial({
+          color: 0x38bdf8,
+          emissive: 0x6366f1,
+          emissiveIntensity: 0.9,
+          metalness: 0.95
+        }));
+        swordBlade.position.set(1.5 * scale, 1.8 * scale, 0.6 * scale);
+        swordBlade.rotation.z = -0.25;
+        swordBlade.castShadow = true;
+        g.add(swordBlade);
+
+      } else if (type === 'astral_archon') {
+        hpY = 4.2;
+        // Mini-Boss: Astral Archon (The Celestial Expanse)
+        const bodyGeo = new THREE.BoxGeometry(1.4, 1.9, 0.8);
+        const bodyMat = new THREE.MeshStandardMaterial({ color: 0x1e1b4b, emissive: 0x6366f1, emissiveIntensity: 0.6, metalness: 0.85 });
+        const body = new THREE.Mesh(bodyGeo, bodyMat);
+        body.position.y = 1.6;
+        body.castShadow = true;
+        g.add(body);
+        g.userData.bodyMesh = body;
+
+        // Radiant Crystal Wings
+        const wingMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.75, side: THREE.DoubleSide });
+        const wL = new THREE.Mesh(new THREE.PlaneGeometry(1.8, 2.4), wingMat);
+        wL.position.set(-1.4, 2.2, -0.4);
+        wL.rotation.y = 0.5;
+        g.add(wL);
+
+        const wR = new THREE.Mesh(new THREE.PlaneGeometry(1.8, 2.4), wingMat);
+        wR.position.set(1.4, 2.2, -0.4);
+        wR.rotation.y = -0.5;
+        g.add(wR);
+
+        // Floating Halo
+        const halo = new THREE.Mesh(new THREE.TorusGeometry(0.55, 0.06, 6, 20), new THREE.MeshBasicMaterial({ color: 0xfef08a }));
+        halo.rotation.x = Math.PI / 2;
+        halo.position.set(0, 3.2, 0);
+        g.add(halo);
+
+      } else if (type === 'void_scout') {
+        hpY = 2.2;
+        // Void Scout (Celestial Mob)
+        const bodyGeo = new THREE.OctahedronGeometry(0.8, 0);
+        const bodyMat = new THREE.MeshStandardMaterial({ color: 0x3b0764, emissive: 0x9333ea, emissiveIntensity: 0.7, metalness: 0.9 });
+        const body = new THREE.Mesh(bodyGeo, bodyMat);
+        body.position.y = 1.1;
+        body.castShadow = true;
+        g.add(body);
+        g.userData.bodyMesh = body;
+
+        const eye = new THREE.Mesh(new THREE.SphereGeometry(0.22, 8, 8), new THREE.MeshBasicMaterial({ color: 0x38bdf8 }));
+        eye.position.set(0, 1.1, 0.65);
+        g.add(eye);
+
+      } else if (type === 'bandit_warlord') {
+        hpY = 3.6;
+        // Woodlands Mini-boss: Bandit Warlord
+        const bodyGeo = new THREE.BoxGeometry(1.4, 1.8, 0.8);
+        const bodyMat = new THREE.MeshStandardMaterial({ color: 0x14532d, metalness: 0.6, roughness: 0.4 });
+        const body = new THREE.Mesh(bodyGeo, bodyMat);
+        body.position.y = 1.4;
+        body.castShadow = true;
+        g.add(body);
+        g.userData.bodyMesh = body;
+
+        // Skull Helm
+        const helm = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.85, 0.85), new THREE.MeshStandardMaterial({ color: 0x0f172a }));
+        helm.position.set(0, 2.5, 0);
+        g.add(helm);
+
+        // Dual Greataxes
+        const axeMat = new THREE.MeshStandardMaterial({ color: 0xd97706, metalness: 0.8 });
+        const a1 = new THREE.Mesh(new THREE.BoxGeometry(0.8, 1.6, 0.08), axeMat);
+        a1.position.set(1.1, 1.6, 0.3);
+        a1.rotation.x = 0.4;
+        g.add(a1);
+        const a2 = new THREE.Mesh(new THREE.BoxGeometry(0.8, 1.6, 0.08), axeMat);
+        a2.position.set(-1.1, 1.6, 0.3);
+        a2.rotation.x = 0.4;
+        g.add(a2);
+
+      } else if (type === 'frost_titan') {
+        hpY = 4.4;
+        // Frostpeak Mini-boss: Frost Titan
+        const bodyGeo = new THREE.BoxGeometry(2.0, 2.6, 1.5);
+        const bodyMat = new THREE.MeshStandardMaterial({ color: 0x0284c7, emissive: 0x0369a1, emissiveIntensity: 0.5, metalness: 0.8, roughness: 0.2 });
+        const body = new THREE.Mesh(bodyGeo, bodyMat);
+        body.position.y = 1.8;
+        body.castShadow = true;
+        g.add(body);
+        g.userData.bodyMesh = body;
+
+        // Ice Shoulder Spikes
+        const spikeGeo = new THREE.ConeGeometry(0.35, 1.6, 5);
+        const spikeMat = new THREE.MeshBasicMaterial({ color: 0xe0f2fe });
+        const sL = new THREE.Mesh(spikeGeo, spikeMat);
+        sL.position.set(-1.2, 3.0, 0);
+        sL.rotation.z = 0.4;
+        g.add(sL);
+        const sR = new THREE.Mesh(spikeGeo, spikeMat);
+        sR.position.set(1.2, 3.0, 0);
+        sR.rotation.z = -0.4;
+        g.add(sR);
+
+      } else if (type === 'crypt_sovereign') {
+        hpY = 3.8;
+        // Necropolis Mini-boss: Crypt Sovereign
+        const bodyGeo = new THREE.BoxGeometry(1.3, 1.9, 0.8);
+        const bodyMat = new THREE.MeshStandardMaterial({ color: 0x1e1b4b, emissive: 0x7c3aed, emissiveIntensity: 0.55 });
+        const body = new THREE.Mesh(bodyGeo, bodyMat);
+        body.position.y = 1.5;
+        body.castShadow = true;
+        g.add(body);
+        g.userData.bodyMesh = body;
+
+        // Soul Scythe
+        const scytheBlade = new THREE.Mesh(new THREE.BoxGeometry(0.1, 2.6, 0.9), new THREE.MeshBasicMaterial({ color: 0xc084fc }));
+        scytheBlade.position.set(1.1, 2.2, 0.2);
+        scytheBlade.rotation.x = 0.3;
+        g.add(scytheBlade);
+
+      } else if (type === 'infernal_warlord') {
+        hpY = 4.2;
+        // Abyss Mini-boss: Infernal Warlord
+        const bodyGeo = new THREE.BoxGeometry(1.8, 2.3, 1.2);
+        const bodyMat = new THREE.MeshStandardMaterial({ color: 0x450a0a, emissive: 0xb91c1c, emissiveIntensity: 0.65, metalness: 0.7 });
+        const body = new THREE.Mesh(bodyGeo, bodyMat);
+        body.position.y = 1.7;
+        body.castShadow = true;
+        g.add(body);
+        g.userData.bodyMesh = body;
+
+        // Magma Hammer
+        const hammerHead = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.8, 1.4), new THREE.MeshBasicMaterial({ color: 0xf97316 }));
+        hammerHead.position.set(1.4, 2.2, 0.4);
+        g.add(hammerHead);
+      } else {
+        // Default Fallback (Shadow Wolf)
+        hpY = 1.9;
+        const bodyGeo = new THREE.BoxGeometry(1.0, 1.0, 1.8);
+        const bodyMat = new THREE.MeshStandardMaterial({ color: 0x3f3f46, roughness: 0.7 });
+        const body = new THREE.Mesh(bodyGeo, bodyMat);
+        body.position.y = 0.8;
+        body.castShadow = true;
+        g.add(body);
+        g.userData.bodyMesh = body;
       }
 
       // Overhead Billboard Health Bar
+      const isSupremeBoss = (type === 'boss_dragon' || type === 'void_emperor');
       const hpBg = new THREE.Mesh(
-        new THREE.PlaneGeometry(1.6, 0.22),
+        new THREE.PlaneGeometry(isSupremeBoss ? 3.8 : 1.6, isSupremeBoss ? 0.38 : 0.22),
         new THREE.MeshBasicMaterial({ color: 0x0f172a })
       );
       hpBg.position.y = hpY;
       hpBg.name = "HPBG";
 
       const hpFill = new THREE.Mesh(
-        new THREE.PlaneGeometry(1.56, 0.18),
-        new THREE.MeshBasicMaterial({ color: 0xef4444 })
+        new THREE.PlaneGeometry(isSupremeBoss ? 3.72 : 1.56, isSupremeBoss ? 0.3 : 0.18),
+        new THREE.MeshBasicMaterial({ color: isSupremeBoss ? 0xff0033 : 0xef4444 })
       );
       hpFill.position.z = 0.01;
       hpFill.name = "HPFILL";
@@ -1711,6 +2769,144 @@
     // -------------------------------------------------------------
     // MINIMAP RADAR LOGIC & RENDERING
     // -------------------------------------------------------------
+    const CLIENT_ZONES = {
+      sanctuary: {
+        id: 'sanctuary',
+        name: 'Sanctuary of Light',
+        icon: '🛡️',
+        recLevel: 'Lv. 1 (Safe Hub)',
+        minLevel: 1,
+        maxLevel: 100,
+        danger: '🛡️ Safe Zone',
+        desc: 'Protected capital with Blacksmith, Forge, and Portal Stones. No monsters spawn here.'
+      },
+      woodlands: {
+        id: 'woodlands',
+        name: 'Verdant Woodlands',
+        icon: '🌲',
+        recLevel: 'Lv. 1 - 10',
+        minLevel: 1,
+        maxLevel: 10,
+        danger: '🌲 Novice Zone',
+        desc: 'Ancient dense forest inhabited by Shadow Wolves, Dire Boars, and Forest Bandits.'
+      },
+      frostpeak: {
+        id: 'frostpeak',
+        name: 'Frostpeak Glacier',
+        icon: '❄️',
+        recLevel: 'Lv. 11 - 22',
+        minLevel: 11,
+        maxLevel: 22,
+        danger: '❄️ Moderate Threat',
+        desc: 'Frozen mountain passes prowled by Frost Spiders, Glacial Golems, and Ice Wraiths.'
+      },
+      necropolis: {
+        id: 'necropolis',
+        name: 'Necropolis of the Damned',
+        icon: '💀',
+        recLevel: 'Lv. 23 - 35',
+        minLevel: 23,
+        maxLevel: 35,
+        danger: '💀 High Threat',
+        desc: 'Cursed crypts guarded by Death Knights, Dread Liches, and Cursed Skeletons.'
+      },
+      abyss: {
+        id: 'abyss',
+        name: 'The Brimstone Abyss',
+        icon: '🔥',
+        recLevel: 'Lv. 36 - 48',
+        minLevel: 36,
+        maxLevel: 48,
+        danger: '🔥 Extreme Threat',
+        desc: 'Molten crags teeming with Abyssal Ogres, Cerberus Hellhounds, and Infernal Demons.'
+      },
+      boss_sanctum: {
+        id: 'boss_sanctum',
+        name: 'The Obsidian Throne',
+        icon: '☠️',
+        recLevel: 'Lv. 50+ [WORLD BOSS]',
+        minLevel: 50,
+        maxLevel: 100,
+        danger: '☠️ LETHAL • WORLD BOSS ARENA',
+        desc: 'Lair of Ignisrax the Abyssal Dragon Lord. Prepare for catastrophic dragon breath fire.'
+      },
+      celestial_expanse: {
+        id: 'celestial_expanse',
+        name: 'The Astral Dominion',
+        icon: '✨',
+        recLevel: 'Lv. 60+ [SUPREME WORLD-CLASS]',
+        minLevel: 60,
+        maxLevel: 100,
+        danger: '✨ SUPREME • WORLD-CLASS BOSS REALM',
+        desc: 'Cosmic dimension ruled by Astraeus the Void Emperor. Drops Starfall Crystals and Celestial Artifacts.'
+      }
+    };
+
+    let currentZoneKey = null;
+    let zoneBannerTimer = null;
+
+    function triggerZoneDiscovery(zoneKey, playerLevel) {
+      if (zoneKey === currentZoneKey) return;
+      currentZoneKey = zoneKey;
+      const zInfo = CLIENT_ZONES[zoneKey] || {
+        name: zoneKey,
+        icon: '🗺️',
+        recLevel: 'Lv. 1+',
+        minLevel: 1,
+        danger: 'Wilderness',
+        desc: 'Unknown territory.'
+      };
+
+      // Update Top Left HUD Row
+      const hudIcon = document.getElementById('hud-zone-icon');
+      const hudName = document.getElementById('hud-zone-name');
+      const hudRec = document.getElementById('hud-zone-rec');
+      if (hudIcon) hudIcon.innerText = zInfo.icon;
+      if (hudName) hudName.innerText = zInfo.name;
+      if (hudRec) {
+        hudRec.innerText = `Rec: ${zInfo.recLevel.replace(' [WORLD BOSS]', '').replace(' (Safe Hub)', '')}`;
+        if (playerLevel && playerLevel < zInfo.minLevel) {
+          hudRec.style.color = '#ef4444';
+          hudRec.style.background = 'rgba(239, 68, 68, 0.2)';
+        } else {
+          hudRec.style.color = '#38bdf8';
+          hudRec.style.background = 'rgba(56, 189, 248, 0.15)';
+        }
+      }
+
+      // Show Zone Discovery Banner
+      const banner = document.getElementById('zone-banner');
+      if (banner) {
+        clearTimeout(zoneBannerTimer);
+        document.getElementById('zone-banner-icon').innerText = zInfo.icon;
+        document.getElementById('zone-banner-title').innerText = zInfo.name;
+        document.getElementById('zone-banner-rec').innerText = `⚔️ Recommended: ${zInfo.recLevel}`;
+        document.getElementById('zone-banner-danger').innerText = zInfo.danger;
+        document.getElementById('zone-banner-desc').innerText = zInfo.desc;
+        
+        const warnEl = document.getElementById('zone-banner-warn');
+        if (playerLevel && playerLevel < zInfo.minLevel) {
+          warnEl.style.display = 'block';
+          warnEl.innerText = `⚠️ UNDERLEVELED FOR THIS ZONE! (Your Level: ${playerLevel} vs Recommended: Lv. ${zInfo.minLevel}+)`;
+        } else {
+          warnEl.style.display = 'none';
+        }
+
+        banner.classList.remove('fading');
+        banner.style.display = 'flex';
+
+        zoneBannerTimer = setTimeout(() => {
+          banner.classList.add('fading');
+          setTimeout(() => {
+            if (banner.classList.contains('fading')) {
+              banner.style.display = 'none';
+              banner.classList.remove('fading');
+            }
+          }, 600);
+        }, 4500);
+      }
+    }
+
     function zoomMinimap(delta) {
       minimapZoom = Math.min(2.5, Math.max(0.5, minimapZoom + delta * 0.25));
     }
@@ -1761,6 +2957,41 @@
       }
       ctx.fill();
 
+      if (!myId || !meshes.players[myId] || !currentLatestState) return;
+
+      const myPos = meshes.players[myId].position;
+      document.getElementById('minimap-coords').innerText = `X: ${myPos.x.toFixed(1)} | Z: ${myPos.z.toFixed(1)}`;
+
+      const scale = (center / 75) * minimapZoom;
+
+      // Draw Zone Regions on Minimap
+      // Woodlands (North, green tint)
+      const nTop = center + (-120 - myPos.z) * scale;
+      const nBot = center + (-22 - myPos.z) * scale;
+      ctx.fillStyle = 'rgba(21, 128, 61, 0.12)';
+      ctx.fillRect(0, Math.max(0, nTop), w, Math.max(0, nBot - nTop));
+
+      // Frostpeak (East, cyan tint)
+      const eLeft = center + (22 - myPos.x) * scale;
+      ctx.fillStyle = 'rgba(56, 189, 248, 0.12)';
+      ctx.fillRect(Math.max(0, eLeft), 0, w, h);
+
+      // Necropolis (West, purple tint)
+      const wRight = center + (-22 - myPos.x) * scale;
+      ctx.fillStyle = 'rgba(147, 51, 234, 0.12)';
+      ctx.fillRect(0, 0, Math.max(0, wRight), h);
+
+      // Abyss (South, red tint)
+      const sTop = center + (22 - myPos.z) * scale;
+      ctx.fillStyle = 'rgba(239, 68, 68, 0.12)';
+      ctx.fillRect(0, Math.max(0, sTop), w, h);
+
+      // Boss Sanctum (South East Corner, fiery orange glow)
+      const bLeft = center + (35 - myPos.x) * scale;
+      const bTop = center + (35 - myPos.z) * scale;
+      ctx.fillStyle = 'rgba(245, 158, 11, 0.22)';
+      ctx.fillRect(Math.max(0, bLeft), Math.max(0, bTop), w, h);
+
       // Range grid circles
       ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
       ctx.lineWidth = 1.5;
@@ -1777,25 +3008,37 @@
       ctx.moveTo(0, center); ctx.lineTo(w, center);
       ctx.stroke();
 
-      if (!myId || !meshes.players[myId] || !currentLatestState) return;
+      // 1. Draw Sanctuary Boundary Box on Minimap
+      const sX1 = center + (-22 - myPos.x) * scale;
+      const sZ1 = center + (-22 - myPos.z) * scale;
+      const sW = 44 * scale;
+      const sH = 44 * scale;
+      ctx.strokeStyle = 'rgba(56, 189, 248, 0.55)';
+      ctx.lineWidth = 1.5;
+      ctx.strokeRect(sX1, sZ1, sW, sH);
 
-      const myPos = meshes.players[myId].position;
-      document.getElementById('minimap-coords').innerText = `X: ${myPos.x.toFixed(1)} | Z: ${myPos.z.toFixed(1)}`;
+      // Sanctuary Center Stone
+      const sCenterX = center + (0 - myPos.x) * scale;
+      const sCenterZ = center + (0 - myPos.z) * scale;
+      ctx.fillStyle = '#38bdf8';
+      ctx.beginPath();
+      ctx.arc(sCenterX, sCenterZ, 4, 0, Math.PI * 2);
+      ctx.fill();
 
-      const scale = (center / 75) * minimapZoom;
+      // 2. Draw World Boss Lair Marker (80, 80)
+      const bossX = center + (80 - myPos.x) * scale;
+      const bossZ = center + (80 - myPos.z) * scale;
+      ctx.strokeStyle = '#ef4444';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(bossX, bossZ, 12 * scale, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.font = 'bold 12px "Cinzel", serif';
+      ctx.fillStyle = '#f87171';
+      ctx.textAlign = 'center';
+      ctx.fillText('☠️ BOSS', bossX, bossZ - 6);
 
-      // 1. Draw Sanctuary at (0, 0)
-      const sX = center + (0 - myPos.x) * scale;
-      const sZ = center + (0 - myPos.z) * scale;
-      if (Math.hypot(sX - center, sZ - center) < center - 6 || isMinimapExpanded) {
-        ctx.strokeStyle = 'rgba(56, 189, 248, 0.6)';
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        ctx.arc(sX, sZ, 8, 0, Math.PI * 2);
-        ctx.stroke();
-      }
-
-      // 2. Draw Resources (Trees & Ores)
+      // 3. Draw Resources (Trees & Ores)
       currentLatestState.resources.forEach(r => {
         const rx = center + (r.x - myPos.x) * scale;
         const rz = center + (r.z - myPos.z) * scale;
@@ -1804,38 +3047,44 @@
         if (r.type === 'tree') {
           ctx.fillStyle = '#22c55e';
           ctx.beginPath();
-          ctx.arc(rx, rz, 4, 0, Math.PI * 2);
+          ctx.arc(rx, rz, 3.5, 0, Math.PI * 2);
           ctx.fill();
         } else {
           ctx.fillStyle = '#f59e0b';
           ctx.beginPath();
-          ctx.arc(rx, rz, 4, 0, Math.PI * 2);
+          ctx.arc(rx, rz, 3.5, 0, Math.PI * 2);
           ctx.fill();
         }
       });
 
-      // 3. Draw Monsters
+      // 4. Draw Monsters
       currentLatestState.monsters.forEach(m => {
         const mx = center + (m.x - myPos.x) * scale;
         const mz = center + (m.z - myPos.z) * scale;
         if (Math.hypot(mx - center, mz - center) > center - 6 && !isMinimapExpanded) return;
 
-        ctx.fillStyle = m.type === 'ogre' ? '#dc2626' : '#f87171';
-        ctx.beginPath();
-        ctx.arc(mx, mz, m.type === 'ogre' ? 6 : 4.5, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Little HP bar above ogre
-        if (m.type === 'ogre') {
-          const hpPct = Math.max(0, m.hp / m.maxHp);
-          ctx.fillStyle = '#1e293b';
-          ctx.fillRect(mx - 8, mz - 10, 16, 3);
-          ctx.fillStyle = '#ef4444';
-          ctx.fillRect(mx - 8, mz - 10, 16 * hpPct, 3);
+        if (m.isBoss || m.type === 'boss_dragon') {
+          ctx.fillStyle = '#ff0033';
+          ctx.beginPath();
+          ctx.arc(mx, mz, 9, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.strokeStyle = '#fbbf24';
+          ctx.lineWidth = 2;
+          ctx.stroke();
+        } else if (m.isMiniBoss || m.type === 'infernal_warlord') {
+          ctx.fillStyle = '#ea580c';
+          ctx.beginPath();
+          ctx.arc(mx, mz, 7, 0, Math.PI * 2);
+          ctx.fill();
+        } else {
+          ctx.fillStyle = (m.zone === 'abyss' || m.zone === 'necropolis') ? '#dc2626' : '#f87171';
+          ctx.beginPath();
+          ctx.arc(mx, mz, 4.5, 0, Math.PI * 2);
+          ctx.fill();
         }
       });
 
-      // 4. Draw Loot
+      // 5. Draw Loot
       currentLatestState.loot.forEach(l => {
         const lx = center + (l.x - myPos.x) * scale;
         const lz = center + (l.z - myPos.z) * scale;
@@ -1843,11 +3092,11 @@
 
         ctx.fillStyle = '#fbbf24';
         ctx.beginPath();
-        ctx.arc(lx, lz, 3.5, 0, Math.PI * 2);
+        ctx.arc(lx, lz, 3, 0, Math.PI * 2);
         ctx.fill();
       });
 
-      // 5. Draw Other Players
+      // 6. Draw Other Players
       currentLatestState.players.forEach(p => {
         if (p.id === myId) return;
         const px = center + (p.x - myPos.x) * scale;
@@ -1860,7 +3109,7 @@
         ctx.fill();
       });
 
-      // 6. Draw Local Player Cone & Arrow at Center
+      // 7. Draw Local Player Cone & Arrow at Center
       ctx.save();
       ctx.translate(center, center);
       const rotY = meshes.players[myId].rotation.y;
@@ -1897,6 +3146,9 @@
     // -------------------------------------------------------------
     function handleState(st) {
       dismissLoadingScreen();
+      
+      const myPlayer = st.players.find(p => p.id === myId);
+
       // 1. PLAYERS
       st.players.forEach(p => {
         if (!meshes.players[p.id]) {
@@ -2022,6 +3274,11 @@
             document.getElementById('kills-txt').innerText = `${p.kills}`;
           }
 
+          // Trigger Zone Discovery when player zone changes
+          if (p.zone) {
+            triggerZoneDiscovery(p.zone, p.level || 1);
+          }
+
           if (p.hp < p.maxHp * 0.35) {
             document.getElementById('screen-vignette').classList.add('hit');
           } else {
@@ -2029,6 +3286,35 @@
           }
         }
       });
+
+      // Boss Health Bar HUD updates
+      let activeBoss = null;
+      if (myPlayer) {
+        const bossMonsters = st.monsters.filter(m => m.isBoss || m.isMiniBoss || m.type === 'boss_dragon' || m.type === 'infernal_warlord');
+        if (bossMonsters.length > 0) {
+          for (const bm of bossMonsters) {
+            const dist = Math.hypot(bm.x - myPlayer.x, bm.z - myPlayer.z);
+            if (dist < 55 || myPlayer.zone === 'boss_sanctum') {
+              activeBoss = bm;
+              break;
+            }
+          }
+        }
+      }
+
+      const bossHud = document.getElementById('boss-bar-hud');
+      if (bossHud) {
+        if (activeBoss) {
+          bossHud.style.display = 'flex';
+          document.getElementById('boss-hud-name').innerText = activeBoss.name || (activeBoss.type === 'boss_dragon' ? 'Ignisrax the Abyssal Dragon Lord' : 'Gorgaroth the Warlord');
+          document.getElementById('boss-hud-lvl').innerText = `Lv. ${activeBoss.level || 60} ${activeBoss.isBoss ? '[WORLD BOSS]' : '[MINI BOSS]'}`;
+          const bHpPct = Math.max(0, Math.min(100, (activeBoss.hp / activeBoss.maxHp) * 100));
+          document.getElementById('boss-hud-fill').style.width = `${bHpPct}%`;
+          document.getElementById('boss-hud-txt').innerText = `${Math.round(activeBoss.hp).toLocaleString()} / ${activeBoss.maxHp.toLocaleString()} HP`;
+        } else {
+          bossHud.style.display = 'none';
+        }
+      }
 
       // Cleanup departed players
       Object.keys(meshes.players).forEach(id => {
@@ -2047,7 +3333,7 @@
         }
         const mesh = meshes.monsters[m.id];
         mesh.position.lerp(new THREE.Vector3(m.x, 0, m.z), 0.25);
-        mesh.userData = { id: m.id, type: 'monster' };
+        mesh.userData = { id: m.id, type: 'monster', isBoss: m.isBoss, isMiniBoss: m.isMiniBoss };
 
         // Health bar update
         const hpBg = mesh.children.find(c => c.name === "HPBG");
@@ -2112,85 +3398,94 @@
     }
 
     // -------------------------------------------------------------
-    // INVENTORY, CRAFTING & SHOP UI
+    // INVENTORY, CRAFTING & SHOP UI (EXPANDED ALBION TIERS & PRICING)
     // -------------------------------------------------------------
     let latestInventoryData = null;
     let currentShopTab = 'buy';
     let selectedInventoryUid = null;
 
     const SHOP_ITEMS = [
-      // T2 Novice
-      { id: 'wood_sword', name: 'Novice Broadsword', tier: 'T2', type: 'weapon', cat: 'warrior', desc: '+6 DMG', price: 250, icon: '🗡️' },
-      { id: 'novice_bow', name: 'Novice Shortbow', tier: 'T2', type: 'weapon', cat: 'hunter', desc: '+5 DMG (Ranged)', price: 260, icon: '🏹' },
-      { id: 'novice_staff', name: 'Novice Fire Staff', tier: 'T2', type: 'weapon', cat: 'mage', desc: '+6 DMG (Magic)', price: 280, icon: '🪄' },
-      { id: 'novice_robe', name: 'Novice Cloth Robe', tier: 'T2', type: 'armor', cat: 'mage', desc: '+20 HP, +4 DEF, +2 MAG', price: 220, icon: '🥋' },
-      { id: 'leather_armor', name: 'Novice Leather Jacket', tier: 'T2', type: 'armor', cat: 'hunter', desc: '+30 HP, +8 DEF', price: 270, icon: '🦺' },
-      { id: 'novice_plate', name: 'Novice Plate Armor', tier: 'T2', type: 'armor', cat: 'warrior', desc: '+40 HP, +12 DEF', price: 320, icon: '🛡️' },
+      // T2 Novice (Lv 1-10)
+      { id: 'wood_sword', name: 'Novice Broadsword', tier: 'T2', type: 'weapon', cat: 'warrior', desc: '+6 DMG', price: 480, icon: '🗡️' },
+      { id: 'novice_bow', name: 'Novice Shortbow', tier: 'T2', type: 'weapon', cat: 'hunter', desc: '+5 DMG (Ranged)', price: 520, icon: '🏹' },
+      { id: 'novice_fire_staff', name: 'Novice Fire Staff', tier: 'T2', type: 'weapon', cat: 'mage', desc: '+6 DMG (Magic)', price: 560, icon: '🪄' },
+      { id: 'novice_robe', name: 'Novice Cloth Robe', tier: 'T2', type: 'armor', cat: 'mage', desc: '+20 HP, +4 DEF, +2 MAG', price: 440, icon: '🥋' },
+      { id: 'leather_armor', name: 'Novice Leather Jacket', tier: 'T2', type: 'armor', cat: 'hunter', desc: '+30 HP, +8 DEF', price: 540, icon: '🦺' },
+      { id: 'novice_plate', name: 'Novice Plate Armor', tier: 'T2', type: 'armor', cat: 'warrior', desc: '+40 HP, +12 DEF', price: 650, icon: '🛡️' },
 
-      // T3 Journeyman
-      { id: 'journeyman_claymore', name: 'Journeyman Claymore', tier: 'T3', type: 'weapon', cat: 'warrior', desc: '+12 DMG', price: 850, icon: '⚔️' },
-      { id: 'journeyman_warbow', name: 'Journeyman Warbow', tier: 'T3', type: 'weapon', cat: 'hunter', desc: '+11 DMG (Ranged)', price: 880, icon: '🏹' },
-      { id: 'journeyman_frost_staff', name: 'Journeyman Frost Staff', tier: 'T3', type: 'weapon', cat: 'mage', desc: '+12 DMG (Frost)', price: 950, icon: '❄️' },
-      { id: 'journeyman_robe', name: 'Journeyman Mage Robe', tier: 'T3', type: 'armor', cat: 'mage', desc: '+45 HP, +8 DEF, +4 MAG', price: 780, icon: '🥋' },
-      { id: 'journeyman_leather', name: 'Journeyman Hunter Garb', tier: 'T3', type: 'armor', cat: 'hunter', desc: '+60 HP, +16 DEF', price: 860, icon: '🦺' },
-      { id: 'journeyman_plate', name: 'Journeyman Iron Plate', tier: 'T3', type: 'armor', cat: 'warrior', desc: '+80 HP, +22 DEF', price: 1050, icon: '🛡️' },
+      // T3 Journeyman (Lv 11-22)
+      { id: 'journeyman_claymore', name: 'Journeyman Claymore', tier: 'T3', type: 'weapon', cat: 'warrior', desc: '+12 DMG', price: 2100, icon: '⚔️' },
+      { id: 'journeyman_warbow', name: 'Journeyman Warbow', tier: 'T3', type: 'weapon', cat: 'hunter', desc: '+11 DMG (Ranged)', price: 2200, icon: '🏹' },
+      { id: 'journeyman_frost_staff', name: 'Journeyman Frost Staff', tier: 'T3', type: 'weapon', cat: 'mage', desc: '+12 DMG (Frost)', price: 2400, icon: '❄️' },
+      { id: 'journeyman_hammer', name: 'Journeyman War Hammer', tier: 'T3', type: 'weapon', cat: 'warrior', desc: '+14 DMG', price: 2300, icon: '🔨' },
+      { id: 'journeyman_robe', name: 'Journeyman Mage Robe', tier: 'T3', type: 'armor', cat: 'mage', desc: '+45 HP, +8 DEF, +4 MAG', price: 1950, icon: '🥋' },
+      { id: 'journeyman_leather', name: 'Journeyman Hunter Garb', tier: 'T3', type: 'armor', cat: 'hunter', desc: '+60 HP, +16 DEF', price: 2150, icon: '🦺' },
+      { id: 'journeyman_plate', name: 'Journeyman Iron Plate', tier: 'T3', type: 'armor', cat: 'warrior', desc: '+80 HP, +22 DEF', price: 2600, icon: '🛡️' },
 
-      // T4 Adept
-      { id: 'steel_broadsword', name: 'Adept Broadsword', tier: 'T4', type: 'weapon', cat: 'warrior', desc: '+20 DMG', price: 2400, icon: '⚔️' },
-      { id: 'adept_longbow', name: 'Adept Longbow', tier: 'T4', type: 'weapon', cat: 'hunter', desc: '+19 DMG (Ranged)', price: 2500, icon: '🏹' },
-      { id: 'adept_cursed_staff', name: 'Adept Cursed Staff', tier: 'T4', type: 'weapon', cat: 'mage', desc: '+21 DMG (Dark)', price: 2750, icon: '🔮' },
-      { id: 'iron_plate', name: 'Adept Knight Mail', tier: 'T4', type: 'armor', cat: 'warrior', desc: '+120 HP, +32 DEF', price: 3200, icon: '🛡️' },
+      // T4 Adept (Lv 23-35)
+      { id: 'steel_broadsword', name: 'Adept Broadsword', tier: 'T4', type: 'weapon', cat: 'warrior', desc: '+20 DMG', price: 7200, icon: '⚔️' },
+      { id: 'adept_longbow', name: 'Adept Longbow', tier: 'T4', type: 'weapon', cat: 'hunter', desc: '+19 DMG (Ranged)', price: 7600, icon: '🏹' },
+      { id: 'adept_cursed_staff', name: 'Adept Cursed Staff', tier: 'T4', type: 'weapon', cat: 'mage', desc: '+21 DMG (Dark)', price: 8400, icon: '🔮' },
+      { id: 'adept_pike', name: 'Adept Pike Spear', tier: 'T4', type: 'weapon', cat: 'warrior', desc: '+22 DMG', price: 7900, icon: '🔱' },
+      { id: 'adept_mage_robe', name: 'Adept Mage Robe', tier: 'T4', type: 'armor', cat: 'mage', desc: '+75 HP, +14 DEF', price: 6800, icon: '🥋' },
+      { id: 'adept_assassin_jacket', name: 'Adept Assassin Jacket', tier: 'T4', type: 'armor', cat: 'hunter', desc: '+95 HP, +24 DEF', price: 7800, icon: '🦺' },
+      { id: 'iron_plate', name: 'Adept Knight Mail', tier: 'T4', type: 'armor', cat: 'warrior', desc: '+120 HP, +32 DEF', price: 9500, icon: '🛡️' },
 
-      // T5 Expert
-      { id: 'flame_dagger', name: 'Expert Flame Dagger', tier: 'T5', type: 'weapon', cat: 'hunter', desc: '+30 DMG', price: 6500, icon: '🗡️' },
-      { id: 'expert_whispering_bow', name: 'Expert Whispering Bow', tier: 'T5', type: 'weapon', cat: 'hunter', desc: '+29 DMG (Ranged)', price: 6800, icon: '🏹' },
-      { id: 'expert_infernal_staff', name: 'Expert Infernal Staff', tier: 'T5', type: 'weapon', cat: 'mage', desc: '+32 DMG (Fire)', price: 7500, icon: '🔥' },
-      { id: 'demon_carapace', name: 'Expert Demon Carapace', tier: 'T5', type: 'armor', cat: 'warrior', desc: '+180 HP, +45 DEF', price: 8500, icon: '🦺' },
+      // T5 Expert (Lv 36-48)
+      { id: 'flame_dagger', name: 'Expert Flame Dagger', tier: 'T5', type: 'weapon', cat: 'hunter', desc: '+30 DMG', price: 18500, icon: '🗡️' },
+      { id: 'battle_hammer', name: 'Expert War Hammer', tier: 'T5', type: 'weapon', cat: 'warrior', desc: '+32 DMG', price: 21000, icon: '🔨' },
+      { id: 'expert_whispering_bow', name: 'Expert Whispering Bow', tier: 'T5', type: 'weapon', cat: 'hunter', desc: '+29 DMG (Ranged)', price: 19500, icon: '🏹' },
+      { id: 'expert_infernal_staff', name: 'Expert Infernal Staff', tier: 'T5', type: 'weapon', cat: 'mage', desc: '+32 DMG (Fire)', price: 23000, icon: '🔥' },
+      { id: 'expert_stalker_leather', name: 'Expert Stalker Leather', tier: 'T5', type: 'armor', cat: 'hunter', desc: '+140 HP, +36 DEF', price: 22000, icon: '🦺' },
+      { id: 'demon_carapace', name: 'Expert Demon Carapace', tier: 'T5', type: 'armor', cat: 'warrior', desc: '+180 HP, +45 DEF', price: 26000, icon: '🛡️' },
 
-      // T6 Master
-      { id: 'crystal_spear', name: 'Master Frost Pike', tier: 'T6', type: 'weapon', cat: 'warrior', desc: '+42 DMG', price: 16500, icon: '🔱' },
-      { id: 'master_shadow_bow', name: 'Master Bow of Shadows', tier: 'T6', type: 'weapon', cat: 'hunter', desc: '+40 DMG (Ranged)', price: 17500, icon: '🏹' },
-      { id: 'master_archmage_staff', name: 'Master Archmage Staff', tier: 'T6', type: 'weapon', cat: 'mage', desc: '+44 DMG (Arcane)', price: 19000, icon: '⚡' },
-      { id: 'master_judicator_plate', name: 'Master Judicator Plate', tier: 'T6', type: 'armor', cat: 'warrior', desc: '+260 HP, +65 DEF', price: 22500, icon: '👑' }
+      // T6 Master & World Boss Relics (Lv 50+)
+      { id: 'master_relic_blade', name: 'Master Abyssal Blade', tier: 'T6', type: 'weapon', cat: 'warrior', desc: '+46 DMG', price: 58000, icon: '⚔️' },
+      { id: 'master_bow_of_shadows', name: 'Master Bow of Shadows', tier: 'T6', type: 'weapon', cat: 'hunter', desc: '+44 DMG (Ranged)', price: 62000, icon: '🏹' },
+      { id: 'master_archmage_staff', name: 'Master Archmage Staff', tier: 'T6', type: 'weapon', cat: 'mage', desc: '+48 DMG (Arcane)', price: 68000, icon: '⚡' },
+      { id: 'master_judicator_plate', name: 'Master Judicator Plate', tier: 'T6', type: 'armor', cat: 'warrior', desc: '+260 HP, +65 DEF', price: 75000, icon: '👑' }
     ];
 
     const CRAFT_RECIPES = [
       // T2 Novice
-      { id: 'wood_sword', name: 'Novice Broadsword', tier: 'T2', stat: '+6 DMG', gold: 60, mats: { raw_wood: 3 }, icon: '🗡️' },
-      { id: 'novice_bow', name: 'Novice Shortbow', tier: 'T2', stat: '+5 DMG', gold: 65, mats: { raw_wood: 4 }, icon: '🏹' },
-      { id: 'novice_staff', name: 'Novice Fire Staff', tier: 'T2', stat: '+6 DMG', gold: 70, mats: { raw_wood: 3, raw_ore: 1 }, icon: '🪄' },
-      { id: 'novice_robe', name: 'Novice Cloth Robe', tier: 'T2', stat: '+20 HP, +4 DEF', gold: 55, mats: { raw_wood: 3 }, icon: '🥋' },
-      { id: 'leather_armor', name: 'Novice Leather Jacket', tier: 'T2', stat: '+30 HP, +8 DEF', gold: 70, mats: { raw_wood: 4, ogre_bone: 1 }, icon: '🦺' },
-      { id: 'novice_plate', name: 'Novice Plate Armor', tier: 'T2', stat: '+40 HP, +12 DEF', gold: 80, mats: { raw_ore: 4 }, icon: '🛡️' },
+      { id: 'wood_sword', name: 'Novice Broadsword', tier: 'T2', stat: '+6 DMG', gold: 160, mats: { raw_wood: 4 }, icon: '🗡️' },
+      { id: 'novice_bow', name: 'Novice Shortbow', tier: 'T2', stat: '+5 DMG', gold: 170, mats: { raw_wood: 5 }, icon: '🏹' },
+      { id: 'novice_fire_staff', name: 'Novice Fire Staff', tier: 'T2', stat: '+6 DMG', gold: 180, mats: { raw_wood: 4, raw_ore: 2 }, icon: '🪄' },
+      { id: 'novice_robe', name: 'Novice Cloth Robe', tier: 'T2', stat: '+20 HP, +4 DEF', gold: 150, mats: { raw_wood: 4 }, icon: '🥋' },
+      { id: 'leather_armor', name: 'Novice Leather Jacket', tier: 'T2', stat: '+30 HP, +8 DEF', gold: 180, mats: { raw_wood: 5, raw_ore: 2 }, icon: '🦺' },
+      { id: 'novice_plate', name: 'Novice Plate Armor', tier: 'T2', stat: '+40 HP, +12 DEF', gold: 220, mats: { raw_ore: 6 }, icon: '🛡️' },
 
       // T3 Journeyman
-      { id: 'journeyman_claymore', name: 'Journeyman Claymore', tier: 'T3', stat: '+12 DMG', gold: 220, mats: { raw_ore: 4, raw_wood: 2 }, icon: '⚔️' },
-      { id: 'journeyman_warbow', name: 'Journeyman Warbow', tier: 'T3', stat: '+11 DMG', gold: 230, mats: { raw_wood: 5, spider_silk: 1 }, icon: '🏹' },
-      { id: 'journeyman_frost_staff', name: 'Journeyman Frost Staff', tier: 'T3', stat: '+12 DMG', gold: 250, mats: { raw_wood: 3, spider_silk: 2 }, icon: '❄️' },
-      { id: 'journeyman_robe', name: 'Journeyman Mage Robe', tier: 'T3', stat: '+45 HP, +8 DEF', gold: 200, mats: { spider_silk: 3, raw_wood: 2 }, icon: '🥋' },
-      { id: 'journeyman_leather', name: 'Journeyman Hunter Garb', tier: 'T3', stat: '+60 HP, +16 DEF', gold: 220, mats: { ogre_bone: 3, spider_silk: 2 }, icon: '🦺' },
-      { id: 'journeyman_plate', name: 'Journeyman Iron Plate', tier: 'T3', stat: '+80 HP, +22 DEF', gold: 280, mats: { raw_ore: 6, ogre_bone: 2 }, icon: '🛡️' },
+      { id: 'journeyman_claymore', name: 'Journeyman Claymore', tier: 'T3', stat: '+12 DMG', gold: 750, mats: { raw_ore: 6, raw_wood: 4 }, icon: '⚔️' },
+      { id: 'journeyman_warbow', name: 'Journeyman Warbow', tier: 'T3', stat: '+11 DMG', gold: 780, mats: { raw_wood: 6, spider_silk: 3 }, icon: '🏹' },
+      { id: 'journeyman_frost_staff', name: 'Journeyman Frost Staff', tier: 'T3', stat: '+12 DMG', gold: 850, mats: { spider_silk: 4, raw_wood: 3 }, icon: '❄️' },
+      { id: 'journeyman_hammer', name: 'Journeyman War Hammer', tier: 'T3', stat: '+14 DMG', gold: 800, mats: { raw_ore: 6, ogre_bone: 2 }, icon: '🔨' },
+      { id: 'journeyman_robe', name: 'Journeyman Mage Robe', tier: 'T3', stat: '+45 HP, +8 DEF', gold: 680, mats: { spider_silk: 4, raw_wood: 2 }, icon: '🥋' },
+      { id: 'journeyman_leather', name: 'Journeyman Hunter Garb', tier: 'T3', stat: '+60 HP, +16 DEF', gold: 760, mats: { raw_wood: 4, spider_silk: 3 }, icon: '🦺' },
+      { id: 'journeyman_plate', name: 'Journeyman Iron Plate', tier: 'T3', stat: '+80 HP, +22 DEF', gold: 950, mats: { raw_ore: 8, ogre_bone: 2 }, icon: '🛡️' },
 
       // T4 Adept
-      { id: 'steel_broadsword', name: 'Adept Broadsword', tier: 'T4', stat: '+20 DMG', gold: 650, mats: { raw_ore: 6, raw_wood: 3, skeleton_skull: 2 }, icon: '⚔️' },
-      { id: 'adept_longbow', name: 'Adept Longbow', tier: 'T4', stat: '+19 DMG', gold: 680, mats: { raw_wood: 6, spider_silk: 3, skeleton_skull: 2 }, icon: '🏹' },
-      { id: 'adept_cursed_staff', name: 'Adept Cursed Staff', tier: 'T4', stat: '+21 DMG', gold: 750, mats: { skeleton_skull: 4, raw_wood: 4, spider_silk: 3 }, icon: '🔮' },
-      { id: 'adept_robe', name: 'Adept Mage Robe', tier: 'T4', stat: '+75 HP, +14 DEF', gold: 600, mats: { spider_silk: 5, skeleton_skull: 2 }, icon: '🥋' },
-      { id: 'adept_jacket', name: 'Adept Assassin Jacket', tier: 'T4', stat: '+95 HP, +24 DEF', gold: 700, mats: { ogre_bone: 4, skeleton_skull: 3 }, icon: '🦺' },
-      { id: 'iron_plate', name: 'Adept Knight Mail', tier: 'T4', stat: '+120 HP, +32 DEF', gold: 850, mats: { raw_ore: 8, ogre_bone: 3, skeleton_skull: 2 }, icon: '🛡️' },
+      { id: 'steel_broadsword', name: 'Adept Broadsword', tier: 'T4', stat: '+20 DMG', gold: 2600, mats: { raw_ore: 8, skeleton_skull: 3 }, icon: '⚔️' },
+      { id: 'adept_longbow', name: 'Adept Longbow', tier: 'T4', stat: '+19 DMG', gold: 2800, mats: { raw_wood: 6, spider_silk: 4, skeleton_skull: 2 }, icon: '🏹' },
+      { id: 'adept_cursed_staff', name: 'Adept Cursed Staff', tier: 'T4', stat: '+21 DMG', gold: 3100, mats: { skeleton_skull: 4, spider_silk: 4 }, icon: '🔮' },
+      { id: 'adept_pike', name: 'Adept Pike Spear', tier: 'T4', stat: '+22 DMG', gold: 2700, mats: { raw_ore: 6, spider_silk: 4 }, icon: '🔱' },
+      { id: 'adept_mage_robe', name: 'Adept Mage Robe', tier: 'T4', stat: '+75 HP, +14 DEF', gold: 2400, mats: { spider_silk: 5, skeleton_skull: 3 }, icon: '🥋' },
+      { id: 'adept_assassin_jacket', name: 'Adept Assassin Jacket', tier: 'T4', stat: '+95 HP, +24 DEF', gold: 2850, mats: { spider_silk: 5, ogre_bone: 3 }, icon: '🦺' },
+      { id: 'iron_plate', name: 'Adept Knight Mail', tier: 'T4', stat: '+120 HP, +32 DEF', gold: 3600, mats: { raw_ore: 10, skeleton_skull: 4 }, icon: '🛡️' },
 
       // T5 Expert
-      { id: 'flame_dagger', name: 'Expert Flame Dagger', tier: 'T5', stat: '+30 DMG', gold: 1800, mats: { demon_horn: 3, raw_ore: 4, skeleton_skull: 3 }, icon: '🗡️' },
-      { id: 'battle_hammer', name: 'Expert War Hammer', tier: 'T5', stat: '+32 DMG', gold: 2000, mats: { ogre_bone: 5, raw_ore: 6, demon_horn: 2 }, icon: '🔨' },
-      { id: 'expert_whispering_bow', name: 'Expert Whispering Bow', tier: 'T5', stat: '+29 DMG', gold: 1900, mats: { raw_wood: 8, spider_silk: 6, demon_horn: 3 }, icon: '🏹' },
-      { id: 'expert_infernal_staff', name: 'Expert Infernal Staff', tier: 'T5', stat: '+32 DMG', gold: 2100, mats: { demon_horn: 5, spider_silk: 4, raw_ore: 4 }, icon: '🔥' },
-      { id: 'demon_carapace', name: 'Expert Demon Carapace', tier: 'T5', stat: '+180 HP, +45 DEF', gold: 2400, mats: { demon_horn: 5, skeleton_skull: 4, ogre_bone: 3 }, icon: '🦺' },
+      { id: 'flame_dagger', name: 'Expert Flame Dagger', tier: 'T5', stat: '+30 DMG', gold: 7500, mats: { demon_horn: 4, raw_ore: 6 }, icon: '🗡️' },
+      { id: 'battle_hammer', name: 'Expert War Hammer', tier: 'T5', stat: '+32 DMG', gold: 8200, mats: { ogre_bone: 6, raw_ore: 8, demon_horn: 2 }, icon: '🔨' },
+      { id: 'expert_whispering_bow', name: 'Expert Whispering Bow', tier: 'T5', stat: '+29 DMG', gold: 7900, mats: { raw_wood: 8, spider_silk: 6, demon_horn: 3 }, icon: '🏹' },
+      { id: 'expert_infernal_staff', name: 'Expert Infernal Staff', tier: 'T5', stat: '+32 DMG', gold: 8900, mats: { demon_horn: 6, spider_silk: 4 }, icon: '🔥' },
+      { id: 'expert_stalker_leather', name: 'Expert Stalker Leather', tier: 'T5', stat: '+140 HP, +36 DEF', gold: 8200, mats: { demon_horn: 4, spider_silk: 6 }, icon: '🦺' },
+      { id: 'demon_carapace', name: 'Expert Demon Carapace', tier: 'T5', stat: '+180 HP, +45 DEF', gold: 10500, mats: { demon_horn: 6, raw_ore: 10, ogre_bone: 4 }, icon: '🛡️' },
 
-      // T6 Master
-      { id: 'crystal_spear', name: 'Master Frost Pike', tier: 'T6', stat: '+42 DMG', gold: 4500, mats: { spider_silk: 8, demon_horn: 5, skeleton_skull: 5 }, icon: '🔱' },
-      { id: 'master_shadow_bow', name: 'Master Bow of Shadows', tier: 'T6', stat: '+40 DMG', gold: 4800, mats: { raw_wood: 10, spider_silk: 8, demon_horn: 6 }, icon: '🏹' },
-      { id: 'master_archmage_staff', name: 'Master Archmage Staff', tier: 'T6', stat: '+44 DMG', gold: 5200, mats: { demon_horn: 8, spider_silk: 8, skeleton_skull: 6 }, icon: '⚡' },
-      { id: 'master_judicator_plate', name: 'Master Judicator Plate', tier: 'T6', stat: '+260 HP, +65 DEF', gold: 6000, mats: { raw_ore: 12, demon_horn: 6, skeleton_skull: 6 }, icon: '👑' }
+      // T6 Master & World Boss Relics
+      { id: 'master_relic_blade', name: 'Master Abyssal Blade', tier: 'T6', stat: '+46 DMG', gold: 24000, mats: { dragon_scale: 2, abyssal_core: 1, raw_ore: 12 }, icon: '⚔️' },
+      { id: 'master_bow_of_shadows', name: 'Master Bow of Shadows', tier: 'T6', stat: '+44 DMG', gold: 25000, mats: { dragon_scale: 2, spider_silk: 8, demon_horn: 6 }, icon: '🏹' },
+      { id: 'master_archmage_staff', name: 'Master Archmage Staff', tier: 'T6', stat: '+48 DMG', gold: 27000, mats: { abyssal_core: 2, dragon_scale: 1, demon_horn: 8 }, icon: '⚡' },
+      { id: 'master_judicator_plate', name: 'Master Judicator Plate', tier: 'T6', stat: '+260 HP, +65 DEF', gold: 30000, mats: { dragon_scale: 3, raw_ore: 16, demon_horn: 8 }, icon: '👑' }
     ];
 
     const MAT_NAMES = {
@@ -2199,7 +3494,9 @@
       demon_horn: 'Demon Horn',
       ogre_bone: 'Ogre Bone',
       spider_silk: 'Frost Silk',
-      skeleton_skull: 'Skull'
+      skeleton_skull: 'Skull',
+      dragon_scale: 'Dragon Scale',
+      abyssal_core: 'Abyssal Core'
     };
 
     function renderInventory(d) {

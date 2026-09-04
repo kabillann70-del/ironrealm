@@ -1391,6 +1391,165 @@
 
         return group;
       }
+    },
+
+    // --- TIER 7 (CELESTIAL / WORLD-CLASS) ---
+    astral_wood: {
+      id: 'astral_wood',
+      name: 'Celestial World-Tree Wood',
+      type: 'material',
+      tier: 7,
+      accentColor: 0x818cf8,
+      desc: 'T7 Luminescent timber infused with stellar nebula energy.',
+      buildMesh: function(T) {
+        const group = new T.Group();
+        const barkMat = new T.MeshStandardMaterial({ color: 0x1e1b4b, roughness: 0.6 });
+        const starlightMat = new T.MeshStandardMaterial({ color: 0x818cf8, emissive: 0x6366f1, emissiveIntensity: 0.9 });
+        const log = new T.Mesh(new T.CylinderGeometry(0.2, 0.22, 1.0, 8), barkMat);
+        log.rotation.z = Math.PI / 2;
+        group.add(log);
+        const core = new T.Mesh(new T.TorusGeometry(0.24, 0.04, 6, 12), starlightMat);
+        core.rotation.y = Math.PI / 2;
+        group.add(core);
+        return group;
+      }
+    },
+
+    starfall_crystal: {
+      id: 'starfall_crystal',
+      name: 'Astral Starfall Ore',
+      type: 'material',
+      tier: 7,
+      accentColor: 0xc084fc,
+      desc: 'T7 Cosmic ore glowing with pulsars and astral stardust.',
+      buildMesh: function(T) {
+        const group = new T.Group();
+        const rockMat = new T.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.4 });
+        const crystalMat = new T.MeshStandardMaterial({ color: 0xc084fc, emissive: 0xa855f7, emissiveIntensity: 1.0, roughness: 0.1 });
+        const base = new T.Mesh(new T.DodecahedronGeometry(0.45), rockMat);
+        group.add(base);
+        const crystal = new T.Mesh(new T.OctahedronGeometry(0.35), crystalMat);
+        crystal.position.y = 0.35;
+        group.add(crystal);
+        return group;
+      }
+    },
+
+    void_shard: {
+      id: 'void_shard',
+      name: 'Void Emperor Shard',
+      type: 'material',
+      tier: 7,
+      accentColor: 0xf43f5e,
+      desc: 'T7 Singularity remnant torn from the fabric of the Void Emperor.',
+      buildMesh: function(T) {
+        const group = new T.Group();
+        const voidMat = new T.MeshStandardMaterial({ color: 0x020617, roughness: 0.1, metalness: 0.9 });
+        const redMat = new T.MeshStandardMaterial({ color: 0xf43f5e, emissive: 0xe11d48, emissiveIntensity: 1.2 });
+        const sphere = new T.Mesh(new T.SphereGeometry(0.32, 12, 12), voidMat);
+        group.add(sphere);
+        const ring = new T.Mesh(new T.RingGeometry(0.38, 0.48, 16), redMat);
+        ring.rotation.x = Math.PI / 3;
+        group.add(ring);
+        return group;
+      }
+    },
+
+    celestial_greatsword: {
+      id: 'celestial_greatsword',
+      name: 'Astraeus Void Cleaver',
+      type: 'weapon',
+      tier: 7,
+      weaponType: 'broadsword',
+      accentColor: 0x818cf8,
+      desc: 'T7 World-Class Greatsword forged from collapsed star cores.',
+      buildMesh: function(T) {
+        const group = new T.Group();
+        const voidMat = new T.MeshStandardMaterial({ color: 0x0f172a, metalness: 0.95, roughness: 0.1 });
+        const glowMat = new T.MeshStandardMaterial({ color: 0x818cf8, emissive: 0x6366f1, emissiveIntensity: 1.2 });
+        const blade = new T.Mesh(new T.BoxGeometry(0.24, 1.8, 0.08), voidMat);
+        blade.position.y = 0.9;
+        group.add(blade);
+        const edge = new T.Mesh(new T.BoxGeometry(0.08, 1.7, 0.09), glowMat);
+        edge.position.y = 0.9;
+        group.add(edge);
+        const guard = new T.Mesh(new T.BoxGeometry(0.65, 0.1, 0.16), glowMat);
+        guard.position.y = 0.05;
+        group.add(guard);
+        const hilt = new T.Mesh(new T.CylinderGeometry(0.05, 0.05, 0.45, 8), voidMat);
+        hilt.position.y = -0.2;
+        group.add(hilt);
+        return group;
+      }
+    },
+
+    celestial_bow: {
+      id: 'celestial_bow',
+      name: 'Star-Strider Longbow',
+      type: 'weapon',
+      tier: 7,
+      weaponType: 'bow',
+      accentColor: 0x38bdf8,
+      desc: 'T7 World-Class bow firing astral supernovas.',
+      buildMesh: function(T) {
+        const group = new T.Group();
+        const starMat = new T.MeshStandardMaterial({ color: 0x38bdf8, emissive: 0x0284c7, emissiveIntensity: 1.0 });
+        const bowCurve = new T.Mesh(new T.TorusGeometry(0.7, 0.04, 8, 16, Math.PI), starMat);
+        bowCurve.rotation.z = -Math.PI / 2;
+        group.add(bowCurve);
+        return group;
+      }
+    },
+
+    celestial_staff: {
+      id: 'celestial_staff',
+      name: 'Void Emperor Scepter',
+      type: 'weapon',
+      tier: 7,
+      weaponType: 'staff',
+      accentColor: 0xa855f7,
+      desc: 'T7 World-Class scepter commanding astral black holes.',
+      buildMesh: function(T) {
+        const group = new T.Group();
+        const shaftMat = new T.MeshStandardMaterial({ color: 0x1e1b4b, metalness: 0.8 });
+        const orbMat = new T.MeshStandardMaterial({ color: 0xa855f7, emissive: 0x7e22ce, emissiveIntensity: 1.3 });
+        const shaft = new T.Mesh(new T.CylinderGeometry(0.05, 0.05, 1.8, 8), shaftMat);
+        shaft.position.y = 0.7;
+        group.add(shaft);
+        const orb = new T.Mesh(new T.SphereGeometry(0.22, 12, 12), orbMat);
+        orb.position.y = 1.7;
+        group.add(orb);
+        const ring = new T.Mesh(new T.TorusGeometry(0.32, 0.03, 6, 16), orbMat);
+        ring.position.y = 1.7;
+        ring.rotation.x = Math.PI / 4;
+        group.add(ring);
+        return group;
+      }
+    },
+
+    celestial_carapace: {
+      id: 'celestial_carapace',
+      name: 'Void Emperor Regalia',
+      type: 'armor',
+      tier: 7,
+      accentColor: 0x818cf8,
+      desc: 'T7 Supreme titan plate resonating with cosmic eternity.',
+      buildMesh: function(T) {
+        const group = new T.Group();
+        const titanMat = new T.MeshStandardMaterial({ color: 0x0f172a, metalness: 0.95, roughness: 0.1 });
+        const starlightMat = new T.MeshStandardMaterial({ color: 0x818cf8, emissive: 0x6366f1, emissiveIntensity: 1.0 });
+        const torso = new T.Mesh(new T.BoxGeometry(1.05, 1.3, 0.75), titanMat);
+        torso.position.y = 0.76;
+        group.add(torso);
+        const crest = new T.Mesh(new T.OctahedronGeometry(0.2), starlightMat);
+        crest.position.set(0, 0.9, 0.42);
+        group.add(crest);
+        const pL = new T.Mesh(new T.BoxGeometry(0.45, 0.35, 0.8), starlightMat);
+        pL.position.set(-0.68, 1.25, 0); group.add(pL);
+        const pR = new T.Mesh(new T.BoxGeometry(0.45, 0.35, 0.8), starlightMat);
+        pR.position.set(0.68, 1.25, 0); group.add(pR);
+        return group;
+      }
     }
   };
 
