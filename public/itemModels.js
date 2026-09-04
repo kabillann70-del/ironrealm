@@ -75,6 +75,117 @@
       }
     },
 
+    journeyman_wood: {
+      id: 'journeyman_wood',
+      name: 'Journeyman Wood',
+      type: 'material',
+      rarity: 'uncommon',
+      accentColor: 0x38bdf8,
+      desc: 'T3 Dark cedar logs bound with bronze reinforcement bands.',
+      buildMesh: function(T) {
+        const group = new T.Group();
+        const barkMat = new T.MeshStandardMaterial({ color: 0x3f2e26, roughness: 0.85 });
+        const coreMat = new T.MeshStandardMaterial({ color: 0x854d0e, roughness: 0.7 });
+        const bandMat = new T.MeshStandardMaterial({ color: 0xd97706, metalness: 0.8, roughness: 0.3 });
+        
+        const log = new T.Mesh(new T.CylinderGeometry(0.22, 0.22, 1.1, 8), barkMat);
+        log.rotation.z = Math.PI / 2;
+        log.castShadow = true;
+        group.add(log);
+
+        const cap = new T.Mesh(new T.CircleGeometry(0.21, 8), coreMat);
+        cap.rotation.y = Math.PI / 2;
+        cap.position.x = 0.555;
+        group.add(cap);
+
+        const band = new T.Mesh(new T.TorusGeometry(0.23, 0.025, 6, 12), bandMat);
+        band.rotation.y = Math.PI / 2;
+        band.position.x = 0.2;
+        group.add(band);
+        const band2 = new T.Mesh(new T.TorusGeometry(0.23, 0.025, 6, 12), bandMat);
+        band2.rotation.y = Math.PI / 2;
+        band2.position.x = -0.2;
+        group.add(band2);
+
+        return group;
+      }
+    },
+
+    adept_wood: {
+      id: 'adept_wood',
+      name: 'Adept Wood',
+      type: 'material',
+      rarity: 'rare',
+      accentColor: 0xa855f7,
+      desc: 'T4 Stout pine timber infused with glowing mana sap.',
+      buildMesh: function(T) {
+        const group = new T.Group();
+        const logMat = new T.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.7 });
+        const sapMat = new T.MeshStandardMaterial({ color: 0x38bdf8, emissive: 0x0284c7, emissiveIntensity: 0.8, roughness: 0.2 });
+
+        const log = new T.Mesh(new T.CylinderGeometry(0.24, 0.24, 1.2, 8), logMat);
+        log.rotation.z = Math.PI / 2;
+        log.castShadow = true;
+        group.add(log);
+
+        const vein = new T.Mesh(new T.BoxGeometry(1.22, 0.08, 0.08), sapMat);
+        group.add(vein);
+
+        return group;
+      }
+    },
+
+    expert_wood: {
+      id: 'expert_wood',
+      name: 'Expert Wood',
+      type: 'material',
+      rarity: 'epic',
+      accentColor: 0xef4444,
+      desc: 'T5 Obsidian charcoal logs pulsing with underworld fire.',
+      buildMesh: function(T) {
+        const group = new T.Group();
+        const logMat = new T.MeshStandardMaterial({ color: 0x09090b, roughness: 0.4, metalness: 0.7 });
+        const fireMat = new T.MeshStandardMaterial({ color: 0xef4444, emissive: 0xdc2626, emissiveIntensity: 0.9, roughness: 0.1 });
+
+        const log = new T.Mesh(new T.BoxGeometry(1.2, 0.38, 0.38), logMat);
+        log.castShadow = true;
+        group.add(log);
+
+        for (let i = -0.4; i <= 0.4; i += 0.4) {
+          const crack = new T.Mesh(new T.BoxGeometry(0.06, 0.42, 0.42), fireMat);
+          crack.position.x = i;
+          group.add(crack);
+        }
+
+        return group;
+      }
+    },
+
+    master_wood: {
+      id: 'master_wood',
+      name: 'Master Wood',
+      type: 'material',
+      rarity: 'legendary',
+      accentColor: 0xfbbf24,
+      desc: 'T6 Celestial goldwood embedded with starlight crystals.',
+      buildMesh: function(T) {
+        const group = new T.Group();
+        const logMat = new T.MeshStandardMaterial({ color: 0x78350f, roughness: 0.5, metalness: 0.6 });
+        const goldMat = new T.MeshStandardMaterial({ color: 0xfbbf24, emissive: 0xd97706, emissiveIntensity: 0.7, metalness: 0.9, roughness: 0.2 });
+
+        const log = new T.Mesh(new T.CylinderGeometry(0.25, 0.25, 1.25, 8), logMat);
+        log.rotation.z = Math.PI / 2;
+        log.castShadow = true;
+        group.add(log);
+
+        const ring = new T.Mesh(new T.OctahedronGeometry(0.18, 0), goldMat);
+        ring.position.set(0, 0, 0);
+        group.add(ring);
+
+        return group;
+      }
+    },
+
     raw_ore: {
       id: 'raw_ore',
       name: 'Iron Ore',
@@ -119,6 +230,110 @@
         });
 
         group.scale.set(1.2, 1.2, 1.2);
+        return group;
+      }
+    },
+
+    journeyman_ore: {
+      id: 'journeyman_ore',
+      name: 'Journeyman Ore',
+      type: 'material',
+      rarity: 'uncommon',
+      accentColor: 0xf59e0b,
+      desc: 'T3 Bronze-alloy rock cluster with amber crystal facets.',
+      buildMesh: function(T) {
+        const group = new T.Group();
+        const baseMat = new T.MeshStandardMaterial({ color: 0x451a03, roughness: 0.8, metalness: 0.4 });
+        const amberMat = new T.MeshStandardMaterial({ color: 0xf59e0b, emissive: 0xd97706, emissiveIntensity: 0.5, metalness: 0.8, roughness: 0.2 });
+
+        const base = new T.Mesh(new T.BoxGeometry(0.7, 0.5, 0.7), baseMat);
+        base.position.y = 0.25;
+        base.castShadow = true;
+        group.add(base);
+
+        const gem = new T.Mesh(new T.OctahedronGeometry(0.3, 0), amberMat);
+        gem.position.set(0, 0.55, 0);
+        group.add(gem);
+
+        return group;
+      }
+    },
+
+    adept_ore: {
+      id: 'adept_ore',
+      name: 'Adept Ore',
+      type: 'material',
+      rarity: 'rare',
+      accentColor: 0xe2e8f0,
+      desc: 'T4 Steel-silver ore cluster with sharp tetrahedral blades.',
+      buildMesh: function(T) {
+        const group = new T.Group();
+        const baseMat = new T.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.7, metalness: 0.5 });
+        const steelMat = new T.MeshStandardMaterial({ color: 0xf8fafc, metalness: 0.98, roughness: 0.1 });
+
+        const base = new T.Mesh(new T.CylinderGeometry(0.4, 0.45, 0.5, 6), baseMat);
+        base.position.y = 0.25;
+        base.castShadow = true;
+        group.add(base);
+
+        for (let i = 0; i < 3; i++) {
+          const angle = (i / 3) * Math.PI * 2;
+          const blade = new T.Mesh(new T.ConeGeometry(0.1, 0.7, 4), steelMat);
+          blade.position.set(Math.cos(angle) * 0.2, 0.6, Math.sin(angle) * 0.2);
+          blade.rotation.z = 0.25;
+          group.add(blade);
+        }
+
+        return group;
+      }
+    },
+
+    expert_ore: {
+      id: 'expert_ore',
+      name: 'Expert Ore',
+      type: 'material',
+      rarity: 'epic',
+      accentColor: 0xf97316,
+      desc: 'T5 Titan basalt rock with blazing magma core crystals.',
+      buildMesh: function(T) {
+        const group = new T.Group();
+        const baseMat = new T.MeshStandardMaterial({ color: 0x18181b, roughness: 0.9, metalness: 0.6 });
+        const magmaMat = new T.MeshStandardMaterial({ color: 0xf97316, emissive: 0xea580c, emissiveIntensity: 0.95, roughness: 0.1 });
+
+        const base = new T.Mesh(new T.DodecahedronGeometry(0.5, 1), baseMat);
+        base.position.y = 0.35;
+        base.castShadow = true;
+        group.add(base);
+
+        const core = new T.Mesh(new T.SphereGeometry(0.22, 8, 8), magmaMat);
+        core.position.y = 0.35;
+        group.add(core);
+
+        return group;
+      }
+    },
+
+    master_ore: {
+      id: 'master_ore',
+      name: 'Master Ore',
+      type: 'material',
+      rarity: 'legendary',
+      accentColor: 0xc084fc,
+      desc: 'T6 Mythril void-stone pulsing with cosmic purple energy.',
+      buildMesh: function(T) {
+        const group = new T.Group();
+        const baseMat = new T.MeshStandardMaterial({ color: 0x2e1065, roughness: 0.5, metalness: 0.8 });
+        const voidMat = new T.MeshStandardMaterial({ color: 0xc084fc, emissive: 0x9333ea, emissiveIntensity: 0.9, metalness: 0.9, roughness: 0.15 });
+
+        const base = new T.Mesh(new T.IcosahedronGeometry(0.45, 0), baseMat);
+        base.position.y = 0.35;
+        base.castShadow = true;
+        group.add(base);
+
+        const crystal = new T.Mesh(new T.OctahedronGeometry(0.32, 0), voidMat);
+        crystal.position.y = 0.45;
+        group.add(crystal);
+
         return group;
       }
     },

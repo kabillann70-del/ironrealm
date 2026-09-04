@@ -3113,7 +3113,7 @@
       ctx.save();
       ctx.translate(center, center);
       const rotY = meshes.players[myId].rotation.y;
-      ctx.rotate(-rotY);
+      ctx.rotate(rotY);
 
       // Vision field cone
       const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, 45);
@@ -3861,6 +3861,7 @@
     // CONTROLS & RAYCASTING INTERACTION
     // -------------------------------------------------------------
     window.addEventListener('keydown', (e) => {
+      if (document.activeElement && (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA')) return;
       const key = e.key.toLowerCase();
       if (key === 'b') toggleBag();
       if (key === 'p') toggleShop();
@@ -3880,7 +3881,7 @@
 
     window.addEventListener('mousedown', (e) => {
       if (e.target !== document.body && e.target.tagName !== 'CANVAS') return;
-      if (e.target.closest('#minimap-container, #ui-top, #hotbar, #inv-ui, #shop-ui, #controls-hint')) return;
+      if (e.target.closest('#minimap-container, #ui-top, #hotbar, #inv-ui, #shop-ui, #controls-hint, #chat-panel')) return;
 
       const mouse = new THREE.Vector2(
         (e.clientX / window.innerWidth) * 2 - 1,
@@ -4125,6 +4126,57 @@
     }
 
     animate();
+
+    let currentChatTab = 'all';
+
+    function toggleChatCollapse() {
+      const panel = document.getElementById('chat-panel');
+      if (panel) panel.classList.toggle('collapsed');
+    }
+
+    function setChatTab(tab) {
+      currentChatTab = tab;
+      ['all', 'global', 'zone', 'combat'].forEach(t => {
+        const btn = document.getElementById(`chat-tab-${t}`);
+        if (btn) btn.classList.toggle('active', t === tab);
+      });
+    }
+
+    function handleChatKeyDown(e) {
+      if (e.key === 'Enter') {
+        sendChatMessage();
+      }
+    }
+
+    function sendChatMessage() {
+      const input = document.getElementById('chat-input');
+      if (!input) return;
+      const text = input.value.trim();
+      if (!text) return;
+      if (socket) {
+        socket.emit('chat', { text, tab: currentChatTab });
+      }
+      input.value = '';
+    }
+
+    function handleIncomingChatMessage(msg) {
+      const log = document.getElementById('chat-log');
+      if (!log) return;
+      const div = document.createElement('div');
+      div.className = 'chat-msg';
+      const timeStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+      div.innerHTML = `<span class="chat-time">[${timeStr}]</span> <span class="chat-sender">${msg.username || 'Adventurer'}:</span> <span class="chat-text">${escapeHtml(msg.text)}</span>`;
+      log.appendChild(div);
+      log.scrollTop = log.scrollHeight;
+    }
+
+    function showPlayer3DChatBubble(socketId, username, text) {
+      handleIncomingChatMessage({ username, text });
+    }
+
+    function escapeHtml(str) {
+      return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
 
     window.addEventListener('resize', () => {
       camera.aspect = window.innerWidth / window.innerHeight;
