@@ -45,6 +45,8 @@ const userSchema = new mongoose.Schema({
     gold: { type: Number, default: 20 },
     hp: { type: Number, default: 100 },
     maxHp: { type: Number, default: 100 },
+    mp: { type: Number, default: 100 },
+    maxMp: { type: Number, default: 100 },
     baseDamage: { type: Number, default: 8 },
     kills: { type: Number, default: 0 },
     statPoints: { type: Number, default: 0 },
@@ -52,6 +54,7 @@ const userSchema = new mongoose.Schema({
     vitality: { type: Number, default: 1 },
     agility: { type: Number, default: 1 },
     defense: { type: Number, default: 1 },
+    intelligence: { type: Number, default: 1 },
     pos: {
       x: { type: Number, default: 0 },
       z: { type: Number, default: 0 }
@@ -62,7 +65,12 @@ const userSchema = new mongoose.Schema({
     armor: { type: Object, default: null },
     artifact: { type: Object, default: null }
   },
-  inventory: { type: Array, default: [] }
+  inventory: { type: Array, default: [] },
+  quests: { type: Object, default: {} },
+  dailyReward: {
+    lastClaimDate: { type: String, default: '' },
+    streak: { type: Number, default: 0 }
+  }
 });
 
 const User = mongoose.model('User', userSchema);
@@ -139,8 +147,8 @@ module.exports = {
     return true;
   },
   freshStats: () => ({
-    level: 1, xp: 0, gold: 20, hp: 100, maxHp: 100, baseDamage: 8, kills: 0,
-    statPoints: 0, strength: 1, vitality: 1, agility: 1, defense: 1,
+    level: 1, xp: 0, gold: 20, hp: 100, maxHp: 100, mp: 100, maxMp: 100, baseDamage: 8, kills: 0,
+    statPoints: 0, strength: 1, vitality: 1, agility: 1, defense: 1, intelligence: 1,
     pos: { x: (Math.random() - 0.5) * 10, z: (Math.random() - 0.5) * 10 }
   })
 };

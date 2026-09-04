@@ -1037,10 +1037,364 @@
 
         return group;
       }
+    },
+
+    // --- CELESTIAL & HIGH TIER MATERIALS ---
+    celestial_wood: {
+      id: 'celestial_wood',
+      name: 'Astral Wood',
+      type: 'material',
+      rarity: 'legendary',
+      accentColor: 0x38bdf8,
+      desc: 'Celestial world-tree wood pulsing with starlight diamonds and orbital aura.',
+      buildMesh: function(T) {
+        const group = new T.Group();
+        const logMat = new T.MeshStandardMaterial({ color: 0x1e1b4b, roughness: 0.3, metalness: 0.8 });
+        const starMat = new T.MeshStandardMaterial({ color: 0x38bdf8, emissive: 0x0284c7, emissiveIntensity: 0.95, roughness: 0.1 });
+        const haloMat = new T.MeshStandardMaterial({ color: 0xa855f7, emissive: 0x9333ea, emissiveIntensity: 0.8, transparent: true, opacity: 0.8 });
+
+        const log = new T.Mesh(new T.CylinderGeometry(0.26, 0.26, 1.25, 8), logMat);
+        log.rotation.z = Math.PI / 2;
+        log.castShadow = true;
+        group.add(log);
+
+        // Orbiting starlight diamonds
+        for (let i = 0; i < 3; i++) {
+          const a = (i / 3) * Math.PI * 2;
+          const star = new T.Mesh(new T.OctahedronGeometry(0.12), starMat);
+          star.position.set(Math.cos(a) * 0.45, Math.sin(a) * 0.25, Math.sin(a) * 0.3);
+          group.add(star);
+        }
+
+        const ring = new T.Mesh(new T.TorusGeometry(0.5, 0.03, 8, 20), haloMat);
+        ring.rotation.x = Math.PI / 3;
+        group.add(ring);
+
+        return group;
+      }
+    },
+
+    starfall_crystal: {
+      id: 'starfall_crystal',
+      name: 'Starfall Crystal',
+      type: 'material',
+      rarity: 'legendary',
+      accentColor: 0x38bdf8,
+      desc: 'Astral crystal cluster dropped from cosmic meteors.',
+      buildMesh: function(T) {
+        const group = new T.Group();
+        const baseMat = new T.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.8, metalness: 0.5 });
+        const gemMat = new T.MeshStandardMaterial({ color: 0x38bdf8, emissive: 0x0284c7, emissiveIntensity: 0.9, metalness: 0.9, roughness: 0.1 });
+
+        const base = new T.Mesh(new T.CylinderGeometry(0.42, 0.5, 0.3, 6), baseMat);
+        base.position.y = 0.15;
+        group.add(base);
+
+        const gem = new T.Mesh(new T.OctahedronGeometry(0.38, 0), gemMat);
+        gem.position.y = 0.55;
+        group.add(gem);
+
+        for (let i = 0; i < 4; i++) {
+          const a = (i / 4) * Math.PI * 2;
+          const sub = new T.Mesh(new T.ConeGeometry(0.12, 0.45, 4), gemMat);
+          sub.position.set(Math.cos(a) * 0.25, 0.45, Math.sin(a) * 0.25);
+          sub.rotation.z = Math.cos(a) * 0.35;
+          group.add(sub);
+        }
+
+        return group;
+      }
+    },
+
+    void_shard: {
+      id: 'void_shard',
+      name: 'Void Shard',
+      type: 'material',
+      rarity: 'legendary',
+      accentColor: 0xa855f7,
+      desc: 'Fragment of raw void energy harnessed from the Void Emperor.',
+      buildMesh: function(T) {
+        const group = new T.Group();
+        const voidMat = new T.MeshStandardMaterial({ color: 0xc084fc, emissive: 0x7e22ce, emissiveIntensity: 1.0, roughness: 0.1 });
+        const ringMat = new T.MeshStandardMaterial({ color: 0x38bdf8, emissive: 0x0284c7, emissiveIntensity: 0.7 });
+
+        const shard = new T.Mesh(new T.OctahedronGeometry(0.35, 1), voidMat);
+        shard.position.y = 0.5;
+        group.add(shard);
+
+        const ring = new T.Mesh(new T.TorusGeometry(0.48, 0.03, 8, 24), ringMat);
+        ring.position.y = 0.5;
+        ring.rotation.x = Math.PI / 4;
+        group.add(ring);
+
+        return group;
+      }
+    },
+
+    dragon_scale: {
+      id: 'dragon_scale',
+      name: 'Dragon Scale',
+      type: 'material',
+      rarity: 'epic',
+      accentColor: 0xef4444,
+      desc: 'Impenetrable abyssal dragon scale glistening with molten rim.',
+      buildMesh: function(T) {
+        const group = new T.Group();
+        const scaleMat = new T.MeshStandardMaterial({ color: 0x991b1b, metalness: 0.8, roughness: 0.2 });
+        const goldMat = new T.MeshStandardMaterial({ color: 0xf59e0b, emissive: 0xd97706, emissiveIntensity: 0.6 });
+
+        const scale = new T.Mesh(new T.BoxGeometry(0.65, 0.8, 0.08), scaleMat);
+        scale.position.y = 0.45;
+        scale.rotation.x = 0.2;
+        group.add(scale);
+
+        const trim = new T.Mesh(new T.BoxGeometry(0.7, 0.1, 0.1), goldMat);
+        trim.position.set(0, 0.82, 0.08);
+        group.add(trim);
+
+        return group;
+      }
+    },
+
+    abyssal_core: {
+      id: 'abyssal_core',
+      name: 'Abyssal Core',
+      type: 'material',
+      rarity: 'legendary',
+      accentColor: 0xdc2626,
+      desc: 'Pulsing core of catastrophic dark fire.',
+      buildMesh: function(T) {
+        const group = new T.Group();
+        const coreMat = new T.MeshStandardMaterial({ color: 0xef4444, emissive: 0xdc2626, emissiveIntensity: 1.0, roughness: 0.1 });
+        const clawMat = new T.MeshStandardMaterial({ color: 0x18181b, roughness: 0.4, metalness: 0.8 });
+
+        const core = new T.Mesh(new T.SphereGeometry(0.32, 12, 12), coreMat);
+        core.position.y = 0.45;
+        group.add(core);
+
+        for (let i = 0; i < 4; i++) {
+          const a = (i / 4) * Math.PI * 2;
+          const claw = new T.Mesh(new T.CylinderGeometry(0.04, 0.08, 0.6, 6), clawMat);
+          claw.position.set(Math.cos(a) * 0.32, 0.45, Math.sin(a) * 0.32);
+          claw.rotation.z = Math.cos(a) * 0.4;
+          claw.rotation.x = Math.sin(a) * 0.4;
+          group.add(claw);
+        }
+
+        return group;
+      }
+    },
+
+    // --- POTIONS & CONSUMABLES ---
+    health_potion: {
+      id: 'health_potion',
+      name: 'Health Potion',
+      type: 'consumable',
+      rarity: 'common',
+      accentColor: 0xef4444,
+      desc: 'Restores health instantly.',
+      buildMesh: function(T) {
+        const group = new T.Group();
+        const glassMat = new T.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: 0.5, roughness: 0.1 });
+        const liquidMat = new T.MeshStandardMaterial({ color: 0xef4444, emissive: 0xdc2626, emissiveIntensity: 0.85, roughness: 0.2 });
+        const corkMat = new T.MeshStandardMaterial({ color: 0x78350f, roughness: 0.8 });
+
+        const bottle = new T.Mesh(new T.SphereGeometry(0.3, 12, 12), glassMat);
+        bottle.position.y = 0.3;
+        group.add(bottle);
+
+        const liquid = new T.Mesh(new T.SphereGeometry(0.27, 12, 12), liquidMat);
+        liquid.position.y = 0.28;
+        group.add(liquid);
+
+        const neck = new T.Mesh(new T.CylinderGeometry(0.1, 0.12, 0.22, 8), glassMat);
+        neck.position.y = 0.6;
+        group.add(neck);
+
+        const cork = new T.Mesh(new T.CylinderGeometry(0.09, 0.08, 0.12, 8), corkMat);
+        cork.position.y = 0.72;
+        group.add(cork);
+
+        return group;
+      }
+    },
+
+    mana_potion: {
+      id: 'mana_potion',
+      name: 'Mana Potion',
+      type: 'consumable',
+      rarity: 'common',
+      accentColor: 0x38bdf8,
+      desc: 'Restores mana instantly.',
+      buildMesh: function(T) {
+        const group = new T.Group();
+        const glassMat = new T.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: 0.5, roughness: 0.1 });
+        const liquidMat = new T.MeshStandardMaterial({ color: 0x38bdf8, emissive: 0x0284c7, emissiveIntensity: 0.85, roughness: 0.2 });
+        const corkMat = new T.MeshStandardMaterial({ color: 0x78350f, roughness: 0.8 });
+
+        const bottle = new T.Mesh(new T.SphereGeometry(0.3, 12, 12), glassMat);
+        bottle.position.y = 0.3;
+        group.add(bottle);
+
+        const liquid = new T.Mesh(new T.SphereGeometry(0.27, 12, 12), liquidMat);
+        liquid.position.y = 0.28;
+        group.add(liquid);
+
+        const neck = new T.Mesh(new T.CylinderGeometry(0.1, 0.12, 0.22, 8), glassMat);
+        neck.position.y = 0.6;
+        group.add(neck);
+
+        const cork = new T.Mesh(new T.CylinderGeometry(0.09, 0.08, 0.12, 8), corkMat);
+        cork.position.y = 0.72;
+        group.add(cork);
+
+        return group;
+      }
+    },
+
+    // --- BOWS & RANGED WEAPONS ---
+    novice_bow: {
+      id: 'novice_bow',
+      name: 'Novice Bow',
+      type: 'weapon',
+      rarity: 'common',
+      accentColor: 0xd97706,
+      desc: 'Yew wood recurve bow equipped with silver tension string.',
+      buildMesh: function(T) {
+        const group = new T.Group();
+        const woodMat = new T.MeshStandardMaterial({ color: 0x92400e, roughness: 0.6 });
+        const stringMat = new T.MeshStandardMaterial({ color: 0xf8fafc, emissive: 0xe2e8f0, emissiveIntensity: 0.5 });
+
+        // Curved bow limbs
+        const curve1 = new T.Mesh(new T.TorusGeometry(0.6, 0.04, 6, 16, Math.PI * 0.7), woodMat);
+        curve1.rotation.y = Math.PI / 2;
+        curve1.position.set(0, 0.5, -0.3);
+        group.add(curve1);
+
+        const str = new T.Mesh(new T.CylinderGeometry(0.01, 0.01, 1.2, 4), stringMat);
+        str.position.set(0, 0.5, 0.12);
+        group.add(str);
+
+        return group;
+      }
+    },
+
+    novice_fire_staff: {
+      id: 'novice_fire_staff',
+      name: 'Novice Fire Staff',
+      type: 'weapon',
+      rarity: 'common',
+      accentColor: 0xef4444,
+      desc: 'Wooden focus staff topped with an ember orb.',
+      buildMesh: function(T) {
+        const group = new T.Group();
+        const woodMat = new T.MeshStandardMaterial({ color: 0x78350f, roughness: 0.7 });
+        const orbMat = new T.MeshStandardMaterial({ color: 0xef4444, emissive: 0xdc2626, emissiveIntensity: 0.9 });
+
+        const shaft = new T.Mesh(new T.CylinderGeometry(0.04, 0.045, 1.4, 8), woodMat);
+        shaft.position.y = 0.7;
+        group.add(shaft);
+
+        const orb = new T.Mesh(new T.SphereGeometry(0.16, 12, 12), orbMat);
+        orb.position.y = 1.45;
+        group.add(orb);
+
+        return group;
+      }
+    },
+
+    // --- ADDITIONAL ARMORS & WEAPONS ---
+    leather_armor: {
+      id: 'leather_armor',
+      name: 'Novice Leather Armor',
+      type: 'armor',
+      rarity: 'common',
+      accentColor: 0xd97706,
+      desc: 'Supple leather jacket reinforced with iron rivets.',
+      buildMesh: function(T) {
+        const group = new T.Group();
+        const leatherMat = new T.MeshStandardMaterial({ color: 0x78350f, roughness: 0.7 });
+        const metalMat = new T.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.8 });
+
+        const torso = new T.Mesh(new T.BoxGeometry(0.8, 1.0, 0.5), leatherMat);
+        torso.position.y = 0.65;
+        group.add(torso);
+
+        const buckle = new T.Mesh(new T.BoxGeometry(0.2, 0.15, 0.55), metalMat);
+        buckle.position.set(0, 0.65, 0);
+        group.add(buckle);
+
+        return group;
+      }
+    },
+
+    iron_plate: {
+      id: 'iron_plate',
+      name: 'Adept Guardian Plate',
+      type: 'armor',
+      rarity: 'rare',
+      accentColor: 0x38bdf8,
+      desc: 'Heavy steel breastplate with flanged pauldrons.',
+      buildMesh: function(T) {
+        const group = new T.Group();
+        const plateMat = new T.MeshStandardMaterial({ color: 0xcbd5e1, metalness: 0.9, roughness: 0.15 });
+
+        const torso = new T.Mesh(new T.BoxGeometry(0.85, 1.1, 0.58), plateMat);
+        torso.position.y = 0.7;
+        group.add(torso);
+
+        for (let side of [-1, 1]) {
+          const p = new T.Mesh(new T.BoxGeometry(0.3, 0.25, 0.6), plateMat);
+          p.position.set(side * 0.52, 1.1, 0);
+          group.add(p);
+        }
+
+        return group;
+      }
+    },
+
+    demon_carapace: {
+      id: 'demon_carapace',
+      name: 'Demon Carapace',
+      type: 'armor',
+      rarity: 'epic',
+      accentColor: 0xef4444,
+      desc: 'Forged from abyssal obsidian and demon bones.',
+      buildMesh: function(T) {
+        const group = new T.Group();
+        const obsMat = new T.MeshStandardMaterial({ color: 0x18181b, metalness: 0.8, roughness: 0.3 });
+        const magmaMat = new T.MeshStandardMaterial({ color: 0xdc2626, emissive: 0xef4444, emissiveIntensity: 0.8 });
+
+        const torso = new T.Mesh(new T.BoxGeometry(0.95, 1.2, 0.65), obsMat);
+        torso.position.y = 0.75;
+        group.add(torso);
+
+        const core = new T.Mesh(new T.OctahedronGeometry(0.22), magmaMat);
+        core.position.set(0, 0.82, 0.35);
+        group.add(core);
+
+        return group;
+      }
     }
   };
 
   const ALIASES = {
+    // Wood Tier Aliases
+    birch_wood: 'raw_wood',
+    chestnut_wood: 'journeyman_wood',
+    pine_wood: 'adept_wood',
+    cedar_wood: 'expert_wood',
+    bloodoak_wood: 'master_wood',
+    astral_wood: 'celestial_wood',
+
+    // Ore Tier Aliases
+    copper_ore: 'raw_ore',
+    bronze_ore: 'journeyman_ore',
+    iron_ore: 'adept_ore',
+    titanium_ore: 'expert_ore',
+    runite_ore: 'master_ore',
+
+    // Weapon & Armor Aliases
     sword: 'wood_sword',
     axe: 'novice_axe',
     broadsword: 'steel_broadsword',
@@ -1049,13 +1403,92 @@
     spear: 'crystal_spear',
     leather: 'leather_armor',
     iron: 'iron_plate',
-    demon: 'demon_carapace'
+    demon: 'demon_carapace',
+    
+    // Additional Equipment Fallbacks
+    journeyman_claymore: 'steel_broadsword',
+    master_relic_blade: 'steel_broadsword',
+    celestial_greatsword: 'steel_broadsword',
+    journeyman_warbow: 'novice_bow',
+    adept_longbow: 'novice_bow',
+    expert_whispering_bow: 'novice_bow',
+    master_bow_of_shadows: 'novice_bow',
+    celestial_bow: 'novice_bow',
+    journeyman_frost_staff: 'novice_fire_staff',
+    adept_cursed_staff: 'novice_fire_staff',
+    expert_infernal_staff: 'novice_fire_staff',
+    master_archmage_staff: 'novice_fire_staff',
+    celestial_staff: 'novice_fire_staff',
+    journeyman_hammer: 'battle_hammer',
+    master_abyssal_hammer: 'battle_hammer',
+    adept_dagger: 'flame_dagger',
+    adept_pike: 'crystal_spear',
+    
+    // Armor Fallbacks
+    novice_robe: 'leather_armor',
+    novice_plate: 'iron_plate',
+    journeyman_robe: 'leather_armor',
+    journeyman_leather: 'leather_armor',
+    journeyman_plate: 'iron_plate',
+    adept_mage_robe: 'leather_armor',
+    adept_assassin_jacket: 'leather_armor',
+    expert_royal_robe: 'leather_armor',
+    expert_stalker_leather: 'leather_armor',
+    master_archmage_vestment: 'leather_armor',
+    master_shadow_jacket: 'leather_armor',
+    master_judicator_plate: 'iron_plate',
+    celestial_carapace: 'demon_carapace'
   };
 
   function resolveItem(id) {
     if (!id) return null;
     const realId = ALIASES[id] || id;
-    return ITEM_REGISTRY[realId] || null;
+    if (ITEM_REGISTRY[realId]) return ITEM_REGISTRY[realId];
+
+    // Smart Keyword Fuzzy Fallback (100% coverage guarantee)
+    const lower = String(id).toLowerCase();
+    if (lower.includes('wood') || lower.includes('log') || lower.includes('timber')) {
+      return ITEM_REGISTRY['raw_wood'];
+    }
+    if (lower.includes('ore') || lower.includes('ingot') || lower.includes('metal')) {
+      return ITEM_REGISTRY['raw_ore'];
+    }
+    if (lower.includes('crystal') || lower.includes('star')) {
+      return ITEM_REGISTRY['starfall_crystal'];
+    }
+    if (lower.includes('shard') || lower.includes('void')) {
+      return ITEM_REGISTRY['void_shard'];
+    }
+    if (lower.includes('bow')) {
+      return ITEM_REGISTRY['novice_bow'];
+    }
+    if (lower.includes('staff') || lower.includes('wand')) {
+      return ITEM_REGISTRY['novice_fire_staff'];
+    }
+    if (lower.includes('sword') || lower.includes('blade') || lower.includes('claymore')) {
+      return ITEM_REGISTRY['wood_sword'];
+    }
+    if (lower.includes('axe')) {
+      return ITEM_REGISTRY['novice_axe'];
+    }
+    if (lower.includes('dagger')) {
+      return ITEM_REGISTRY['flame_dagger'];
+    }
+    if (lower.includes('hammer')) {
+      return ITEM_REGISTRY['battle_hammer'];
+    }
+    if (lower.includes('potion') || lower.includes('elixir')) {
+      return ITEM_REGISTRY['health_potion'];
+    }
+    if (lower.includes('armor') || lower.includes('robe') || lower.includes('jacket') || lower.includes('garb')) {
+      return ITEM_REGISTRY['leather_armor'];
+    }
+    if (lower.includes('plate') || lower.includes('carapace') || lower.includes('mail')) {
+      return ITEM_REGISTRY['iron_plate'];
+    }
+
+    // Ultimate fallback
+    return ITEM_REGISTRY['raw_wood'];
   }
 
   // Thumbnail Cache

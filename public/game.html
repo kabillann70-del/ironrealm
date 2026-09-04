@@ -94,9 +94,77 @@
       background: linear-gradient(90deg, #dc2626, #f87171);
       box-shadow: 0 0 10px rgba(239, 68, 68, 0.5);
     }
+    .bar-mp {
+      background: linear-gradient(90deg, #0284c7, #38bdf8);
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.5);
+    }
     .bar-xp {
       background: linear-gradient(90deg, #8b5cf6, #c084fc);
       box-shadow: 0 0 10px rgba(192, 132, 252, 0.5);
+    }
+
+    /* Skills Hotbar Dock */
+    #skills-bar {
+      position: absolute; bottom: 122px; left: 50%; transform: translateX(-50%) scale(0.92);
+      display: flex; gap: 6px; z-index: 90;
+      background: linear-gradient(180deg, rgba(10, 15, 26, 0.94), rgba(15, 23, 42, 0.98));
+      backdrop-filter: blur(16px);
+      padding: 4px 8px; border-radius: 12px;
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      box-shadow: 0 8px 25px rgba(0,0,0,0.8), 0 0 15px rgba(56, 189, 248, 0.25);
+    }
+    .skill-slot {
+      position: relative;
+      display: flex; align-items: center; gap: 6px;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 10px; padding: 4px 8px;
+      min-width: 118px; cursor: pointer; user-select: none;
+      transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+      overflow: hidden;
+    }
+    .skill-slot:hover {
+      background: rgba(56, 189, 248, 0.18);
+      border-color: #38bdf8;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 15px rgba(56, 189, 248, 0.35);
+    }
+    .skill-slot:active { transform: translateY(1px); }
+    .skill-slot.primed {
+      border-color: #f59e0b !important;
+      background: rgba(245, 158, 11, 0.25) !important;
+      box-shadow: 0 0 18px rgba(245, 158, 11, 0.85), inset 0 0 10px rgba(245, 158, 11, 0.5) !important;
+      animation: pulse-primed 0.8s infinite alternate;
+    }
+    @keyframes pulse-primed {
+      0% { transform: scale(1.0); }
+      100% { transform: scale(1.05); }
+    }
+    .skill-key-badge {
+      position: absolute; top: 2px; right: 4px;
+      background: #0284c7; color: #fff;
+      font-size: 9px; font-weight: 800;
+      padding: 0px 4px; border-radius: 3px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.4);
+    }
+    .skill-icon { font-size: 18px; line-height: 1; }
+    .skill-info { display: flex; flex-direction: column; }
+    .skill-name { font-size: 10px; font-weight: 700; color: #f8fafc; white-space: nowrap; }
+    .skill-mp { font-size: 8.5px; font-weight: 700; color: #38bdf8; }
+    .skill-cd-overlay {
+      position: absolute; inset: 0;
+      background: rgba(15, 23, 42, 0.88);
+      backdrop-filter: blur(2px);
+      display: flex; align-items: center; justify-content: center;
+      color: #fbbf24; font-size: 12px; font-weight: 800;
+    }
+    #target-banner {
+      position: absolute; top: 80px; left: 50%; transform: translateX(-50%);
+      background: rgba(15, 23, 42, 0.94); border: 1.5px solid #f59e0b;
+      color: #fbbf24; font-size: 12.5px; font-weight: 700;
+      padding: 6px 18px; border-radius: 20px; z-index: 100;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.8), 0 0 15px rgba(245, 158, 11, 0.4);
+      pointer-events: none; display: none;
     }
     .hero-pills {
       display: flex; gap: 10px; margin-top: 2px; font-size: 12px;
@@ -614,6 +682,171 @@
       100% { transform: translateY(-80px) scale(0.9); opacity: 0; }
     }
 
+    /* Quest Log Overlay System */
+    #quest-ui {
+      display: none;
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      width: 520px; max-width: 92vw; max-height: 85vh;
+      background: linear-gradient(135deg, rgba(15, 23, 42, 0.96), rgba(9, 14, 26, 0.98));
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(245, 158, 11, 0.35);
+      border-top: 1px solid rgba(245, 158, 11, 0.6);
+      border-radius: 18px; padding: 20px; color: #f8fafc;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.85), 0 0 30px rgba(245, 158, 11, 0.15);
+      z-index: 100; flex-direction: column; gap: 14px; overflow: hidden;
+    }
+    .quest-tabs {
+      display: flex; gap: 8px; border-bottom: 1px solid rgba(255, 255, 255, 0.1); padding-bottom: 10px;
+    }
+    .quest-tab-btn {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #94a3b8; font-size: 11px; font-weight: 700;
+      padding: 6px 14px; border-radius: 8px; cursor: pointer; transition: all 0.2s ease;
+    }
+    .quest-tab-btn:hover {
+      background: rgba(245, 158, 11, 0.15); color: #fbbf24; border-color: rgba(245, 158, 11, 0.4);
+    }
+    .quest-tab-btn.active {
+      background: linear-gradient(135deg, rgba(245, 158, 11, 0.25), rgba(217, 119, 6, 0.35));
+      border-color: #f59e0b; color: #fef08a; box-shadow: 0 0 12px rgba(245, 158, 11, 0.3);
+    }
+    .quest-list {
+      display: flex; flex-direction: column; gap: 10px; overflow-y: auto; max-height: 480px; padding-right: 4px;
+    }
+    .quest-card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px; padding: 12px 16px;
+      display: flex; flex-direction: column; gap: 8px;
+      transition: all 0.2s ease; position: relative;
+    }
+    .quest-card:hover {
+      background: rgba(255, 255, 255, 0.06); border-color: rgba(245, 158, 11, 0.3);
+    }
+    .quest-card.completed {
+      border-color: rgba(34, 197, 94, 0.5);
+      background: linear-gradient(135deg, rgba(34, 197, 94, 0.08), rgba(15, 23, 42, 0.6));
+    }
+    .quest-card.claimed {
+      opacity: 0.6; border-color: rgba(255, 255, 255, 0.08);
+    }
+    .quest-card-header {
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .quest-title {
+      font-family: 'Cinzel', serif; font-size: 14px; font-weight: 700; color: #fef08a; display: flex; align-items: center; gap: 6px;
+    }
+    .quest-category {
+      font-size: 9px; font-weight: 800; text-transform: uppercase; color: #f59e0b;
+      background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.3);
+      padding: 2px 8px; border-radius: 6px;
+    }
+    .quest-desc {
+      font-size: 11px; color: #cbd5e1; line-height: 1.4;
+    }
+    .quest-progress-box {
+      display: flex; flex-direction: column; gap: 4px;
+    }
+    .quest-progress-txt {
+      display: flex; justify-content: space-between; font-size: 10px; font-weight: 700; color: #94a3b8;
+    }
+    .quest-progress-track {
+      width: 100%; height: 8px; background: rgba(0,0,0,0.5); border-radius: 9999px; overflow: hidden; border: 1px solid rgba(255,255,255,0.06);
+    }
+    .quest-progress-fill {
+      height: 100%; background: linear-gradient(90deg, #f59e0b, #fbbf24); border-radius: 9999px; transition: width 0.3s ease;
+    }
+    .quest-rewards-row {
+      display: flex; align-items: center; justify-content: space-between; margin-top: 4px; padding-top: 8px; border-top: 1px dashed rgba(255, 255, 255, 0.1);
+    }
+    .quest-rewards-badges {
+      display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+    }
+    .reward-badge {
+      font-size: 10px; font-weight: 700; color: #fbbf24; background: rgba(245, 158, 11, 0.12); padding: 3px 8px; border-radius: 6px; border: 1px solid rgba(245, 158, 11, 0.25); display: flex; align-items: center; gap: 4px;
+    }
+    .reward-badge.badge-xp {
+      color: #c084fc; background: rgba(192, 132, 252, 0.12); border-color: rgba(192, 132, 252, 0.25);
+    }
+    .reward-badge.badge-item {
+      color: #38bdf8; background: rgba(56, 189, 248, 0.12); border-color: rgba(56, 189, 248, 0.25);
+    }
+    .btn-claim-quest {
+      background: linear-gradient(135deg, #22c55e, #15803d);
+      border: none; color: #ffffff; font-size: 11px; font-weight: 800;
+      padding: 6px 14px; border-radius: 8px; cursor: pointer;
+      box-shadow: 0 4px 12px rgba(34, 197, 94, 0.4);
+      transition: all 0.2s ease; display: flex; align-items: center; gap: 4px;
+    }
+    .btn-claim-quest:hover {
+      transform: translateY(-2px); box-shadow: 0 6px 16px rgba(34, 197, 94, 0.6); background: linear-gradient(135deg, #4ade80, #16a34a);
+    }
+
+    /* Daily Reward Modal System */
+    #daily-reward-ui {
+      display: none;
+      position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+      width: 580px; max-width: 94vw;
+      background: linear-gradient(135deg, rgba(15, 23, 42, 0.97), rgba(9, 14, 26, 0.99));
+      backdrop-filter: blur(24px);
+      border: 1px solid rgba(56, 189, 248, 0.4);
+      border-top: 1px solid rgba(56, 189, 248, 0.7);
+      border-radius: 20px; padding: 22px; color: #f8fafc;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.9), 0 0 40px rgba(56, 189, 248, 0.2);
+      z-index: 100; flex-direction: column; gap: 16px;
+    }
+    .daily-grid {
+      display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; margin-top: 8px;
+    }
+    @media (max-width: 600px) {
+      .daily-grid { grid-template-columns: repeat(4, 1fr); }
+    }
+    .daily-card {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px; padding: 10px 6px;
+      display: flex; flex-direction: column; align-items: center; justify-content: space-between;
+      text-align: center; gap: 6px; min-height: 110px; position: relative; transition: all 0.2s ease;
+    }
+    .daily-card.active-today {
+      border-color: #38bdf8;
+      background: linear-gradient(180deg, rgba(56, 189, 248, 0.2), rgba(15, 23, 42, 0.8));
+      box-shadow: 0 0 16px rgba(56, 189, 248, 0.4); transform: scale(1.05); z-index: 2;
+    }
+    .daily-card.claimed {
+      border-color: rgba(34, 197, 94, 0.4);
+      background: rgba(34, 197, 94, 0.08); opacity: 0.7;
+    }
+    .daily-day-label {
+      font-size: 10px; font-weight: 800; color: #94a3b8; text-transform: uppercase;
+    }
+    .daily-card.active-today .daily-day-label { color: #38bdf8; }
+    .daily-card.claimed .daily-day-label { color: #4ade80; }
+    .daily-icon {
+      font-size: 24px; filter: drop-shadow(0 2px 6px rgba(0,0,0,0.5));
+    }
+    .daily-reward-info {
+      font-size: 9px; font-weight: 700; color: #fbbf24; line-height: 1.2;
+    }
+    .daily-claimed-check {
+      position: absolute; top: 4px; right: 4px; font-size: 10px; color: #4ade80; font-weight: bold;
+    }
+    .btn-claim-daily {
+      width: 100%; background: linear-gradient(135deg, #38bdf8, #0284c7);
+      border: none; color: #0f172a; font-size: 14px; font-weight: 800;
+      padding: 12px; border-radius: 12px; cursor: pointer;
+      box-shadow: 0 6px 20px rgba(56, 189, 248, 0.4);
+      transition: all 0.2s ease; text-transform: uppercase; letter-spacing: 0.5px;
+    }
+    .btn-claim-daily:hover {
+      transform: translateY(-2px); box-shadow: 0 8px 25px rgba(56, 189, 248, 0.6);
+      background: linear-gradient(135deg, #7dd3fc, #0369a1);
+    }
+    .btn-claim-daily:disabled {
+      background: rgba(255, 255, 255, 0.08); color: #64748b; cursor: not-allowed; box-shadow: none; transform: none;
+    }
+
     /* Toast Notification System */
     #toast-container {
       position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
@@ -856,6 +1089,15 @@
     </div>
     <div class="bar-row" style="margin-top: 4px;">
       <div class="bar-label">
+        <span>Mana</span>
+        <span id="mp-txt">100 / 100</span>
+      </div>
+      <div class="bar-track">
+        <div id="mp-fill" class="bar-fill bar-mp" style="width: 100%;"></div>
+      </div>
+    </div>
+    <div class="bar-row" style="margin-top: 4px;">
+      <div class="bar-label">
         <span>Experience</span>
         <span id="xp-txt">0 / 100 XP</span>
       </div>
@@ -911,7 +1153,7 @@
   <!-- Controls Hints -->
   <div id="controls-hint">
     <div><b>Right-Click + Drag</b>: Orbit &bull; <b>WASD</b>: Move &bull; <b>Shift + WASD</b>: Run &bull; <b>Space</b>: Dodge</div>
-    <div><b>[Q]/[E]</b>: Zoom &bull; <b>[Enter]</b>: Chat &bull; <b>[B]</b>: Bag &bull; <b>[P]</b>: Forge &bull; <b>[M]</b>: Map</div>
+    <div><b>[Q]/[E]</b>: Zoom &bull; <b>[Enter]</b>: Chat &bull; <b>[B]</b>: Bag &bull; <b>[L]</b>: Quests &bull; <b>[K]</b>: Daily &bull; <b>[P]</b>: Forge &bull; <b>[M]</b>: Map</div>
   </div>
 
   <!-- Party HUD Panel -->
@@ -962,6 +1204,40 @@
     </div>
   </div>
 
+  <!-- Target Banner for Skill Selection -->
+  <div id="target-banner">🎯 Click target monster to cast skill! (Press ESC to cancel)</div>
+
+  <!-- Weapon Skills Hotbar -->
+  <div id="skills-bar">
+    <div class="skill-slot" id="skill-slot-1" onclick="triggerSkill(1)" title="Skill 1 [Hotkey 1]">
+      <div class="skill-key-badge">1</div>
+      <div class="skill-icon" id="skill-icon-1">🌀</div>
+      <div class="skill-info">
+        <div class="skill-name" id="skill-name-1">Whirlwind Cleave</div>
+        <div class="skill-mp" id="skill-mp-1">20 MP</div>
+      </div>
+      <div class="skill-cd-overlay" id="skill-cd-1" style="display:none;"></div>
+    </div>
+    <div class="skill-slot" id="skill-slot-2" onclick="triggerSkill(2)" title="Skill 2 [Hotkey 2]">
+      <div class="skill-key-badge">2</div>
+      <div class="skill-icon" id="skill-icon-2">⚔️</div>
+      <div class="skill-info">
+        <div class="skill-name" id="skill-name-2">Valiant Lunge</div>
+        <div class="skill-mp" id="skill-mp-2">28 MP</div>
+      </div>
+      <div class="skill-cd-overlay" id="skill-cd-2" style="display:none;"></div>
+    </div>
+    <div class="skill-slot" id="skill-slot-3" onclick="triggerSkill(3)" title="Skill 3 [Hotkey 3]">
+      <div class="skill-key-badge">3</div>
+      <div class="skill-icon" id="skill-icon-3">🗡️</div>
+      <div class="skill-info">
+        <div class="skill-name" id="skill-name-3">Celestial Swordfall</div>
+        <div class="skill-mp" id="skill-mp-3">45 MP</div>
+      </div>
+      <div class="skill-cd-overlay" id="skill-cd-3" style="display:none;"></div>
+    </div>
+  </div>
+
   <!-- Action Hotbar -->
   <div id="hotbar">
     <div class="h-slot" title="Equipped Weapon (Click to unequip)" onclick="unequipSlot('weapon')">
@@ -986,6 +1262,16 @@
       <span style="font-size: 20px;">👤</span>
       <span class="h-slot-key">C</span>
     </div>
+    <div class="h-slot" id="hslot-quest" title="Quest Log [L]" onclick="toggleQuestLog()">
+      <span style="font-size: 20px;">📜</span>
+      <span class="h-slot-key">L</span>
+      <div id="quest-badge-dot" style="display:none; position:absolute; top:-2px; right:-2px; width:10px; height:10px; background:#ef4444; border:2px solid #0f172a; border-radius:50%; box-shadow:0 0 6px #ef4444;"></div>
+    </div>
+    <div class="h-slot" id="hslot-daily" title="Daily Reward [K]" onclick="toggleDailyRewardModal()">
+      <span style="font-size: 20px;">🎁</span>
+      <span class="h-slot-key">K</span>
+      <div id="daily-badge-dot" style="display:none; position:absolute; top:-2px; right:-2px; width:10px; height:10px; background:#38bdf8; border:2px solid #0f172a; border-radius:50%; box-shadow:0 0 6px #38bdf8;"></div>
+    </div>
     <div class="h-slot" title="Village Blacksmith & Forge [P]" onclick="toggleShop()">
       <span style="font-size: 20px;">🔨</span>
       <span class="h-slot-key">P</span>
@@ -993,6 +1279,58 @@
     <div class="h-slot" title="Expand Minimap [M]" onclick="toggleExpandMap()">
       <span style="font-size: 20px;">🗺️</span>
       <span class="h-slot-key">M</span>
+    </div>
+  </div>
+
+  <!-- Quest Log Overlay UI -->
+  <div id="quest-ui">
+    <div style="display:flex; align-items:center; justify-content:space-between;">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span style="font-size: 22px;">📜</span>
+        <div>
+          <div style="font-family:'Cinzel', serif; font-size:18px; font-weight:800; color:#fbbf24; letter-spacing:0.5px;">QUEST LOG</div>
+          <div style="font-size:11px; color:#94a3b8;">Active Objectives & Reward Claims</div>
+        </div>
+      </div>
+      <button onclick="toggleQuestLog()" title="Close Quest Log [L]" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:#94a3b8; width:28px; height:28px; border-radius:8px; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:700;">✕</button>
+    </div>
+
+    <!-- Filter Tabs -->
+    <div class="quest-tabs">
+      <button class="quest-tab-btn active" id="qtab-all" onclick="filterQuestTab('all')">All Quests</button>
+      <button class="quest-tab-btn" id="qtab-active" onclick="filterQuestTab('active')">Active</button>
+      <button class="quest-tab-btn" id="qtab-completed" onclick="filterQuestTab('completed')">Ready to Claim</button>
+      <button class="quest-tab-btn" id="qtab-claimed" onclick="filterQuestTab('claimed')">Claimed</button>
+    </div>
+
+    <!-- Quest List Container -->
+    <div class="quest-list" id="quest-list-container">
+      <!-- Dynamically populated -->
+    </div>
+  </div>
+
+  <!-- Daily Reward Modal UI -->
+  <div id="daily-reward-ui">
+    <div style="display:flex; align-items:center; justify-content:space-between;">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span style="font-size: 24px;">🎁</span>
+        <div>
+          <div style="font-family:'Cinzel', serif; font-size:18px; font-weight:800; color:#38bdf8; letter-spacing:0.5px;">DAILY LOGIN REWARDS</div>
+          <div id="daily-streak-subtitle" style="font-size:11px; color:#94a3b8;">Log in each day to climb your reward streak!</div>
+        </div>
+      </div>
+      <button onclick="toggleDailyRewardModal()" title="Close Daily Rewards [K]" style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.15); color:#94a3b8; width:28px; height:28px; border-radius:8px; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:700;">✕</button>
+    </div>
+
+    <!-- 7-Day Rewards Grid -->
+    <div class="daily-grid" id="daily-rewards-grid">
+      <!-- Dynamically populated -->
+    </div>
+
+    <!-- Action Section -->
+    <div style="display:flex; flex-direction:column; gap:8px; margin-top:4px;">
+      <button id="btn-claim-daily-main" class="btn-claim-daily" onclick="claimDailyReward()">🎁 CLAIM TODAY'S REWARD</button>
+      <div id="daily-status-msg" style="text-align:center; font-size:11px; color:#94a3b8; font-weight:600;"></div>
     </div>
   </div>
 
@@ -1034,6 +1372,13 @@
       <div class="stat-val">
         <span id="ui-stat-def">1</span>
         <button class="btn-stat-add" id="btn-add-def" onclick="allocateStat('defense')">+</button>
+      </div>
+    </div>
+    <div class="stat-row">
+      <div class="stat-label" title="Increases max mana and skill damage (+5% per INT)">Intelligence</div>
+      <div class="stat-val">
+        <span id="ui-stat-int">1</span>
+        <button class="btn-stat-add" id="btn-add-int" onclick="allocateStat('intelligence')">+</button>
       </div>
     </div>
   </div>
@@ -1258,6 +1603,19 @@
         }
         if (d.username) dismissLoadingScreen(d.username);
         else dismissLoadingScreen();
+        
+        socket.emit('getQuests');
+        socket.emit('getDailyReward');
+      });
+
+      socket.on('questsUpdate', (quests) => {
+        clientQuestsData = quests || [];
+        renderQuestLog();
+      });
+
+      socket.on('dailyRewardUpdate', (data) => {
+        clientDailyRewardData = data;
+        renderDailyRewardModal();
       });
 
       socket.on('authSuccess', (d) => {
@@ -1268,7 +1626,9 @@
       });
 
       socket.on('vfx', (d) => {
-        if (d.type === 'projectile') {
+        if (d.type === 'skill_vfx') {
+          spawnSkill3DAnimation(d);
+        } else if (d.type === 'projectile') {
           spawnProjectile(d.fromX, d.fromZ, d.toX, d.toZ, d.projectile, d.weaponType);
         } else if (d.type === 'damage') {
           playSfx('hit');
@@ -1283,6 +1643,24 @@
             meshes.players[d.playerId].userData.jumpStartTime = performance.now();
           }
           spawnJumpDust(d.x, d.z);
+        }
+      });
+
+      socket.on('skill_cooldown', (data) => {
+        const cdOverlay = document.getElementById(`skill-cd-${data.slot}`);
+        if (cdOverlay) {
+          let remaining = data.duration;
+          cdOverlay.style.display = 'flex';
+          cdOverlay.innerText = remaining.toFixed(1) + 's';
+          const interval = setInterval(() => {
+            remaining -= 0.1;
+            if (remaining <= 0) {
+              clearInterval(interval);
+              cdOverlay.style.display = 'none';
+            } else {
+              cdOverlay.innerText = remaining.toFixed(1) + 's';
+            }
+          }, 100);
         }
       });
 
@@ -3014,6 +3392,852 @@
     }
 
     // -------------------------------------------------------------
+    // WEAPON SKILLS CATALOG & 3D VFX ANIMATIONS
+    // -------------------------------------------------------------
+    const CLIENT_SKILLS = {
+      sword: [
+        { name: 'Whirlwind Cleave', mp: 30, icon: '🌀', desc: '360° AoE slash striking all nearby monsters' },
+        { name: 'Valiant Lunge', mp: 45, icon: '⚔️', desc: 'Forward dash thrust dealing massive piercing damage' },
+        { name: 'Celestial Swordfall', mp: 75, icon: '🗡️', desc: 'Summons a divine greatsword from heaven for AoE impact' }
+      ],
+      axe: [
+        { name: 'Decapitating Chop', mp: 28, icon: '🪓', desc: 'Heavy single-target execution strike' },
+        { name: 'Whirlwind Spin', mp: 50, icon: '🌪️', desc: 'Rapid 360° spinning axe storm' },
+        { name: 'Earthquake Slam', mp: 80, icon: '💥', desc: 'Smashes axe into earth sending lava shockwaves' }
+      ],
+      hammer: [
+        { name: 'Ground Shatter', mp: 32, icon: '🔨', desc: 'Smashes ground creating radial shockwave' },
+        { name: 'Iron Fortress', mp: 52, icon: '🛡️', desc: 'Hardens body granting temporary damage reduction' },
+        { name: 'Titan Comet Slam', mp: 85, icon: '☄️', desc: 'Leaps skyward and smashes down like a meteor' }
+      ],
+      spear: [
+        { name: 'Triple Thrust', mp: 30, icon: '🔱', desc: 'Rapid thrust combination piercing enemies' },
+        { name: 'Vaulting Impale', mp: 48, icon: '⚡', desc: 'Vaults forward and impales target' },
+        { name: 'Dragon Tempest', mp: 78, icon: '🐉', desc: 'Unleashes spiraling dragon energy spear thrust' }
+      ],
+      bow: [
+        { name: 'Sniper Shot', mp: 30, icon: '🎯', desc: 'High-velocity armor-piercing long shot' },
+        { name: 'Rain of Arrows', mp: 55, icon: '🌧️', desc: 'Volley of arrows raining from sky' },
+        { name: 'Fan Volley', mp: 80, icon: '🏹', desc: 'Fires 5 arrows in wide frontal cone' }
+      ],
+      dagger: [
+        { name: 'Shadow Stab', mp: 25, icon: '🗡️', desc: 'Lethal critical strike to vital points' },
+        { name: 'Fan of Knives', mp: 70, icon: '✨', desc: 'Throws toxic daggers in all directions' },
+        { name: 'Shadowstep Strike', mp: 42, icon: '👤', desc: 'Teleports behind target with a surprise backstab' }
+      ],
+      staff: [
+        { name: 'Fireball Blast', mp: 35, icon: '🔥', desc: 'Launches an explosive fireball' },
+        { name: 'Frost Nova', mp: 58, icon: '❄️', desc: 'Freezing ice wave damaging surrounding enemies' },
+        { name: 'Chain Arcane Storm', mp: 90, icon: '⚡', desc: 'High-voltage lightning bolts striking multiple foes' }
+      ],
+      unarmed: [
+        { name: 'Iron Palm Strike', mp: 22, icon: '👊', desc: 'Focuses ki for a concentrated force palm' },
+        { name: 'Dragon Sweep Kick', mp: 65, icon: '🦶', desc: 'Spinning sweep kick hitting surrounding enemies' },
+        { name: 'Inner Serenity Heal', mp: 45, icon: '✨', desc: 'Channels internal ki to heal health points' }
+      ]
+    };
+
+    let primedSkillSlot = null;
+
+    function cancelPrimedSkill() {
+      primedSkillSlot = null;
+      document.body.style.cursor = 'default';
+      for (let i = 1; i <= 3; i++) {
+        const slotEl = document.getElementById(`skill-slot-${i}`);
+        if (slotEl) slotEl.classList.remove('primed');
+      }
+      const banner = document.getElementById('target-banner');
+      if (banner) banner.style.display = 'none';
+    }
+
+    function getMyFacingAngle() {
+      if (myId && meshes.players[myId]) {
+        const rotY = meshes.players[myId].rotation.y;
+        return Math.atan2(Math.cos(rotY), Math.sin(rotY));
+      }
+      return 0;
+    }
+
+    function triggerSkill(slotNum) {
+      if (!socket) return;
+
+      if (primedSkillSlot === slotNum) {
+        cancelPrimedSkill();
+        return;
+      }
+
+      const cdOverlay = document.getElementById(`skill-cd-${slotNum}`);
+      if (cdOverlay && cdOverlay.style.display !== 'none') {
+        playSfx('click');
+        return;
+      }
+
+      let category = 'unarmed';
+      if (latestInventoryData && latestInventoryData.equipment && latestInventoryData.equipment.weapon) {
+        const wep = latestInventoryData.equipment.weapon;
+        const wid = wep.itemId || wep.id || '';
+        if (wid.includes('bow')) category = 'bow';
+        else if (wid.includes('staff')) category = 'staff';
+        else if (wid.includes('dagger')) category = 'dagger';
+        else if (wid.includes('hammer')) category = 'hammer';
+        else if (wid.includes('spear')) category = 'spear';
+        else if (wid.includes('axe')) category = 'axe';
+        else if (wid.includes('sword') || wid.includes('claymore') || wid.includes('blade')) category = 'sword';
+        else category = 'sword';
+      }
+      const skills = CLIENT_SKILLS[category] || CLIENT_SKILLS['unarmed'];
+      const sk = skills[slotNum - 1];
+
+      if (sk && (sk.name.includes('Heal') || sk.name.includes('Fortress') || sk.type === 'self_heal')) {
+        socket.emit('useSkill', { slot: slotNum, facingAngle: getMyFacingAngle() });
+        cancelPrimedSkill();
+        return;
+      }
+
+      cancelPrimedSkill();
+      primedSkillSlot = slotNum;
+      document.body.style.cursor = 'crosshair';
+
+      const slotEl = document.getElementById(`skill-slot-${slotNum}`);
+      if (slotEl) slotEl.classList.add('primed');
+
+      const banner = document.getElementById('target-banner');
+      if (banner) {
+        banner.innerText = `🎯 Click a monster to cast ${sk ? sk.name : 'Skill ' + slotNum}! (Press ESC to cancel)`;
+        banner.style.display = 'block';
+      }
+    }
+
+    function updateSkillHotbar() {
+      let category = 'unarmed';
+      if (latestInventoryData && latestInventoryData.equipment && latestInventoryData.equipment.weapon) {
+        const wep = latestInventoryData.equipment.weapon;
+        const wid = wep.itemId || wep.id || '';
+        if (wid.includes('bow')) category = 'bow';
+        else if (wid.includes('staff')) category = 'staff';
+        else if (wid.includes('dagger')) category = 'dagger';
+        else if (wid.includes('hammer')) category = 'hammer';
+        else if (wid.includes('spear')) category = 'spear';
+        else if (wid.includes('axe')) category = 'axe';
+        else if (wid.includes('sword') || wid.includes('claymore') || wid.includes('blade')) category = 'sword';
+        else category = 'sword';
+      }
+
+      const skills = CLIENT_SKILLS[category] || CLIENT_SKILLS['unarmed'];
+      for (let i = 0; i < 3; i++) {
+        const slotIdx = i + 1;
+        const sk = skills[i];
+        if (sk) {
+          const nameEl = document.getElementById(`skill-name-${slotIdx}`);
+          const mpEl = document.getElementById(`skill-mp-${slotIdx}`);
+          const iconEl = document.getElementById(`skill-icon-${slotIdx}`);
+          const slotEl = document.getElementById(`skill-slot-${slotIdx}`);
+
+          if (nameEl) nameEl.innerText = sk.name;
+          if (mpEl) mpEl.innerText = `${sk.mp} MP`;
+          if (iconEl) iconEl.innerText = sk.icon;
+          if (slotEl) slotEl.title = `${sk.name} [Hotkey ${slotIdx}] - ${sk.desc} (${sk.mp} MP)`;
+        }
+      }
+    }
+
+    // Helper: Dynamic Point Light for Skills
+    function spawnDynamicLight(x, y, z, color, intensity, distance, duration) {
+      const light = new THREE.PointLight(color, intensity || 8, distance || 16);
+      light.position.set(x, y, z);
+      scene.add(light);
+      let life = 1.0;
+      const step = 0.08;
+      const fade = setInterval(() => {
+        life -= step;
+        light.intensity = (intensity || 8) * Math.max(0, life);
+        if (life <= 0) {
+          clearInterval(fade);
+          scene.remove(light);
+          light.dispose();
+        }
+      }, duration ? Math.floor(duration / 12) : 30);
+    }
+
+    // Helper: Ground Scorch / Glow Decal
+    function spawnGroundGlowDecal(x, z, color, maxRadius, duration) {
+      const geo = new THREE.CircleGeometry(0.6, 32);
+      const mat = new THREE.MeshBasicMaterial({ color, side: THREE.DoubleSide, transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending });
+      const mesh = new THREE.Mesh(geo, mat);
+      mesh.rotation.x = -Math.PI / 2;
+      mesh.position.set(x, 0.08, z);
+      scene.add(mesh);
+
+      let scale = 0.6;
+      let life = 1.0;
+      const anim = setInterval(() => {
+        life -= 0.05;
+        scale += (maxRadius / 15);
+        mesh.scale.setScalar(scale);
+        mat.opacity = Math.max(0, life);
+        if (life <= 0) {
+          clearInterval(anim);
+          scene.remove(mesh); geo.dispose(); mat.dispose();
+        }
+      }, duration ? Math.floor(duration / 20) : 30);
+    }
+
+    // Helper: Spark Burst
+    function spawnSparkBurst(x, z, color, count, speedMax) {
+      const geo = new THREE.BufferGeometry();
+      const posArr = new Float32Array(count * 3);
+      const vels = [];
+      for (let i = 0; i < count; i++) {
+        posArr[i * 3] = x; posArr[i * 3 + 1] = 1.0; posArr[i * 3 + 2] = z;
+        const angle = Math.random() * Math.PI * 2;
+        const spd = Math.random() * speedMax + 2;
+        vels.push({ vx: Math.cos(angle) * spd, vy: Math.random() * (speedMax * 0.9) + 2.5, vz: Math.sin(angle) * spd });
+      }
+      geo.setAttribute('position', new THREE.BufferAttribute(posArr, 3));
+      const mat = new THREE.PointsMaterial({ color, size: 0.7, transparent: true, opacity: 1, blending: THREE.AdditiveBlending });
+      const pts = new THREE.Points(geo, mat);
+      scene.add(pts);
+      activeSparks.push({ pts, vels, life: 1.2 });
+    }
+
+    // Helper: Expanding Ring
+    function spawnExpandingRing(x, z, color, maxRadius) {
+      const ringGeo = new THREE.RingGeometry(0.4, 0.9, 32);
+      const ringMat = new THREE.MeshBasicMaterial({ color, side: THREE.DoubleSide, transparent: true, opacity: 0.95, blending: THREE.AdditiveBlending });
+      const ring = new THREE.Mesh(ringGeo, ringMat);
+      ring.rotation.x = -Math.PI / 2;
+      ring.position.set(x, 0.15, z);
+      scene.add(ring);
+
+      let scale = 1.0;
+      let life = 1.0;
+      const anim = setInterval(() => {
+        life -= 0.06;
+        scale += (maxRadius / 15);
+        ring.scale.setScalar(scale);
+        ringMat.opacity = Math.max(0, life);
+        if (life <= 0) {
+          clearInterval(anim);
+          scene.remove(ring); ringGeo.dispose(); ringMat.dispose();
+        }
+      }, 30);
+    }
+
+    function spawnSkill3DAnimation(data) {
+      const x = data.x || 0;
+      const z = data.z || 0;
+      const fromX = data.fromX !== undefined ? data.fromX : x;
+      const fromZ = data.fromZ !== undefined ? data.fromZ : z;
+      const vfx = data.vfx || 'whirlwind';
+      const skillName = data.skillName || 'Skill Activated!';
+
+      playSfx('hit');
+
+      // Floating 3D Text Banner
+      const vector = new THREE.Vector3(x, 3.5, z).project(camera);
+      const el = document.createElement('div');
+      el.className = 'dmg-text';
+      el.style.color = '#38bdf8';
+      el.style.fontSize = '22px';
+      el.style.letterSpacing = '1px';
+      el.style.textShadow = '0 0 14px rgba(56, 189, 248, 0.95), 0 2px 6px #000';
+      el.style.left = `${(vector.x * 0.5 + 0.5) * window.innerWidth}px`;
+      el.style.top = `${(vector.y * -0.5 + 0.5) * window.innerHeight}px`;
+      el.innerText = skillName.toUpperCase();
+      document.body.appendChild(el);
+      setTimeout(() => el.remove(), 1100);
+
+      // Distinct 3D Animation per VFX type
+      if (vfx === 'whirlwind' || vfx === 'axe_spin') {
+        const color = (vfx === 'axe_spin') ? 0xef4444 : 0x38bdf8;
+        spawnDynamicLight(fromX, 1.5, fromZ, color, 10, 18, 500);
+        spawnGroundGlowDecal(fromX, fromZ, color, 4.5, 500);
+        for (let r = 0; r < 3; r++) {
+          const ringGeo = new THREE.TorusGeometry(1.5 + r * 1.2, 0.15, 12, 36);
+          const ringMat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.95, blending: THREE.AdditiveBlending });
+          const ring = new THREE.Mesh(ringGeo, ringMat);
+          ring.rotation.x = Math.PI / 2;
+          ring.position.set(fromX, 0.5 + r * 0.6, fromZ);
+          scene.add(ring);
+
+          let life = 1.0;
+          const anim = setInterval(() => {
+            life -= 0.05;
+            ring.rotation.z += 0.4;
+            ring.position.y += 0.09;
+            ring.scale.addScalar(0.05);
+            ringMat.opacity = Math.max(0, life);
+            if (life <= 0) {
+              clearInterval(anim);
+              scene.remove(ring); ringGeo.dispose(); ringMat.dispose();
+            }
+          }, 30);
+        }
+        spawnSparkBurst(fromX, fromZ, color, 40, 8);
+
+      } else if (vfx === 'sword_lunge' || vfx === 'dragon_kick') {
+        const color = (vfx === 'dragon_kick') ? 0xf59e0b : 0x0ea5e9;
+        const dx = x - fromX, dz = z - fromZ;
+        const angleToTarget = Math.atan2(dx, dz);
+
+        const points = [new THREE.Vector3(fromX, 1.0, fromZ), new THREE.Vector3(x, 1.0, z)];
+        const lineGeo = new THREE.BufferGeometry().setFromPoints(points);
+        const lineMat = new THREE.LineBasicMaterial({ color, linewidth: 5, transparent: true, opacity: 1 });
+        const line = new THREE.Line(lineGeo, lineMat);
+        scene.add(line);
+
+        const coneGeo = new THREE.ConeGeometry(2.8, 4.5, 16, 1, true);
+        const coneMat = new THREE.MeshBasicMaterial({ color, side: THREE.DoubleSide, transparent: true, opacity: 0.85, wireframe: true, blending: THREE.AdditiveBlending });
+        const cone = new THREE.Mesh(coneGeo, coneMat);
+        cone.position.set((fromX + x) / 2, 1.2, (fromZ + z) / 2);
+        cone.rotation.y = angleToTarget;
+        cone.rotation.x = Math.PI / 2;
+        scene.add(cone);
+
+        spawnDynamicLight(x, 1.5, z, color, 12, 20, 600);
+        spawnGroundGlowDecal(x, z, color, 3.5, 600);
+        spawnSparkBurst(x, z, color, 35, 9);
+
+        let life = 1.0;
+        const anim = setInterval(() => {
+          life -= 0.08;
+          lineMat.opacity = life;
+          coneMat.opacity = life;
+          cone.scale.addScalar(0.12);
+          if (life <= 0) {
+            clearInterval(anim);
+            scene.remove(line); scene.remove(cone);
+            lineGeo.dispose(); lineMat.dispose(); coneGeo.dispose(); coneMat.dispose();
+          }
+        }, 30);
+
+      } else if (vfx === 'swordfall') {
+        const indicatorLineGeo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(fromX, 1.2, fromZ), new THREE.Vector3(x, 1.2, z)]);
+        const indicatorLineMat = new THREE.LineBasicMaterial({ color: 0xfacc15, transparent: true, opacity: 0.8 });
+        const indicatorLine = new THREE.Line(indicatorLineGeo, indicatorLineMat);
+        scene.add(indicatorLine);
+
+        const swordGroup = new THREE.Group();
+        const bladeGeo = new THREE.BoxGeometry(1.0, 14, 0.25);
+        const bladeMat = new THREE.MeshStandardMaterial({ color: 0xfef08a, emissive: 0xeab308, emissiveIntensity: 1.0, roughness: 0.1 });
+        const blade = new THREE.Mesh(bladeGeo, bladeMat);
+        swordGroup.add(blade);
+
+        const hiltGeo = new THREE.BoxGeometry(4.2, 0.5, 0.6);
+        const hiltMat = new THREE.MeshStandardMaterial({ color: 0xd97706, metalness: 0.9 });
+        const hilt = new THREE.Mesh(hiltGeo, hiltMat);
+        hilt.position.y = 6.5;
+        swordGroup.add(hilt);
+
+        swordGroup.position.set(x, 32, z);
+        scene.add(swordGroup);
+
+        let posY = 32;
+        const fallAnim = setInterval(() => {
+          posY -= 2.6;
+          swordGroup.position.y = posY;
+          if (posY <= 5) {
+            clearInterval(fallAnim);
+            scene.remove(indicatorLine); indicatorLineGeo.dispose(); indicatorLineMat.dispose();
+
+            spawnDynamicLight(x, 3, z, 0xfacc15, 18, 30, 800);
+            spawnGroundGlowDecal(x, z, 0xfacc15, 8.0, 800);
+
+            const pillarGeo = new THREE.CylinderGeometry(4.5, 4.5, 24, 20, 1, true);
+            const pillarMat = new THREE.MeshBasicMaterial({ color: 0xfde047, side: THREE.DoubleSide, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending });
+            const pillar = new THREE.Mesh(pillarGeo, pillarMat);
+            pillar.position.set(x, 12, z);
+            scene.add(pillar);
+
+            spawnSparkBurst(x, z, 0xfacc15, 70, 14);
+            spawnExpandingRing(x, z, 0xfacc15, 9.0);
+
+            let pillarLife = 1.0;
+            const pAnim = setInterval(() => {
+              pillarLife -= 0.05;
+              pillarMat.opacity = pillarLife;
+              if (pillarLife <= 0) {
+                clearInterval(pAnim);
+                scene.remove(swordGroup); scene.remove(pillar);
+                bladeGeo.dispose(); bladeMat.dispose(); hiltGeo.dispose(); hiltMat.dispose(); pillarGeo.dispose(); pillarMat.dispose();
+              }
+            }, 30);
+          }
+        }, 20);
+
+      } else if (vfx === 'axe_chop' || vfx === 'dagger_slash') {
+        const color = (vfx === 'dagger_slash') ? 0x22c55e : 0xea580c;
+        const dirAngle = data.angle !== undefined ? data.angle : Math.atan2(z - fromZ, x - fromX);
+
+        const arcGeo = new THREE.RingGeometry(1.2, 4.2, 20, 1, 0, Math.PI);
+        const arcMat = new THREE.MeshBasicMaterial({ color, side: THREE.DoubleSide, transparent: true, opacity: 0.95, blending: THREE.AdditiveBlending });
+        const arc = new THREE.Mesh(arcGeo, arcMat);
+
+        arc.position.set(fromX, 1.5, fromZ);
+        arc.rotation.x = Math.PI / 3;
+        arc.rotation.y = -dirAngle + Math.PI / 2;
+        scene.add(arc);
+
+        spawnDynamicLight(fromX + Math.cos(dirAngle) * 3, 1.5, fromZ + Math.sin(dirAngle) * 3, color, 12, 18, 400);
+        spawnSparkBurst(fromX + Math.cos(dirAngle) * 3, fromZ + Math.sin(dirAngle) * 3, color, 30, 7);
+
+        let life = 1.0;
+        const anim = setInterval(() => {
+          life -= 0.1;
+          arc.position.x += Math.cos(dirAngle) * 0.4;
+          arc.position.z += Math.sin(dirAngle) * 0.4;
+          arc.scale.addScalar(0.1);
+          arcMat.opacity = life;
+          if (life <= 0) {
+            clearInterval(anim);
+            scene.remove(arc); arcGeo.dispose(); arcMat.dispose();
+          }
+        }, 30);
+
+      } else if (vfx === 'fissure') {
+        const length = data.length || 15;
+        const dirAngle = data.angle !== undefined ? data.angle : Math.atan2(z - fromZ, x - fromX);
+        const steps = 8;
+
+        for (let i = 1; i <= steps; i++) {
+          const stepDist = (length / steps) * i;
+          const fx = fromX + Math.cos(dirAngle) * stepDist;
+          const fz = fromZ + Math.sin(dirAngle) * stepDist;
+
+          setTimeout(() => {
+            const rockGeo = new THREE.BoxGeometry(1.5, 1.2, 1.5);
+            const rockMat = new THREE.MeshStandardMaterial({ color: 0x78350f, emissive: 0xea580c, emissiveIntensity: 1.0, roughness: 0.3 });
+            const rock = new THREE.Mesh(rockGeo, rockMat);
+            rock.position.set(fx, 0.2, fz);
+            rock.rotation.y = Math.random() * Math.PI;
+            scene.add(rock);
+
+            spawnDynamicLight(fx, 1.0, fz, 0xf97316, 8, 12, 350);
+            spawnSparkBurst(fx, fz, 0xf97316, 20, 6);
+
+            let rLife = 1.0;
+            const rAnim = setInterval(() => {
+              rLife -= 0.08;
+              rock.position.y += 0.06;
+              rockMat.opacity = rLife;
+              if (rLife <= 0) {
+                clearInterval(rAnim);
+                scene.remove(rock); rockGeo.dispose(); rockMat.dispose();
+              }
+            }, 30);
+          }, i * 50);
+        }
+
+      } else if (vfx === 'hammer_smash' || vfx === 'palm_strike') {
+        const color = (vfx === 'palm_strike') ? 0x38bdf8 : 0xeab308;
+        const strikeX = (x !== fromX) ? x : fromX;
+        const strikeZ = (z !== fromZ) ? z : fromZ;
+
+        const anvilGeo = new THREE.BoxGeometry(3.0, 3.0, 3.0);
+        const anvilMat = new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.9, roughness: 0.1 });
+        const anvil = new THREE.Mesh(anvilGeo, anvilMat);
+        anvil.position.set(strikeX, 14, strikeZ);
+        scene.add(anvil);
+
+        let py = 14;
+        const sAnim = setInterval(() => {
+          py -= 2.0;
+          anvil.position.y = py;
+          if (py <= 1.5) {
+            clearInterval(sAnim);
+            spawnDynamicLight(strikeX, 1.5, strikeZ, color, 14, 22, 500);
+            spawnGroundGlowDecal(strikeX, strikeZ, color, 6.0, 500);
+            spawnSparkBurst(strikeX, strikeZ, color, 45, 9);
+            spawnExpandingRing(strikeX, strikeZ, color, 6.0);
+
+            let aLife = 1.0;
+            const aFade = setInterval(() => {
+              aLife -= 0.1;
+              anvilMat.opacity = aLife;
+              if (aLife <= 0) {
+                clearInterval(aFade);
+                scene.remove(anvil); anvilGeo.dispose(); anvilMat.dispose();
+              }
+            }, 30);
+          }
+        }, 20);
+
+      } else if (vfx === 'seismic_ring' || vfx === 'titan_earthquake') {
+        const isTitan = (vfx === 'titan_earthquake');
+        const color = isTitan ? 0xef4444 : 0x0284c7;
+        const centerPos = { x: x || fromX, z: z || fromZ };
+        const ringCount = isTitan ? 4 : 2;
+
+        spawnDynamicLight(centerPos.x, 2, centerPos.z, color, 16, 28, 700);
+        spawnGroundGlowDecal(centerPos.x, centerPos.z, color, isTitan ? 10.0 : 6.0, 700);
+
+        for (let r = 0; r < ringCount; r++) {
+          setTimeout(() => {
+            spawnExpandingRing(centerPos.x, centerPos.z, color, (r + 1) * 4.0);
+            spawnSparkBurst(centerPos.x, centerPos.z, color, 30, 8);
+          }, r * 150);
+        }
+
+        const bCount = isTitan ? 8 : 4;
+        for (let i = 0; i < bCount; i++) {
+          const bAngle = (Math.PI * 2 / bCount) * i;
+          const bx = centerPos.x + Math.cos(bAngle) * 4.0;
+          const bz = centerPos.z + Math.sin(bAngle) * 4.0;
+
+          const bGeo = new THREE.DodecahedronGeometry(1.0 + Math.random() * 0.5);
+          const bMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.8 });
+          const boulder = new THREE.Mesh(bGeo, bMat);
+          boulder.position.set(bx, 0, bz);
+          scene.add(boulder);
+
+          let bLife = 1.0;
+          const bAnim = setInterval(() => {
+            bLife -= 0.05;
+            boulder.position.y = Math.sin((1 - bLife) * Math.PI) * 2.5;
+            if (bLife <= 0) {
+              clearInterval(bAnim);
+              scene.remove(boulder); bGeo.dispose(); bMat.dispose();
+            }
+          }, 30);
+        }
+
+      } else if (vfx === 'spear_thrust') {
+        const dirAngle = data.angle !== undefined ? data.angle : Math.atan2(z - fromZ, x - fromX);
+        spawnDynamicLight(fromX, 1.2, fromZ, 0x06b6d4, 12, 18, 400);
+
+        for (let i = 0; i < 3; i++) {
+          setTimeout(() => {
+            const pGeo = new THREE.CylinderGeometry(0.1, 0.1, 7, 8);
+            const pMat = new THREE.MeshBasicMaterial({ color: 0x06b6d4, transparent: true, opacity: 1, blending: THREE.AdditiveBlending });
+            const spearMesh = new THREE.Mesh(pGeo, pMat);
+            spearMesh.rotation.z = -Math.PI / 2;
+            spearMesh.rotation.y = dirAngle;
+            spearMesh.position.set(fromX + Math.cos(dirAngle) * 3.5, 1.2, fromZ + Math.sin(dirAngle) * 3.5);
+            scene.add(spearMesh);
+
+            spawnSparkBurst(fromX + Math.cos(dirAngle) * 4, fromZ + Math.sin(dirAngle) * 4, 0x06b6d4, 20, 7);
+
+            let sLife = 1.0;
+            const sAnim = setInterval(() => {
+              sLife -= 0.15;
+              pMat.opacity = sLife;
+              spearMesh.position.x += Math.cos(dirAngle) * 0.5;
+              spearMesh.position.z += Math.sin(dirAngle) * 0.5;
+              if (sLife <= 0) {
+                clearInterval(sAnim);
+                scene.remove(spearMesh); pGeo.dispose(); pMat.dispose();
+              }
+            }, 30);
+          }, i * 90);
+        }
+
+      } else if (vfx === 'spear_vault') {
+        spawnDynamicLight(x, 2, z, 0x38bdf8, 16, 25, 600);
+        spawnGroundGlowDecal(x, z, 0x38bdf8, 6.0, 600);
+
+        const boltGeo = new THREE.CylinderGeometry(0.25, 1.0, 18, 8);
+        const boltMat = new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.95, blending: THREE.AdditiveBlending });
+        const bolt = new THREE.Mesh(boltGeo, boltMat);
+        bolt.position.set(x, 9, z);
+        scene.add(bolt);
+
+        spawnSparkBurst(x, z, 0x38bdf8, 50, 10);
+        spawnExpandingRing(x, z, 0x38bdf8, 7.0);
+
+        let bLife = 1.0;
+        const bAnim = setInterval(() => {
+          bLife -= 0.09;
+          boltMat.opacity = bLife;
+          bolt.scale.x += 0.12; bolt.scale.z += 0.12;
+          if (bLife <= 0) {
+            clearInterval(bAnim);
+            scene.remove(bolt); boltGeo.dispose(); boltMat.dispose();
+          }
+        }, 30);
+
+      } else if (vfx === 'dragon_hurricane') {
+        const centerPos = { x: x || fromX, z: z || fromZ };
+        spawnDynamicLight(centerPos.x, 3, centerPos.z, 0x6366f1, 14, 22, 800);
+
+        const tornadoGeo = new THREE.CylinderGeometry(5.0, 0.6, 14, 18, 1, true);
+        const tornadoMat = new THREE.MeshBasicMaterial({ color: 0x6366f1, side: THREE.DoubleSide, transparent: true, opacity: 0.8, wireframe: true, blending: THREE.AdditiveBlending });
+        const tornado = new THREE.Mesh(tornadoGeo, tornadoMat);
+        tornado.position.set(centerPos.x, 7, centerPos.z);
+        scene.add(tornado);
+
+        spawnSparkBurst(centerPos.x, centerPos.z, 0x818cf8, 55, 11);
+
+        let tLife = 1.0;
+        const tAnim = setInterval(() => {
+          tLife -= 0.04;
+          tornado.rotation.y += 0.45;
+          tornadoMat.opacity = tLife;
+          if (tLife <= 0) {
+            clearInterval(tAnim);
+            scene.remove(tornado); tornadoGeo.dispose(); tornadoMat.dispose();
+          }
+        }, 30);
+
+      } else if (vfx === 'arrow_cone') {
+        const dirAngle = data.angle !== undefined ? data.angle : Math.atan2(z - fromZ, x - fromX);
+        spawnDynamicLight(fromX, 1.2, fromZ, 0x22c55e, 10, 16, 500);
+
+        for (let i = -2; i <= 2; i++) {
+          const spreadAngle = dirAngle + (i * 0.22);
+          const aGeo = new THREE.CylinderGeometry(0.05, 0.05, 2.0, 6);
+          const aMat = new THREE.MeshBasicMaterial({ color: 0x4ade80, transparent: true, opacity: 1 });
+          const arrow = new THREE.Mesh(aGeo, aMat);
+          arrow.rotation.z = -Math.PI / 2;
+          arrow.rotation.y = spreadAngle;
+          arrow.position.set(fromX, 1.2, fromZ);
+          scene.add(arrow);
+
+          let dist = 0;
+          const aAnim = setInterval(() => {
+            dist += 1.2;
+            arrow.position.x = fromX + Math.cos(spreadAngle) * dist;
+            arrow.position.z = fromZ + Math.sin(spreadAngle) * dist;
+            if (dist >= 15) {
+              clearInterval(aAnim);
+              scene.remove(arrow); aGeo.dispose(); aMat.dispose();
+            }
+          }, 25);
+        }
+
+      } else if (vfx === 'arrow_rain') {
+        spawnDynamicLight(x, 1, z, 0x22c55e, 12, 20, 900);
+        spawnGroundGlowDecal(x, z, 0x22c55e, 8.0, 900);
+
+        for (let i = 0; i < 30; i++) {
+          setTimeout(() => {
+            const rx = x + (Math.random() - 0.5) * 9.0;
+            const rz = z + (Math.random() - 0.5) * 9.0;
+
+            const aGeo = new THREE.CylinderGeometry(0.04, 0.04, 1.8, 6);
+            const aMat = new THREE.MeshBasicMaterial({ color: 0x4ade80 });
+            const arrow = new THREE.Mesh(aGeo, aMat);
+            arrow.position.set(rx, 20, rz);
+            scene.add(arrow);
+
+            let ry = 20;
+            const rAnim = setInterval(() => {
+              ry -= 2.0;
+              arrow.position.y = ry;
+              if (ry <= 0.2) {
+                clearInterval(rAnim);
+                spawnSparkBurst(rx, rz, 0x4ade80, 10, 4);
+                scene.remove(arrow); aGeo.dispose(); aMat.dispose();
+              }
+            }, 20);
+          }, i * 30);
+        }
+
+      } else if (vfx === 'sniper_beam') {
+        const length = data.length || 25;
+        const dirAngle = data.angle !== undefined ? data.angle : Math.atan2(z - fromZ, x - fromX);
+
+        spawnDynamicLight(fromX, 1.2, fromZ, 0xc084fc, 14, 22, 500);
+
+        const beamGeo = new THREE.CylinderGeometry(0.7, 0.7, length, 16);
+        const beamMat = new THREE.MeshBasicMaterial({ color: 0xc084fc, transparent: true, opacity: 0.95, blending: THREE.AdditiveBlending });
+        const beam = new THREE.Mesh(beamGeo, beamMat);
+
+        beam.rotation.z = -Math.PI / 2;
+        beam.rotation.y = dirAngle;
+        beam.position.set(fromX + Math.cos(dirAngle) * (length / 2), 1.2, fromZ + Math.sin(dirAngle) * (length / 2));
+        scene.add(beam);
+
+        spawnSparkBurst(fromX + Math.cos(dirAngle) * length, fromZ + Math.sin(dirAngle) * length, 0xc084fc, 45, 9);
+
+        let bLife = 1.0;
+        const bAnim = setInterval(() => {
+          bLife -= 0.08;
+          beamMat.opacity = bLife;
+          beam.scale.y += 0.06;
+          if (bLife <= 0) {
+            clearInterval(bAnim);
+            scene.remove(beam); beamGeo.dispose(); beamMat.dispose();
+          }
+        }, 30);
+
+      } else if (vfx === 'shadow_blink') {
+        spawnDynamicLight(fromX, 1, fromZ, 0x6b21a8, 10, 15, 400);
+        spawnDynamicLight(x, 1, z, 0xa855f7, 14, 20, 600);
+
+        spawnSparkBurst(fromX, fromZ, 0x6b21a8, 30, 6);
+        spawnSparkBurst(x, z, 0xa855f7, 50, 9);
+        spawnExpandingRing(x, z, 0xa855f7, 5.0);
+
+      } else if (vfx === 'fan_daggers') {
+        spawnDynamicLight(fromX, 1, fromZ, 0xa855f7, 12, 18, 500);
+
+        for (let i = 0; i < 12; i++) {
+          const dAngle = (Math.PI * 2 / 12) * i;
+          const dGeo = new THREE.BoxGeometry(0.12, 0.12, 0.9);
+          const dMat = new THREE.MeshBasicMaterial({ color: 0xa855f7, transparent: true, opacity: 1 });
+          const dagger = new THREE.Mesh(dGeo, dMat);
+          dagger.rotation.y = dAngle;
+          dagger.position.set(fromX, 1.0, fromZ);
+          scene.add(dagger);
+
+          let dist = 0;
+          const dAnim = setInterval(() => {
+            dist += 0.9;
+            dagger.position.x = fromX + Math.cos(dAngle) * dist;
+            dagger.position.z = fromZ + Math.sin(dAngle) * dist;
+            if (dist >= 8.5) {
+              clearInterval(dAnim);
+              scene.remove(dagger); dGeo.dispose(); dMat.dispose();
+            }
+          }, 25);
+        }
+
+      } else if (vfx === 'fireball_blast') {
+        const fireProjGeo = new THREE.SphereGeometry(0.8, 12, 12);
+        const fireProjMat = new THREE.MeshBasicMaterial({ color: 0xf97316, transparent: true, opacity: 0.95, blending: THREE.AdditiveBlending });
+        const fireProj = new THREE.Mesh(fireProjGeo, fireProjMat);
+        fireProj.position.set(fromX, 1.2, fromZ);
+        scene.add(fireProj);
+
+        let flightProgress = 0;
+        const flightAnim = setInterval(() => {
+          flightProgress += 0.12;
+          fireProj.position.x = fromX + (x - fromX) * flightProgress;
+          fireProj.position.z = fromZ + (z - fromZ) * flightProgress;
+          fireProj.position.y = 1.2 + Math.sin(flightProgress * Math.PI) * 2.0;
+
+          if (flightProgress >= 1.0) {
+            clearInterval(flightAnim);
+            scene.remove(fireProj); fireProjGeo.dispose(); fireProjMat.dispose();
+
+            spawnDynamicLight(x, 2, z, 0xf97316, 20, 30, 800);
+            spawnGroundGlowDecal(x, z, 0xea580c, 8.0, 800);
+
+            const fireExpGeo = new THREE.SphereGeometry(3.2, 16, 16);
+            const fireExpMat = new THREE.MeshBasicMaterial({ color: 0xf97316, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending });
+            const fireExp = new THREE.Mesh(fireExpGeo, fireExpMat);
+            fireExp.position.set(x, 1.5, z);
+            scene.add(fireExp);
+
+            spawnSparkBurst(x, z, 0xf97316, 60, 12);
+            spawnExpandingRing(x, z, 0xea580c, 7.5);
+
+            let fLife = 1.0;
+            const fAnim = setInterval(() => {
+              fLife -= 0.08;
+              fireExp.scale.addScalar(0.2);
+              fireExpMat.opacity = fLife;
+              if (fLife <= 0) {
+                clearInterval(fAnim);
+                scene.remove(fireExp); fireExpGeo.dispose(); fireExpMat.dispose();
+              }
+            }, 30);
+          }
+        }, 25);
+
+      } else if (vfx === 'frost_nova') {
+        const centerPos = { x: x || fromX, z: z || fromZ };
+        spawnDynamicLight(centerPos.x, 2, centerPos.z, 0x06b6d4, 16, 25, 700);
+        spawnGroundGlowDecal(centerPos.x, centerPos.z, 0x38bdf8, 8.0, 700);
+
+        for (let i = 0; i < 14; i++) {
+          const iAngle = (Math.PI * 2 / 14) * i;
+          const ix = centerPos.x + Math.cos(iAngle) * 5.5;
+          const iz = centerPos.z + Math.sin(iAngle) * 5.5;
+
+          const spikeGeo = new THREE.ConeGeometry(0.9, 4.0, 6);
+          const spikeMat = new THREE.MeshStandardMaterial({ color: 0x38bdf8, roughness: 0.1, metalness: 0.9, transparent: true, opacity: 0.95 });
+          const spike = new THREE.Mesh(spikeGeo, spikeMat);
+          spike.position.set(ix, 0, iz);
+          scene.add(spike);
+
+          let sLife = 1.0;
+          const sAnim = setInterval(() => {
+            sLife -= 0.05;
+            spike.position.y = Math.sin((1 - sLife) * Math.PI) * 2.0;
+            if (sLife <= 0) {
+              clearInterval(sAnim);
+              scene.remove(spike); spikeGeo.dispose(); spikeMat.dispose();
+            }
+          }, 30);
+        }
+        spawnSparkBurst(centerPos.x, centerPos.z, 0x06b6d4, 50, 10);
+        spawnExpandingRing(centerPos.x, centerPos.z, 0x38bdf8, 9.0);
+
+      } else if (vfx === 'meteor_impact') {
+        const skyBeamGeo = new THREE.CylinderGeometry(0.2, 0.8, 20, 8);
+        const skyBeamMat = new THREE.MeshBasicMaterial({ color: 0xef4444, transparent: true, opacity: 0.85, blending: THREE.AdditiveBlending });
+        const skyBeam = new THREE.Mesh(skyBeamGeo, skyBeamMat);
+        skyBeam.position.set(fromX, 10, fromZ);
+        scene.add(skyBeam);
+
+        let skyLife = 1.0;
+        const skyFade = setInterval(() => {
+          skyLife -= 0.1;
+          skyBeamMat.opacity = skyLife;
+          if (skyLife <= 0) {
+            clearInterval(skyFade);
+            scene.remove(skyBeam); skyBeamGeo.dispose(); skyBeamMat.dispose();
+          }
+        }, 30);
+
+        const meteorGeo = new THREE.IcosahedronGeometry(4.0, 2);
+        const meteorMat = new THREE.MeshStandardMaterial({ color: 0x451a03, emissive: 0xf97316, emissiveIntensity: 1.0 });
+        const meteor = new THREE.Mesh(meteorGeo, meteorMat);
+        meteor.position.set(x - 14, 32, z - 14);
+        scene.add(meteor);
+
+        let progress = 0;
+        const mAnim = setInterval(() => {
+          progress += 0.08;
+          meteor.position.x = (x - 14) + 14 * progress;
+          meteor.position.z = (z - 14) + 14 * progress;
+          meteor.position.y = 32 * (1 - progress);
+          meteor.rotation.x += 0.12;
+          meteor.rotation.y += 0.12;
+
+          if (progress >= 1.0) {
+            clearInterval(mAnim);
+            scene.remove(meteor); meteorGeo.dispose(); meteorMat.dispose();
+
+            spawnDynamicLight(x, 3, z, 0xef4444, 24, 35, 900);
+            spawnGroundGlowDecal(x, z, 0xf97316, 12.0, 900);
+            spawnSparkBurst(x, z, 0xef4444, 90, 16);
+            spawnExpandingRing(x, z, 0xf97316, 14.0);
+            spawnExpandingRing(x, z, 0xd97706, 9.0);
+          }
+        }, 20);
+
+      } else if (vfx === 'inner_heal') {
+        spawnDynamicLight(fromX, 3, fromZ, 0xfacc15, 14, 20, 700);
+
+        const pillarGeo = new THREE.CylinderGeometry(2.5, 2.5, 18, 18, 1, true);
+        const pillarMat = new THREE.MeshBasicMaterial({ color: 0xfacc15, side: THREE.DoubleSide, transparent: true, opacity: 0.9, blending: THREE.AdditiveBlending });
+        const pillar = new THREE.Mesh(pillarGeo, pillarMat);
+        pillar.position.set(fromX, 9, fromZ);
+        scene.add(pillar);
+
+        spawnSparkBurst(fromX, fromZ, 0x4ade80, 45, 9);
+
+        let hLife = 1.0;
+        const hAnim = setInterval(() => {
+          hLife -= 0.05;
+          pillarMat.opacity = hLife;
+          pillar.rotation.y += 0.12;
+          if (hLife <= 0) {
+            clearInterval(hAnim);
+            scene.remove(pillar); pillarGeo.dispose(); pillarMat.dispose();
+          }
+        }, 30);
+
+      } else {
+        spawnDynamicLight(x, 1, z, 0x38bdf8, 10, 15, 400);
+        spawnSparkBurst(x, z, 0x38bdf8, 30, 6);
+        spawnExpandingRing(x, z, 0x38bdf8, 4.0);
+      }
+    }
+
+    // -------------------------------------------------------------
     // MINIMAP RADAR LOGIC & RENDERING
     // -------------------------------------------------------------
     const CLIENT_ZONES = {
@@ -3508,6 +4732,13 @@
           const hpPct = Math.max(0, (p.hp / p.maxHp) * 100);
           document.getElementById('hp-fill').style.width = hpPct + '%';
           document.getElementById('hp-txt').innerText = `${Math.round(p.hp)} / ${p.maxHp}`;
+
+          const mpVal = p.mp !== undefined ? p.mp : 100;
+          const maxMpVal = p.maxMp || 100;
+          const mpPct = Math.max(0, Math.min(100, (mpVal / maxMpVal) * 100));
+          document.getElementById('mp-fill').style.width = mpPct + '%';
+          document.getElementById('mp-txt').innerText = `${Math.round(mpVal)} / ${maxMpVal}`;
+
           document.getElementById('gold-txt').innerText = `${p.gold}`;
 
           if (p.level) {
@@ -3782,17 +5013,30 @@
         document.getElementById('ui-stat-vit').innerText = d.stats.vitality || 1;
         document.getElementById('ui-stat-agi').innerText = d.stats.agility || 1;
         document.getElementById('ui-stat-def').innerText = d.stats.defense || 1;
+        document.getElementById('ui-stat-int').innerText = d.stats.intelligence || 1;
         
+        if (d.stats.mp !== undefined) {
+          const mpVal = d.stats.mp;
+          const maxMpVal = d.stats.maxMp || 100;
+          const mpPct = Math.max(0, Math.min(100, (mpVal / maxMpVal) * 100));
+          document.getElementById('mp-fill').style.width = mpPct + '%';
+          document.getElementById('mp-txt').innerText = `${Math.round(mpVal)} / ${maxMpVal}`;
+        }
+
         const btnStr = document.getElementById('btn-add-str');
         const btnVit = document.getElementById('btn-add-vit');
         const btnAgi = document.getElementById('btn-add-agi');
         const btnDef = document.getElementById('btn-add-def');
+        const btnInt = document.getElementById('btn-add-int');
         
         if (btnStr) btnStr.disabled = (pts <= 0);
         if (btnVit) btnVit.disabled = (pts <= 0);
         if (btnAgi) btnAgi.disabled = (pts <= 0);
         if (btnDef) btnDef.disabled = (pts <= 0);
+        if (btnInt) btnInt.disabled = (pts <= 0);
       }
+
+      updateSkillHotbar();
 
       // Update equipped gear boxes
       const wep = d.equipment ? d.equipment.weapon : null;
@@ -4237,6 +5481,244 @@
     }
 
     // -------------------------------------------------------------
+    // QUEST LOG & DAILY REWARD CLIENT SYSTEM
+    // -------------------------------------------------------------
+    let clientQuestsData = [];
+    let currentQuestFilter = 'all';
+    let clientDailyRewardData = null;
+
+    function toggleQuestLog() {
+      const el = document.getElementById('quest-ui');
+      if (!el) return;
+      const isOpening = (el.style.display !== 'flex');
+      el.style.display = isOpening ? 'flex' : 'none';
+      if (isOpening) {
+        playSfx('ui');
+        fetchQuestsFromApi();
+      }
+    }
+
+    async function fetchQuestsFromApi() {
+      try {
+        const tok = localStorage.getItem('ir_token');
+        if (!tok) return;
+        const res = await fetch('/api/quests', {
+          headers: { 'Authorization': `Bearer ${tok}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.quests) {
+            clientQuestsData = data.quests;
+            renderQuestLog();
+          }
+        }
+      } catch (e) {
+        console.warn('API fetch quests note:', e);
+      }
+    }
+
+    function renderQuestLog() {
+      const container = document.getElementById('quest-list-container');
+      if (!container) return;
+      container.innerHTML = '';
+
+      let hasUnclaimed = false;
+
+      let filtered = clientQuestsData.filter(q => {
+        if (q.status === 'completed') hasUnclaimed = true;
+        if (currentQuestFilter === 'active') return q.status === 'active';
+        if (currentQuestFilter === 'completed') return q.status === 'completed';
+        if (currentQuestFilter === 'claimed') return q.status === 'claimed';
+        return true;
+      });
+
+      const dot = document.getElementById('quest-badge-dot');
+      if (dot) dot.style.display = hasUnclaimed ? 'block' : 'none';
+
+      if (filtered.length === 0) {
+        container.innerHTML = `<div style="text-align:center; padding: 30px; color: #64748b; font-size: 13px;">No ${currentQuestFilter} quests found.</div>`;
+        return;
+      }
+
+      filtered.forEach(q => {
+        const card = document.createElement('div');
+        card.className = `quest-card ${q.status}`;
+        
+        const pct = Math.min(100, Math.floor((q.progress / q.goal) * 100));
+        
+        let statusBadge = `<span style="font-size:10px; font-weight:800; color:#38bdf8;">IN PROGRESS</span>`;
+        if (q.status === 'completed') statusBadge = `<span style="font-size:10px; font-weight:800; color:#34d399;">READY TO CLAIM!</span>`;
+        if (q.status === 'claimed') statusBadge = `<span style="font-size:10px; font-weight:800; color:#94a3b8;">COMPLETED & CLAIMED</span>`;
+
+        let itemsHtml = '';
+        if (q.rewardItems && q.rewardItems.length > 0) {
+          q.rewardItems.forEach(it => {
+            itemsHtml += `<span class="reward-badge badge-item">📦 ${it.itemId.replace(/_/g, ' ')} x${it.qty || 1}</span>`;
+          });
+        }
+
+        card.innerHTML = `
+          <div class="quest-card-header">
+            <div class="quest-title">
+              <span>${q.status === 'completed' ? '🌟' : q.status === 'claimed' ? '✅' : '📜'}</span>
+              <span>${q.title}</span>
+            </div>
+            <span class="quest-category">${q.category || 'Quest'}</span>
+          </div>
+          <div class="quest-desc">${q.desc}</div>
+          <div class="quest-progress-box">
+            <div class="quest-progress-txt">
+              <span>Objective Progress</span>
+              <span>${q.progress} / ${q.goal} (${pct}%)</span>
+            </div>
+            <div class="quest-progress-track">
+              <div class="quest-progress-fill" style="width: ${pct}%;"></div>
+            </div>
+          </div>
+          <div class="quest-rewards-row">
+            <div class="quest-rewards-badges">
+              <span class="reward-badge">💰 +${q.rewardGold} Gold</span>
+              <span class="reward-badge badge-xp">⚡ +${q.rewardXp} XP</span>
+              ${itemsHtml}
+            </div>
+            ${q.status === 'completed' ? `<button class="btn-claim-quest" onclick="claimQuest('${q.id}')">✨ Claim Reward</button>` : statusBadge}
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function filterQuestTab(tabName) {
+      currentQuestFilter = tabName;
+      ['all', 'active', 'completed', 'claimed'].forEach(t => {
+        const btn = document.getElementById(`qtab-${t}`);
+        if (btn) btn.classList.toggle('active', t === tabName);
+      });
+      renderQuestLog();
+    }
+
+    async function claimQuest(questId) {
+      playSfx('levelup');
+      if (socket && socket.connected) {
+        socket.emit('claimQuest', questId);
+      } else {
+        const tok = localStorage.getItem('ir_token');
+        if (!tok) return;
+        await fetch('/api/quests/claim', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${tok}` },
+          body: JSON.stringify({ questId })
+        });
+        fetchQuestsFromApi();
+      }
+    }
+
+    function toggleDailyRewardModal() {
+      const el = document.getElementById('daily-reward-ui');
+      if (!el) return;
+      const isOpening = (el.style.display !== 'flex');
+      el.style.display = isOpening ? 'flex' : 'none';
+      if (isOpening) {
+        playSfx('ui');
+        fetchDailyRewardFromApi();
+      }
+    }
+
+    async function fetchDailyRewardFromApi() {
+      try {
+        const tok = localStorage.getItem('ir_token');
+        if (!tok) return;
+        const res = await fetch('/api/daily-reward', {
+          headers: { 'Authorization': `Bearer ${tok}` }
+        });
+        if (res.ok) {
+          const data = await res.json();
+          clientDailyRewardData = data;
+          renderDailyRewardModal();
+        }
+      } catch (e) {
+        console.warn('API fetch daily reward note:', e);
+      }
+    }
+
+    function renderDailyRewardModal() {
+      if (!clientDailyRewardData) return;
+      const { claimedToday, streak, nextStreak, schedule } = clientDailyRewardData;
+      
+      const grid = document.getElementById('daily-rewards-grid');
+      const btnMain = document.getElementById('btn-claim-daily-main');
+      const statusMsg = document.getElementById('daily-status-msg');
+      const subtitle = document.getElementById('daily-streak-subtitle');
+      const dot = document.getElementById('daily-badge-dot');
+
+      if (dot) dot.style.display = !claimedToday ? 'block' : 'none';
+
+      if (subtitle) {
+        subtitle.innerText = `Current Daily Streak: ${streak} Days! (Next Reward Target: Day ${nextStreak})`;
+      }
+
+      if (grid && schedule) {
+        grid.innerHTML = '';
+        schedule.forEach(item => {
+          const isClaimedTodayItem = (item.day <= streak && claimedToday);
+          const isTargetToday = (item.day === nextStreak && !claimedToday);
+          const isPastClaimed = (item.day < nextStreak);
+
+          let cardClass = 'daily-card';
+          if (isTargetToday) cardClass += ' active-today';
+          if (isPastClaimed || isClaimedTodayItem) cardClass += ' claimed';
+
+          const card = document.createElement('div');
+          card.className = cardClass;
+          
+          let itemsLabel = '';
+          if (item.items && item.items.length > 0) {
+            itemsLabel = item.items.map(it => `${it.itemId.replace(/_/g, ' ')} x${it.qty || 1}`).join(', ');
+          }
+
+          card.innerHTML = `
+            ${(isPastClaimed || isClaimedTodayItem) ? '<div class="daily-claimed-check">✓</div>' : ''}
+            <div class="daily-day-label">Day ${item.day}</div>
+            <div class="daily-icon">${item.icon || '🎁'}</div>
+            <div style="font-size:10px; font-weight:700; color:#f8fafc;">${item.title}</div>
+            <div class="daily-reward-info">+${item.gold}g | +${item.xp}xp</div>
+            ${itemsLabel ? `<div style="font-size:8px; color:#38bdf8;">${itemsLabel}</div>` : ''}
+          `;
+          grid.appendChild(card);
+        });
+      }
+
+      if (btnMain) {
+        if (claimedToday) {
+          btnMain.disabled = true;
+          btnMain.innerText = '✅ REWARD CLAIMED TODAY';
+          if (statusMsg) statusMsg.innerHTML = '<span style="color:#34d399;">Return tomorrow at 00:00 UTC to claim your next reward!</span>';
+        } else {
+          btnMain.disabled = false;
+          btnMain.innerText = `🎁 CLAIM DAY ${nextStreak} REWARD`;
+          if (statusMsg) statusMsg.innerHTML = '<span style="color:#fbbf24;">Your daily reward is available now! Click above to claim.</span>';
+        }
+      }
+    }
+
+    async function claimDailyReward() {
+      playSfx('levelup');
+      if (socket && socket.connected) {
+        socket.emit('claimDailyReward');
+      } else {
+        const tok = localStorage.getItem('ir_token');
+        if (!tok) return;
+        const res = await fetch('/api/daily-reward/claim', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${tok}` }
+        });
+        if (res.ok) {
+          fetchDailyRewardFromApi();
+        }
+      }
+    }
+
+    // -------------------------------------------------------------
     // CONTROLS & RAYCASTING INTERACTION
     // -------------------------------------------------------------
     const activeKeys = {};
@@ -4255,6 +5737,12 @@
       if (key === 'c') toggleStats();
       if (key === 'p') toggleShop();
       if (key === 'm') toggleExpandMap();
+      if (key === 'l') toggleQuestLog();
+      if (key === 'k') toggleDailyRewardModal();
+      if (key === '1') triggerSkill(1);
+      if (key === '2') triggerSkill(2);
+      if (key === '3') triggerSkill(3);
+      if (key === 'escape') cancelPrimedSkill();
       if (key === 'q') cameraDistance = Math.min(55, cameraDistance + 3);
       if (key === 'e') cameraDistance = Math.max(10, cameraDistance - 3);
 
@@ -4302,6 +5790,11 @@
 
     window.addEventListener('mousedown', (e) => {
       if (e.button === 2) {
+        if (primedSkillSlot !== null) {
+          cancelPrimedSkill();
+          e.preventDefault();
+          return;
+        }
         isRightMouseDown = true;
         lastMouseX = e.clientX;
         lastMouseY = e.clientY;
@@ -4309,7 +5802,7 @@
         return;
       }
       if (e.target !== document.body && e.target.tagName !== 'CANVAS') return;
-      if (e.target.closest('#minimap-container, #ui-top, #hotbar, #inv-ui, #stats-ui, #shop-ui, #controls-hint, #chat-panel')) return;
+      if (e.target.closest('#minimap-container, #ui-top, #hotbar, #skills-bar, #inv-ui, #stats-ui, #shop-ui, #controls-hint, #chat-panel')) return;
 
       const mouse = new THREE.Vector2(
         (e.clientX / window.innerWidth) * 2 - 1,
@@ -4318,6 +5811,35 @@
       const ray = new THREE.Raycaster();
       ray.setFromCamera(mouse, camera);
       const hits = ray.intersectObjects(scene.children, true);
+
+      if (primedSkillSlot !== null) {
+        const slotToCast = primedSkillSlot;
+        let targetedMobId = null;
+        let groundPoint = null;
+
+        for (let h of hits) {
+          let obj = h.object;
+          while (obj.parent && !obj.userData.type) obj = obj.parent;
+          if (obj.userData.type === 'monster') {
+            targetedMobId = obj.userData.id;
+            break;
+          }
+          if (!groundPoint && h.point) {
+            groundPoint = h.point;
+          }
+        }
+
+        if (targetedMobId) {
+          socket.emit('useSkill', { slot: slotToCast, targetMobId: targetedMobId, facingAngle: getMyFacingAngle() });
+        } else if (groundPoint) {
+          socket.emit('useSkill', { slot: slotToCast, targetPos: { x: groundPoint.x, z: groundPoint.z }, facingAngle: getMyFacingAngle() });
+        } else {
+          socket.emit('useSkill', { slot: slotToCast, facingAngle: getMyFacingAngle() });
+        }
+
+        cancelPrimedSkill();
+        return;
+      }
 
       for (let h of hits) {
         let obj = h.object;
@@ -4334,8 +5856,6 @@
           return socket.emit('lootItem', obj.userData.id);
         }
       }
-
-
     });
 
     window.addEventListener('mouseup', (e) => {

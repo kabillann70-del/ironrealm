@@ -106,6 +106,550 @@ app.post('/api/reset-password', async (req, res) => {
     res.json({ success: true, message: 'Password reset successful! You can now log in.' });
 });
 
+// --- Token Auth Middleware ---
+function authenticateToken(req, res, next) {
+    const authHeader = req.headers['authorization'];
+    const token = authHeader && authHeader.split(' ')[1];
+    if (!token) return res.status(401).json({ error: 'Authentication token required' });
+    jwt.verify(token, JWT_SECRET, (err, user) => {
+        if (err) return res.status(403).json({ error: 'Invalid or expired token' });
+        req.user = user;
+        next();
+    });
+}
+
+// --- QUESTS CATALOG & DAILY REWARD SYSTEM DATA ---
+const QUESTS_CATALOG = [
+    {
+        id: 'q_first_blood',
+        title: 'First Blood in IronRealm',
+        category: 'Novice',
+        desc: 'Slay 3 monsters in the realm to prove your initial combat prowess.',
+        type: 'kill_any',
+        goal: 3,
+        rewardGold: 250,
+        rewardXp: 300,
+        rewardItems: [{ itemId: 'wood_sword', qty: 1 }],
+        reqLevel: 1
+    },
+    {
+        id: 'q_lumberjack',
+        title: 'Timber for the Forge',
+        category: 'Gathering',
+        desc: 'Harvest 5 Birch Wood logs from Woodlands trees.',
+        type: 'gather_wood',
+        goal: 5,
+        rewardGold: 300,
+        rewardXp: 400,
+        rewardItems: [{ itemId: 'leather_armor', qty: 1 }],
+        reqLevel: 1
+    },
+    {
+        id: 'q_copper_miner',
+        title: 'Veins of Copper',
+        category: 'Gathering',
+        desc: 'Mine 5 Copper Ore nodes from mineral deposits.',
+        type: 'gather_ore',
+        goal: 5,
+        rewardGold: 350,
+        rewardXp: 450,
+        rewardItems: [{ itemId: 'novice_axe', qty: 1 }],
+        reqLevel: 1
+    },
+    {
+        id: 'q_monster_slayer',
+        title: 'Realm Extermination',
+        category: 'Combat',
+        desc: 'Vanquish 10 monsters of any type across the world.',
+        type: 'kill_any',
+        goal: 10,
+        rewardGold: 750,
+        rewardXp: 900,
+        rewardItems: [{ itemId: 'health_potion', qty: 3 }],
+        reqLevel: 2
+    },
+    {
+        id: 'q_apprentice_smith',
+        title: 'Blacksmithing Initiate',
+        category: 'Crafting',
+        desc: 'Craft 1 piece of equipment at the Sanctuary Anvil Forge.',
+        type: 'craft_item',
+        goal: 1,
+        rewardGold: 600,
+        rewardXp: 700,
+        rewardItems: [{ itemId: 'mana_potion', qty: 3 }],
+        reqLevel: 2
+    },
+    {
+        id: 'q_reach_level5',
+        title: 'Rising Adventurer',
+        category: 'Progression',
+        desc: 'Attain Character Level 5.',
+        type: 'reach_level',
+        goal: 5,
+        rewardGold: 2000,
+        rewardXp: 1500,
+        rewardItems: [{ itemId: 'steel_broadsword', qty: 1 }],
+        reqLevel: 1
+    },
+    {
+        id: 'q_miniboss_slayer',
+        title: 'Warlord Defeater',
+        category: 'Heroic',
+        desc: 'Slay a Zone Miniboss (Bandit Warlord, Frost Titan, Crypt Sovereign, or Infernal Warlord).',
+        type: 'kill_miniboss',
+        goal: 1,
+        rewardGold: 4500,
+        rewardXp: 5000,
+        rewardItems: [{ itemId: 'adept_cursed_staff', qty: 1 }],
+        reqLevel: 4
+    },
+    {
+        id: 'q_slay_dragon',
+        title: 'Slayer of Ignisrax',
+        category: 'Legendary',
+        desc: 'Vanquish the World Boss Ignisrax the Abyssal Dragon Lord.',
+        type: 'kill_boss',
+        goal: 1,
+        rewardGold: 18000,
+        rewardXp: 25000,
+        rewardItems: [{ itemId: 'master_relic_blade', qty: 1 }],
+        reqLevel: 8
+    },
+    {
+        id: 'q_reach_level10',
+        title: 'Champion of IronRealm',
+        category: 'Legendary',
+        desc: 'Attain Character Level 10.',
+        type: 'reach_level',
+        goal: 10,
+        rewardGold: 30000,
+        rewardXp: 35000,
+        rewardItems: [{ itemId: 'celestial_greatsword', qty: 1 }],
+        reqLevel: 5
+    }
+];
+
+const ENDGAME_QUESTS_CATALOG = [
+    {
+        id: 'q_endgame_slayer_1',
+        title: 'Master Slayer: Realm Extermination',
+        category: 'Veteran',
+        desc: 'Vanquish 25 monsters of any type across high-tier zones.',
+        type: 'kill_any',
+        goal: 25,
+        rewardGold: 15000,
+        rewardXp: 20000,
+        rewardItems: [{ itemId: 'starfall_crystal', qty: 3 }],
+        reqLevel: 10
+    },
+    {
+        id: 'q_endgame_astral_monarch',
+        title: 'Conqueror of the Void Emperor',
+        category: 'World-Class',
+        desc: 'Slay Astraeus the Void Emperor in the Astral Dominion.',
+        type: 'kill_boss',
+        goal: 1,
+        rewardGold: 50000,
+        rewardXp: 75000,
+        rewardItems: [{ itemId: 'celestial_staff', qty: 1 }],
+        reqLevel: 10
+    },
+    {
+        id: 'q_endgame_grandmaster_smith',
+        title: 'Grandmaster Forge Artisan',
+        category: 'Mastery',
+        desc: 'Forge 5 legendary equipment pieces at the Sanctuary Blacksmith.',
+        type: 'craft_item',
+        goal: 5,
+        rewardGold: 35000,
+        rewardXp: 40000,
+        rewardItems: [{ itemId: 'void_shard', qty: 2 }],
+        reqLevel: 10
+    },
+    {
+        id: 'q_endgame_master_resource',
+        title: 'Astral & World-Tree Harvester',
+        category: 'Mastery',
+        desc: 'Harvest 15 Celestial Wood or Astral Ore from high-tier zones.',
+        type: 'gather_ore',
+        goal: 15,
+        rewardGold: 25000,
+        rewardXp: 30000,
+        rewardItems: [{ itemId: 'celestial_carapace', qty: 1 }],
+        reqLevel: 10
+    },
+    {
+        id: 'q_endgame_miniboss_purge',
+        title: 'Titan & Sovereign Purge',
+        category: 'Veteran',
+        desc: 'Defeat 3 Zone Minibosses across the world.',
+        type: 'kill_miniboss',
+        goal: 3,
+        rewardGold: 30000,
+        rewardXp: 35000,
+        rewardItems: [{ itemId: 'master_archmage_staff', qty: 1 }],
+        reqLevel: 10
+    }
+];
+
+function areAllBaseQuestsClaimed(userQuests) {
+    if (!userQuests) return false;
+    return QUESTS_CATALOG.every(q => userQuests[q.id] && userQuests[q.id].status === 'claimed');
+}
+
+function getAllAvailableQuestDefs(userQuests) {
+    let list = [...QUESTS_CATALOG];
+    if (areAllBaseQuestsClaimed(userQuests)) {
+        list = list.concat(ENDGAME_QUESTS_CATALOG);
+    }
+    return list;
+}
+
+const DAILY_REWARDS_SCHEDULE = [
+    { day: 1, gold: 500, xp: 250, items: [{ itemId: 'health_potion', qty: 3 }], title: 'Initiate Cache', icon: '🎁' },
+    { day: 2, gold: 1200, xp: 600, items: [{ itemId: 'birch_wood', qty: 5 }, { itemId: 'copper_ore', qty: 5 }], title: 'Resource Bundle', icon: '🌲' },
+    { day: 3, gold: 2500, xp: 1200, items: [{ itemId: 'mana_potion', qty: 5 }], title: 'Arcane Elixir Reserve', icon: '🧪' },
+    { day: 4, gold: 5000, xp: 2500, items: [{ itemId: 'leather_armor', qty: 1 }], title: 'Veteran Leather Gear', icon: '🛡️' },
+    { day: 5, gold: 10000, xp: 5000, items: [{ itemId: 'iron_ore', qty: 5 }, { itemId: 'skeleton_skull', qty: 2 }], title: 'Iron Smithing Crate', icon: '⛏️' },
+    { day: 6, gold: 20000, xp: 10000, items: [{ itemId: 'steel_broadsword', qty: 1 }], title: 'Steel Broadsword Relic', icon: '⚔️' },
+    { day: 7, gold: 50000, xp: 25000, items: [{ itemId: 'starfall_crystal', qty: 2 }, { itemId: 'health_potion', qty: 10 }], title: 'Celestial Dragon Cache', icon: '👑' }
+];
+
+function getTodayDateStr() {
+    const d = new Date();
+    const year = d.getUTCFullYear();
+    const month = String(d.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(d.getUTCDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
+function getYesterdayDateStr() {
+    const d = new Date();
+    d.setUTCDate(d.getUTCDate() - 1);
+    const year = d.getUTCFullYear();
+    const month = String(d.getUTCMonth() + 1).padStart(2, '0');
+    const day = String(d.getUTCDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
+function initUserQuests(userRecord) {
+    if (!userRecord.quests || typeof userRecord.quests !== 'object') {
+        userRecord.quests = {};
+    }
+    const defs = getAllAvailableQuestDefs(userRecord.quests);
+    defs.forEach(q => {
+        if (!userRecord.quests[q.id]) {
+            userRecord.quests[q.id] = {
+                status: 'active',
+                progress: 0,
+                goal: q.goal
+            };
+        }
+    });
+    return userRecord.quests;
+}
+
+function initUserDailyReward(userRecord) {
+    if (!userRecord.dailyReward || typeof userRecord.dailyReward !== 'object') {
+        userRecord.dailyReward = { lastClaimDate: '', streak: 0 };
+    }
+    return userRecord.dailyReward;
+}
+
+function buildQuestsResponse(userQuests) {
+    const defs = getAllAvailableQuestDefs(userQuests);
+    return defs.map(qDef => {
+        const uState = (userQuests && userQuests[qDef.id]) ? userQuests[qDef.id] : { status: 'active', progress: 0, goal: qDef.goal };
+        return {
+            ...qDef,
+            progress: uState.progress !== undefined ? uState.progress : 0,
+            status: uState.status || 'active'
+        };
+    });
+}
+
+function updatePlayerQuestProgress(p, eventType, amount = 1) {
+    if (!p || !p.username) return;
+    p.quests = p.quests || {};
+
+    const defs = getAllAvailableQuestDefs(p.quests);
+    defs.forEach(q => {
+        if (!p.quests[q.id]) {
+            p.quests[q.id] = { status: 'active', progress: 0, goal: q.goal };
+        }
+    });
+
+    let updated = false;
+
+    defs.forEach(qDef => {
+        const qState = p.quests[qDef.id];
+        if (!qState || qState.status !== 'active') return;
+
+        let apply = false;
+        if (qDef.type === eventType) {
+            apply = true;
+        } else if (eventType === 'kill_miniboss' && qDef.type === 'kill_any') {
+            apply = true;
+        } else if (eventType === 'kill_boss' && qDef.type === 'kill_any') {
+            apply = true;
+        } else if (eventType === 'gather_wood' && qDef.type === 'gather_ore') {
+            apply = true;
+        }
+
+        if (qDef.type === 'reach_level') {
+            qState.progress = p.stats.level || 1;
+            updated = true;
+        } else if (apply) {
+            qState.progress = Math.min(qDef.goal, (qState.progress || 0) + amount);
+            updated = true;
+        }
+
+        if (qState.progress >= qDef.goal && qState.status === 'active') {
+            qState.status = 'completed';
+            updated = true;
+            const pSocket = io.sockets.sockets.get(p.socketId);
+            if (pSocket) {
+                pSocket.emit('notice', `📜 QUEST COMPLETED: ${qDef.title}! Open Quest Log [Q] to claim rewards.`);
+                pSocket.emit('combatLog', { msg: `Quest Completed: ${qDef.title}`, type: 'lvl_up' });
+                pSocket.emit('vfx', { type: 'levelup', x: p.stats.pos.x, z: p.stats.pos.z });
+            }
+        }
+    });
+
+    if (updated) {
+        const pSocket = io.sockets.sockets.get(p.socketId);
+        if (pSocket) {
+            pSocket.emit('questsUpdate', buildQuestsResponse(p.quests));
+        }
+        db.saveUser(p.username, { quests: p.quests });
+    }
+}
+
+async function claimQuestReward(username, questId) {
+    const userRec = await db.getUser(username);
+    if (!userRec) return { error: 'User not found' };
+
+    userRec.quests = initUserQuests(userRec);
+    const defs = getAllAvailableQuestDefs(userRec.quests);
+    const qDef = defs.find(q => q.id === questId) || QUESTS_CATALOG.find(q => q.id === questId) || ENDGAME_QUESTS_CATALOG.find(q => q.id === questId);
+    if (!qDef) return { error: 'Quest not found' };
+
+    const qState = userRec.quests[questId];
+    if (!qState || qState.status !== 'completed') {
+        if (qState && qState.status === 'claimed') return { error: 'Quest reward already claimed' };
+        return { error: 'Quest objectives not completed yet' };
+    }
+
+    qState.status = 'claimed';
+
+    userRec.stats = userRec.stats || db.freshStats();
+    userRec.stats.gold = (userRec.stats.gold || 0) + (qDef.rewardGold || 0);
+    userRec.stats.xp = (userRec.stats.xp || 0) + (qDef.rewardXp || 0);
+
+    const reqXp = xpForLevel(userRec.stats.level || 1);
+    if (userRec.stats.xp >= reqXp) {
+        userRec.stats.xp -= reqXp;
+        userRec.stats.level = (userRec.stats.level || 1) + 1;
+        userRec.stats.statPoints = (userRec.stats.statPoints || 0) + 5;
+        userRec.stats.maxHp += 25;
+        userRec.stats.maxMp = (userRec.stats.maxMp || 100) + 20;
+        userRec.stats.baseDamage = (userRec.stats.baseDamage || 8) + 4;
+    }
+
+    userRec.inventory = userRec.inventory || [];
+    if (qDef.rewardItems && Array.isArray(qDef.rewardItems)) {
+        qDef.rewardItems.forEach(itemInfo => {
+            const itemDef = ITEMS[itemInfo.itemId];
+            if (itemDef) {
+                const qty = itemInfo.qty || 1;
+                for (let i = 0; i < qty; i++) {
+                    userRec.inventory.push({
+                        ...itemDef,
+                        itemId: itemInfo.itemId,
+                        uid: 'item_' + Date.now() + Math.random().toString(36).substr(2, 5)
+                    });
+                }
+            }
+        });
+    }
+
+    await db.saveUser(username, {
+        stats: userRec.stats,
+        inventory: userRec.inventory,
+        quests: userRec.quests
+    });
+
+    let liveP = Object.values(liveWorld.players).find(x => x.username === username);
+    if (liveP) {
+        liveP.stats = JSON.parse(JSON.stringify(userRec.stats));
+        liveP.inventory = JSON.parse(JSON.stringify(userRec.inventory));
+        liveP.quests = JSON.parse(JSON.stringify(userRec.quests));
+
+        const pSocket = io.sockets.sockets.get(liveP.socketId);
+        if (pSocket) {
+            pSocket.emit('inventory', { stats: liveP.stats, inventory: liveP.inventory, equipment: liveP.equipment });
+            pSocket.emit('questsUpdate', buildQuestsResponse(liveP.quests));
+            pSocket.emit('notice', `🎉 Claimed rewards for '${qDef.title}': +${qDef.rewardGold} Gold, +${qDef.rewardXp} XP!`);
+            pSocket.emit('vfx', { type: 'levelup', x: liveP.stats.pos.x, z: liveP.stats.pos.z });
+        }
+    }
+
+    return {
+        success: true,
+        questId,
+        rewardGold: qDef.rewardGold,
+        rewardXp: qDef.rewardXp,
+        rewardItems: qDef.rewardItems,
+        quests: buildQuestsResponse(userRec.quests),
+        stats: userRec.stats,
+        inventory: userRec.inventory
+    };
+}
+
+async function claimDailyRewardHelper(username) {
+    const userRec = await db.getUser(username);
+    if (!userRec) return { error: 'User not found' };
+
+    userRec.dailyReward = initUserDailyReward(userRec);
+    const today = getTodayDateStr();
+    const yesterday = getYesterdayDateStr();
+
+    if (userRec.dailyReward.lastClaimDate === today) {
+        return { error: 'Daily reward already claimed today! Return tomorrow for your next streak reward.' };
+    }
+
+    let currentStreak = userRec.dailyReward.streak || 0;
+    if (userRec.dailyReward.lastClaimDate === yesterday) {
+        currentStreak = (currentStreak % 7) + 1;
+    } else {
+        currentStreak = 1;
+    }
+
+    const rewardDef = DAILY_REWARDS_SCHEDULE.find(r => r.day === currentStreak) || DAILY_REWARDS_SCHEDULE[0];
+
+    userRec.stats = userRec.stats || db.freshStats();
+    userRec.stats.gold = (userRec.stats.gold || 0) + (rewardDef.gold || 0);
+    userRec.stats.xp = (userRec.stats.xp || 0) + (rewardDef.xp || 0);
+
+    userRec.inventory = userRec.inventory || [];
+    if (rewardDef.items && Array.isArray(rewardDef.items)) {
+        rewardDef.items.forEach(itemInfo => {
+            const itemDef = ITEMS[itemInfo.itemId];
+            if (itemDef) {
+                const qty = itemInfo.qty || 1;
+                for (let i = 0; i < qty; i++) {
+                    userRec.inventory.push({
+                        ...itemDef,
+                        itemId: itemInfo.itemId,
+                        uid: 'daily_' + Date.now() + Math.random().toString(36).substr(2, 5)
+                    });
+                }
+            }
+        });
+    }
+
+    userRec.dailyReward.lastClaimDate = today;
+    userRec.dailyReward.streak = currentStreak;
+
+    await db.saveUser(username, {
+        stats: userRec.stats,
+        inventory: userRec.inventory,
+        dailyReward: userRec.dailyReward
+    });
+
+    let liveP = Object.values(liveWorld.players).find(x => x.username === username);
+    if (liveP) {
+        liveP.stats = JSON.parse(JSON.stringify(userRec.stats));
+        liveP.inventory = JSON.parse(JSON.stringify(userRec.inventory));
+        liveP.dailyReward = JSON.parse(JSON.stringify(userRec.dailyReward));
+
+        const pSocket = io.sockets.sockets.get(liveP.socketId);
+        if (pSocket) {
+            pSocket.emit('inventory', { stats: liveP.stats, inventory: liveP.inventory, equipment: liveP.equipment });
+            pSocket.emit('dailyRewardUpdate', {
+                todayDate: today,
+                claimedToday: true,
+                streak: currentStreak,
+                lastClaimDate: today,
+                schedule: DAILY_REWARDS_SCHEDULE
+            });
+            pSocket.emit('notice', `🎁 DAILY REWARD CLAIMED! (Day ${currentStreak}): +${rewardDef.gold} Gold, +${rewardDef.xp} XP!`);
+            pSocket.emit('vfx', { type: 'levelup', x: liveP.stats.pos.x, z: liveP.stats.pos.z });
+        }
+    }
+
+    return {
+        success: true,
+        streak: currentStreak,
+        reward: rewardDef,
+        dailyReward: userRec.dailyReward,
+        stats: userRec.stats,
+        inventory: userRec.inventory
+    };
+}
+
+// --- NEW API ENDPOINTS FOR QUESTS & DAILY REWARD ---
+app.get('/api/quests', authenticateToken, async (req, res) => {
+    try {
+        const userRec = await db.getUser(req.user.username);
+        if (!userRec) return res.status(404).json({ error: 'User not found' });
+        const userQuests = initUserQuests(userRec);
+        res.json({ quests: buildQuestsResponse(userQuests) });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+app.post('/api/quests/claim', authenticateToken, async (req, res) => {
+    try {
+        const { questId } = req.body;
+        if (!questId) return res.status(400).json({ error: 'Missing questId parameter' });
+        const result = await claimQuestReward(req.user.username, questId);
+        if (result.error) return res.status(400).json({ error: result.error });
+        res.json(result);
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+app.get('/api/daily-reward', authenticateToken, async (req, res) => {
+    try {
+        const userRec = await db.getUser(req.user.username);
+        if (!userRec) return res.status(404).json({ error: 'User not found' });
+        const dr = initUserDailyReward(userRec);
+        const today = getTodayDateStr();
+        const yesterday = getYesterdayDateStr();
+        const claimedToday = dr.lastClaimDate === today;
+        
+        let nextStreak = dr.streak || 0;
+        if (!claimedToday) {
+            nextStreak = (dr.lastClaimDate === yesterday) ? (nextStreak % 7) + 1 : 1;
+        }
+
+        res.json({
+            todayDate: today,
+            claimedToday,
+            streak: dr.streak || 0,
+            nextStreak,
+            lastClaimDate: dr.lastClaimDate,
+            schedule: DAILY_REWARDS_SCHEDULE
+        });
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
+app.post('/api/daily-reward/claim', authenticateToken, async (req, res) => {
+    try {
+        const result = await claimDailyRewardHelper(req.user.username);
+        if (result.error) return res.status(400).json({ error: result.error });
+        res.json(result);
+    } catch (e) {
+        res.status(500).json({ error: e.message });
+    }
+});
+
 // Admin route with proper role check
 app.get('/api/admin/players', async (req, res) => {
     try {
@@ -474,6 +1018,8 @@ function broadcastState() {
                 zoneRec: currentZone.recLevel,
                 hp: p.stats.hp, 
                 maxHp: p.stats.maxHp + ((p.equipment && p.equipment.armor && p.equipment.armor.hpBonus) ? p.equipment.armor.hpBonus : 0), 
+                mp: p.stats.mp !== undefined ? p.stats.mp : 100,
+                maxMp: p.stats.maxMp || 100,
                 isGathering: p.isGathering, 
                 isAttacking: p.isAttacking, 
                 dead: p.dead, 
@@ -566,6 +1112,405 @@ const RECIPES = {
     celestial_carapace: { mats: { starfall_crystal: 14, void_shard: 5, astral_wood: 4 }, gold: 110000 }
 };
 
+// =========================================================================
+// WEAPON SKILLS CATALOG (Min 3 skills per weapon category)
+// =========================================================================
+const SKILLS = {
+    sword: [
+        {
+            id: 'whirlwind_cleave',
+            name: 'Whirlwind Cleave',
+            icon: '🌀',
+            manaCost: 30,
+            cooldown: 3.0,
+            dmgMult: 1.8,
+            type: 'aoe_around',
+            radius: 6.5,
+            vfx: 'whirlwind',
+            desc: 'Spin in a 360° circle, striking all nearby enemies for 180% weapon DMG.'
+        },
+        {
+            id: 'valiant_lunge',
+            name: 'Valiant Lunge',
+            icon: '⚔️',
+            manaCost: 45,
+            cooldown: 5.0,
+            dmgMult: 2.4,
+            type: 'dash_strike',
+            radius: 5.0,
+            vfx: 'sword_lunge',
+            desc: 'Dash forward towards target, slashing for 240% weapon DMG and slowing targets.'
+        },
+        {
+            id: 'celestial_swordfall',
+            name: 'Celestial Swordfall',
+            icon: '🗡️',
+            manaCost: 75,
+            cooldown: 10.0,
+            dmgMult: 3.8,
+            type: 'aoe_target',
+            radius: 8.0,
+            vfx: 'swordfall',
+            desc: 'Summon a colossal holy blade dropping from the heavens for 380% AoE DMG.'
+        }
+    ],
+    axe: [
+        {
+            id: 'execute_chop',
+            name: 'Execute Chop',
+            icon: '🪓',
+            manaCost: 28,
+            cooldown: 3.0,
+            dmgMult: 2.1,
+            type: 'target_single',
+            vfx: 'axe_chop',
+            desc: 'Heavy overhead axe chop dealing 210% DMG (2x bonus DMG vs foes under 50% HP).'
+        },
+        {
+            id: 'berserker_tornado',
+            name: 'Berserker Tornado',
+            icon: '🌪️',
+            manaCost: 50,
+            cooldown: 6.0,
+            dmgMult: 2.5,
+            type: 'aoe_around',
+            radius: 7.0,
+            vfx: 'axe_spin',
+            desc: 'Fierce rotating axe storm hitting all enemies for 250% DMG and applying Bleed.'
+        },
+        {
+            id: 'earth_shatter',
+            name: 'Earth Shatter',
+            icon: '🌋',
+            manaCost: 80,
+            cooldown: 12.0,
+            dmgMult: 4.0,
+            type: 'fissure_line',
+            length: 12.0,
+            vfx: 'fissure',
+            desc: 'Slam axe into the earth creating a fiery fissure for 400% DMG.'
+        }
+    ],
+    hammer: [
+        {
+            id: 'armor_crush',
+            name: 'Armor Crush',
+            icon: '🔨',
+            manaCost: 32,
+            cooldown: 4.0,
+            dmgMult: 1.8,
+            type: 'target_single',
+            vfx: 'hammer_smash',
+            desc: 'Smash target dealing 180% DMG and sundering enemy defense by 35%.'
+        },
+        {
+            id: 'seismic_stomp',
+            name: 'Seismic Stomp',
+            icon: '💥',
+            manaCost: 52,
+            cooldown: 7.0,
+            dmgMult: 2.4,
+            type: 'aoe_around',
+            radius: 8.0,
+            vfx: 'seismic_ring',
+            desc: 'Stomp the ground dealing 240% DMG and stunning all nearby mobs.'
+        },
+        {
+            id: 'titan_cataclysm',
+            name: 'Titan Cataclysm',
+            icon: '☄️',
+            manaCost: 85,
+            cooldown: 14.0,
+            dmgMult: 4.2,
+            type: 'aoe_around',
+            radius: 10.0,
+            vfx: 'titan_earthquake',
+            desc: 'Unleash titan shockwaves dealing 420% total DMG over earthquake pulses.'
+        }
+    ],
+    spear: [
+        {
+            id: 'triple_thrust',
+            name: 'Triple Thrust',
+            icon: '🔱',
+            manaCost: 30,
+            cooldown: 3.0,
+            dmgMult: 2.55,
+            type: 'target_single',
+            vfx: 'spear_thrust',
+            desc: 'Rapid 3-stab piercing thrust barrage dealing 255% total damage.'
+        },
+        {
+            id: 'vaulting_impale',
+            name: 'Vaulting Impale',
+            icon: '⚡',
+            manaCost: 48,
+            cooldown: 6.0,
+            dmgMult: 2.7,
+            type: 'dash_strike',
+            radius: 6.0,
+            vfx: 'spear_vault',
+            desc: 'Vault high into the air and impale target area for 270% DMG.'
+        },
+        {
+            id: 'dragon_tempest',
+            name: 'Dragon Tempest',
+            icon: '🐉',
+            manaCost: 78,
+            cooldown: 11.0,
+            dmgMult: 3.8,
+            type: 'aoe_around',
+            radius: 8.5,
+            vfx: 'dragon_hurricane',
+            desc: 'Spin lance at hypersonic speed creating a dragon cyclone pulling targets in.'
+        }
+    ],
+    bow: [
+        {
+            id: 'arrow_volley',
+            name: 'Arrow Volley',
+            icon: '🏹',
+            manaCost: 30,
+            cooldown: 3.0,
+            dmgMult: 2.2,
+            type: 'cone_shot',
+            vfx: 'arrow_cone',
+            desc: 'Fire 5 spreading energy arrows in a wide cone dealing 220% total DMG.'
+        },
+        {
+            id: 'rain_of_arrows',
+            name: 'Rain of Arrows',
+            icon: '🌧️',
+            manaCost: 55,
+            cooldown: 7.0,
+            dmgMult: 3.0,
+            type: 'aoe_target',
+            radius: 8.0,
+            vfx: 'arrow_rain',
+            desc: 'Rain arrow barrage on target location for 300% DMG and 60% slow.'
+        },
+        {
+            id: 'astral_sniper',
+            name: 'Astral Sniper',
+            icon: '🎯',
+            manaCost: 80,
+            cooldown: 10.0,
+            dmgMult: 4.8,
+            type: 'line_beam',
+            length: 25.0,
+            vfx: 'sniper_beam',
+            desc: 'Charge a massive laser arrow piercing enemies across a 25-unit line for 480% DMG.'
+        }
+    ],
+    dagger: [
+        {
+            id: 'poison_slice',
+            name: 'Poison Slice',
+            icon: '🗡️',
+            manaCost: 25,
+            cooldown: 2.5,
+            dmgMult: 1.9,
+            type: 'target_single',
+            vfx: 'dagger_slash',
+            desc: 'Rapid dual shadow slice dealing 190% DMG and applying poison.'
+        },
+        {
+            id: 'shadow_blink',
+            name: 'Shadow Blink',
+            icon: '👤',
+            manaCost: 42,
+            cooldown: 5.0,
+            dmgMult: 2.8,
+            type: 'teleport_backstab',
+            vfx: 'shadow_blink',
+            desc: 'Teleport behind target enemy, delivering 280% critical backstab DMG.'
+        },
+        {
+            id: 'fan_of_daggers',
+            name: 'Fan of Daggers',
+            icon: '✴️',
+            manaCost: 70,
+            cooldown: 9.0,
+            dmgMult: 3.4,
+            type: 'aoe_around',
+            radius: 7.5,
+            vfx: 'fan_daggers',
+            desc: 'Throw 12 shadow blades radially dealing 340% DMG to all surrounding enemies.'
+        }
+    ],
+    staff: [
+        {
+            id: 'fireball_burst',
+            name: 'Fireball Burst',
+            icon: '🔥',
+            manaCost: 35,
+            cooldown: 3.0,
+            dmgMult: 2.3,
+            type: 'aoe_target',
+            radius: 5.0,
+            vfx: 'fireball_blast',
+            desc: 'Hurl an explosive fireball dealing 230% AoE elemental fire DMG.'
+        },
+        {
+            id: 'frost_nova',
+            name: 'Frost Nova',
+            icon: '🧊',
+            manaCost: 58,
+            cooldown: 6.0,
+            dmgMult: 2.6,
+            type: 'aoe_around',
+            radius: 9.0,
+            vfx: 'frost_nova',
+            desc: 'Erupt a freezing ice explosion around caster for 260% DMG and freeze.'
+        },
+        {
+            id: 'meteor_cataclysm',
+            name: 'Meteor Cataclysm',
+            icon: '☄️',
+            manaCost: 90,
+            cooldown: 12.0,
+            dmgMult: 5.2,
+            type: 'aoe_target',
+            radius: 9.0,
+            vfx: 'meteor_impact',
+            desc: 'Call down a colossal flaming meteor dealing 520% destructive AoE DMG.'
+        }
+    ],
+    unarmed: [
+        {
+            id: 'power_palm',
+            name: 'Power Palm',
+            icon: '👊',
+            manaCost: 22,
+            cooldown: 2.0,
+            dmgMult: 1.5,
+            type: 'target_single',
+            vfx: 'palm_strike',
+            desc: 'Focus inner qi into a martial fist strike dealing 150% damage.'
+        },
+        {
+            id: 'inner_renewal',
+            name: 'Inner Renewal',
+            icon: '✨',
+            manaCost: 45,
+            cooldown: 8.0,
+            dmgMult: 0,
+            type: 'self_heal',
+            vfx: 'inner_heal',
+            desc: 'Channel qi to instantly restore 30% Max HP and grant +40 DEF.'
+        },
+        {
+            id: 'dragon_kick',
+            name: 'Dragon Kick',
+            icon: '🐉',
+            manaCost: 65,
+            cooldown: 10.0,
+            dmgMult: 2.7,
+            type: 'dash_strike',
+            radius: 6.0,
+            vfx: 'dragon_kick',
+            desc: 'Flying martial dragon kick dealing 270% DMG and knocking foes back.'
+        }
+    ]
+};
+SKILLS.broadsword = SKILLS.sword;
+
+function processMonsterDeath(mob, mobId, p) {
+    const mobDef = MONSTER_TYPES[mob.type] || { name: mob.type, xp: 30 };
+    const mobZone = mob.zone || (mobDef ? mobDef.zone : 'woodlands');
+    
+    if (mobDef && mobDef.drops) {
+        mobDef.drops.forEach(drop => { 
+            if (Math.random() < drop.chance) { 
+                const lid = 'loot_' + Math.random().toString(36).substr(2, 5); 
+                liveWorld.loot[lid] = { 
+                    id: lid, 
+                    itemId: drop.item, 
+                    x: mob.x + (Math.random() - 0.5) * 2, 
+                    z: mob.z + (Math.random() - 0.5) * 2 
+                }; 
+            } 
+        });
+    }
+
+    const goldGained = Math.floor(Math.random() * (mobDef.gold ? (mobDef.gold[1] - mobDef.gold[0]) : 20)) + (mobDef.gold ? mobDef.gold[0] : 15);
+    const xpGain = mobDef.xp || 30;
+
+    let partyMembers = [p];
+    if (p.partyId) {
+        partyMembers = Object.values(liveWorld.players).filter(x => x.partyId === p.partyId);
+    }
+    const xpPerMember = Math.max(1, Math.floor(xpGain / partyMembers.length));
+
+    if (mob.type === 'void_emperor') {
+        io.emit('notice', `✨👑 [SUPREME COSMIC DEFEAT] Astraeus the Void Emperor was vanquished by ${p.username}! (+${goldGained.toLocaleString()}g, +${xpGain.toLocaleString()} XP)`);
+        io.emit('vfx', { type: 'boss_death', x: mob.x, z: mob.z, isWorldClass: true });
+        updatePlayerQuestProgress(p, 'kill_boss', 1);
+    } else if (mob.type === 'boss_dragon') {
+        io.emit('notice', `👑 [LEGENDARY VICTORY] Ignisrax the Dragon Lord was slain by ${p.username}! (+${goldGained.toLocaleString()}g, +${xpGain.toLocaleString()} XP)`);
+        io.emit('vfx', { type: 'boss_death', x: mob.x, z: mob.z });
+        updatePlayerQuestProgress(p, 'kill_boss', 1);
+    } else if (mob.isMiniBoss) {
+        io.emit('notice', `⚔️ [MINI-BOSS DEFEATED] ${mobDef.name} was slain by ${p.username}! (+${goldGained.toLocaleString()}g)`);
+        updatePlayerQuestProgress(p, 'kill_miniboss', 1);
+    } else {
+        updatePlayerQuestProgress(p, 'kill_any', 1);
+    }
+
+    partyMembers.forEach(member => {
+        member.stats.xp = (member.stats.xp || 0) + xpPerMember;
+        if (member === p) {
+            member.stats.gold += goldGained;
+            member.stats.kills = (member.stats.kills || 0) + 1;
+        }
+        
+        const reqXp = xpForLevel(member.stats.level || 1);
+        const mSocket = io.sockets.sockets.get(member.socketId);
+        
+        if (member.stats.xp >= reqXp) {
+            member.stats.xp -= reqXp;
+            member.stats.level = (member.stats.level || 1) + 1;
+            member.stats.statPoints = (member.stats.statPoints || 0) + 5;
+            member.stats.maxHp += 25;
+            member.stats.maxMp = (member.stats.maxMp || 100) + 20;
+            const armorHp = (member.equipment && member.equipment.armor && member.equipment.armor.hpBonus) ? member.equipment.armor.hpBonus : 0;
+            member.stats.hp = member.stats.maxHp + armorHp;
+            member.stats.mp = member.stats.maxMp;
+            member.stats.baseDamage = (member.stats.baseDamage || 8) + 4;
+            
+            updatePlayerQuestProgress(member, 'reach_level', 1);
+
+            if (mSocket) {
+                mSocket.emit('notice', `⚔️ LEVEL UP! You reached Level ${member.stats.level}! (+5 Stat Points, +25 HP, +20 MP, +4 Base DMG)`);
+                mSocket.emit('combatLog', { msg: `LEVEL UP! Reached Lv.${member.stats.level}`, type: 'lvl_up' });
+            }
+            io.emit('vfx', { type: 'levelup', x: member.stats.pos.x, z: member.stats.pos.z, level: member.stats.level });
+        }
+        if (mSocket) {
+            mSocket.emit('inventory', { stats: member.stats, inventory: member.inventory, equipment: member.equipment });
+        }
+    });
+
+    delete liveWorld.monsters[mobId]; 
+
+    if (mob.type === 'boss_dragon' || mob.type === 'void_emperor') {
+        setTimeout(() => { 
+            spawnWorldBoss(); 
+            broadcastState(); 
+        }, 45000);
+    } else if (mob.isMiniBoss) {
+        setTimeout(() => {
+            spawnMonsterInZone(mobZone, mob.type);
+            broadcastState();
+        }, 25000);
+    } else {
+        setTimeout(() => { 
+            spawnMonsterInZone(mobZone); 
+            broadcastState(); 
+        }, 6000);
+    }
+}
+
 io.on('connection', async (socket) => {
     let userRec = socket.user ? await db.getUser(socket.user.username) : null;
     if (!userRec) {
@@ -577,12 +1522,17 @@ io.on('connection', async (socket) => {
             equipment: { weapon: null, armor: null }
         };
     }
+    userRec.quests = initUserQuests(userRec);
+    userRec.dailyReward = initUserDailyReward(userRec);
+
     const p = { 
         username: userRec.username, 
         role: userRec.role, 
         stats: JSON.parse(JSON.stringify(userRec.stats)), 
         inventory: userRec.inventory || [], 
         equipment: userRec.equipment || { weapon: null, armor: null }, 
+        quests: JSON.parse(JSON.stringify(userRec.quests)),
+        dailyReward: JSON.parse(JSON.stringify(userRec.dailyReward)),
         socketId: socket.id, 
         target: null, 
         isGathering: false, 
@@ -590,12 +1540,39 @@ io.on('connection', async (socket) => {
         dead: false, 
         atkCd: 0 
     };
+    p.stats.mp = p.stats.mp !== undefined ? p.stats.mp : 100;
+    p.stats.maxMp = p.stats.maxMp || 100;
+    p.stats.intelligence = p.stats.intelligence || 1;
     liveWorld.players[socket.id] = p;
     socket.emit('init', { socketId: socket.id, username: p.username, role: p.role });
     if (socket.pendingGuestToken) {
         socket.emit('authSuccess', { token: socket.pendingGuestToken, username: p.username });
     }
     socket.emit('inventory', { stats: p.stats, inventory: p.inventory, equipment: p.equipment });
+    
+    // Initial Quest state & Daily Reward state
+    socket.emit('questsUpdate', buildQuestsResponse(p.quests));
+    
+    const today = getTodayDateStr();
+    const yesterday = getYesterdayDateStr();
+    const claimedToday = p.dailyReward.lastClaimDate === today;
+    let nextStreak = p.dailyReward.streak || 0;
+    if (!claimedToday) {
+        nextStreak = (p.dailyReward.lastClaimDate === yesterday) ? (nextStreak % 7) + 1 : 1;
+    }
+    socket.emit('dailyRewardUpdate', {
+        todayDate: today,
+        claimedToday,
+        streak: p.dailyReward.streak || 0,
+        nextStreak,
+        lastClaimDate: p.dailyReward.lastClaimDate,
+        schedule: DAILY_REWARDS_SCHEDULE
+    });
+
+    if (!claimedToday) {
+        socket.emit('notice', '🎁 Daily Reward Available! Open Daily Reward [D] to claim starting items!');
+    }
+
     broadcastState();
 
     socket.on('move', (pos) => { 
@@ -610,6 +1587,37 @@ io.on('connection', async (socket) => {
         if (!p.dead) {
             io.emit('vfx', { type: 'jump', playerId: socket.id, x: p.stats.pos.x, z: p.stats.pos.z });
         }
+    });
+
+    socket.on('getQuests', () => {
+        socket.emit('questsUpdate', buildQuestsResponse(p.quests));
+    });
+
+    socket.on('claimQuest', async (questId) => {
+        if (!questId) return;
+        await claimQuestReward(p.username, questId);
+    });
+
+    socket.on('getDailyReward', () => {
+        const today = getTodayDateStr();
+        const yesterday = getYesterdayDateStr();
+        const claimedToday = p.dailyReward ? p.dailyReward.lastClaimDate === today : false;
+        let nextStreak = p.dailyReward ? p.dailyReward.streak || 0 : 0;
+        if (!claimedToday) {
+            nextStreak = (p.dailyReward && p.dailyReward.lastClaimDate === yesterday) ? (nextStreak % 7) + 1 : 1;
+        }
+        socket.emit('dailyRewardUpdate', {
+            todayDate: today,
+            claimedToday,
+            streak: p.dailyReward ? p.dailyReward.streak || 0 : 0,
+            nextStreak,
+            lastClaimDate: p.dailyReward ? p.dailyReward.lastClaimDate : '',
+            schedule: DAILY_REWARDS_SCHEDULE
+        });
+    });
+
+    socket.on('claimDailyReward', async () => {
+        await claimDailyRewardHelper(p.username);
     });
 
     socket.on('chatMessage', (data) => {
@@ -654,6 +1662,7 @@ io.on('connection', async (socket) => {
             p.isGathering = false;
             socket.emit('gatheringFinished');
             socket.emit('notice', `⛏️ Gathered 1x ${itemDef.name} (Tier ${itemDef.tier || 2})!`);
+            updatePlayerQuestProgress(p, (node.type === 'tree' ? 'gather_wood' : 'gather_ore'), 1);
             socket.emit('inventory', { stats: p.stats, inventory: p.inventory, equipment: p.equipment });
             broadcastState();
             setTimeout(() => { 
@@ -688,94 +1697,147 @@ io.on('connection', async (socket) => {
             io.emit('vfx', { type: 'damage', x: mob.x, z: mob.z, amount: totalDmg, weaponType: wepType });
 
             if (mob.hp <= 0) {
-                const mobDef = MONSTER_TYPES[mob.type];
-                const mobZone = mob.zone || (mobDef ? mobDef.zone : 'woodlands');
-                
-                if (mobDef && mobDef.drops) {
-                    mobDef.drops.forEach(drop => { 
-                        if (Math.random() < drop.chance) { 
-                            const lid = 'loot_' + Math.random().toString(36).substr(2, 5); 
-                            liveWorld.loot[lid] = { 
-                                id: lid, 
-                                itemId: drop.item, 
-                                x: mob.x + (Math.random() - 0.5) * 2, 
-                                z: mob.z + (Math.random() - 0.5) * 2 
-                            }; 
-                        } 
-                    });
-                }
-
-                const goldGained = Math.floor(Math.random() * (mobDef.gold ? (mobDef.gold[1] - mobDef.gold[0]) : 20)) + (mobDef.gold ? mobDef.gold[0] : 15);
-                const xpGain = mobDef.xp || 30;
-
-                // Shared Party Experience
-                let partyMembers = [p];
-                if (p.partyId) {
-                    partyMembers = Object.values(liveWorld.players).filter(x => x.partyId === p.partyId);
-                }
-                const xpPerMember = Math.max(1, Math.floor(xpGain / partyMembers.length));
-
-                if (mob.type === 'void_emperor') {
-                    io.emit('notice', `✨👑 [SUPREME COSMIC DEFEAT] Astraeus the Void Emperor was vanquished by ${p.username}! (+${goldGained.toLocaleString()}g, +${xpGain.toLocaleString()} XP)`);
-                    io.emit('vfx', { type: 'boss_death', x: mob.x, z: mob.z, isWorldClass: true });
-                } else if (mob.type === 'boss_dragon') {
-                    io.emit('notice', `👑 [LEGENDARY VICTORY] Ignisrax the Dragon Lord was slain by ${p.username}! (+${goldGained.toLocaleString()}g, +${xpGain.toLocaleString()} XP)`);
-                    io.emit('vfx', { type: 'boss_death', x: mob.x, z: mob.z });
-                } else if (mob.isMiniBoss) {
-                    io.emit('notice', `⚔️ [MINI-BOSS DEFEATED] ${mobDef.name} was slain by ${p.username}! (+${goldGained.toLocaleString()}g)`);
-                }
-
-                partyMembers.forEach(member => {
-                    member.stats.xp = (member.stats.xp || 0) + xpPerMember;
-                    if (member === p) {
-                        member.stats.gold += goldGained; // Killer gets gold
-                        member.stats.kills = (member.stats.kills || 0) + 1;
-                    }
-                    
-                    const reqXp = xpForLevel(member.stats.level || 1);
-                    const mSocket = io.sockets.sockets.get(member.socketId);
-                    
-                    if (member.stats.xp >= reqXp) {
-                        member.stats.xp -= reqXp;
-                        member.stats.level = (member.stats.level || 1) + 1;
-                        member.stats.statPoints = (member.stats.statPoints || 0) + 5;
-                        member.stats.maxHp += 25;
-                        const armorHp = (member.equipment && member.equipment.armor && member.equipment.armor.hpBonus) ? member.equipment.armor.hpBonus : 0;
-                        member.stats.hp = member.stats.maxHp + armorHp;
-                        member.stats.baseDamage = (member.stats.baseDamage || 8) + 4;
-                        
-                        if (mSocket) {
-                            mSocket.emit('notice', `⚔️ LEVEL UP! You reached Level ${member.stats.level}! (+5 Stat Points, +25 HP, +4 Base DMG)`);
-                            mSocket.emit('combatLog', { msg: `LEVEL UP! Reached Lv.${member.stats.level}`, type: 'lvl_up' });
-                        }
-                        io.emit('vfx', { type: 'levelup', x: member.stats.pos.x, z: member.stats.pos.z, level: member.stats.level });
-                    }
-                    if (mSocket) {
-                        mSocket.emit('inventory', { stats: member.stats, inventory: member.inventory, equipment: member.equipment });
-                    }
-                });
-
-                delete liveWorld.monsters[mobId]; 
-
-                if (mob.type === 'boss_dragon' || mob.type === 'void_emperor') {
-                    setTimeout(() => { 
-                        spawnWorldBoss(); 
-                        broadcastState(); 
-                    }, 45000);
-                } else if (mob.isMiniBoss) {
-                    setTimeout(() => {
-                        spawnMonsterInZone(mobZone, mob.type);
-                        broadcastState();
-                    }, 25000);
-                } else {
-                    setTimeout(() => { 
-                        spawnMonsterInZone(mobZone); 
-                        broadcastState(); 
-                    }, 6000);
-                }
+                processMonsterDeath(mob, mobId, p);
             }
             setTimeout(() => { p.isAttacking = false; }, 350);
         }
+    });
+
+    socket.on('useSkill', (data) => {
+        const skillIndex = data && (data.skillIndex || data.slot) ? Number(data.skillIndex || data.slot) : 1;
+        if (!p || p.dead) return;
+
+        p.stats.mp = p.stats.mp !== undefined ? p.stats.mp : 100;
+        p.stats.maxMp = p.stats.maxMp || 100;
+        p.stats.intelligence = p.stats.intelligence || 1;
+
+        const wep = p.equipment && p.equipment.weapon;
+        const wepType = wep ? wep.weaponType : 'unarmed';
+        const skillList = SKILLS[wepType] || SKILLS['unarmed'];
+        const skill = skillList[skillIndex - 1];
+
+        if (!skill) return socket.emit('notice', '❌ Skill not found.');
+
+        if (p.stats.mp < skill.manaCost) {
+            return socket.emit('notice', `❌ Not enough Mana! Need ${skill.manaCost} MP (Current: ${Math.floor(p.stats.mp)} MP)`);
+        }
+
+        p.skillCds = p.skillCds || {};
+        const now = Date.now();
+        if (p.skillCds[skillIndex] && now < p.skillCds[skillIndex]) {
+            const remainingSec = ((p.skillCds[skillIndex] - now) / 1000).toFixed(1);
+            return socket.emit('notice', `⏳ ${skill.name} is on cooldown (${remainingSec}s)`);
+        }
+
+        // Deduct MP & set Cooldown
+        p.stats.mp = Math.max(0, p.stats.mp - skill.manaCost);
+        p.skillCds[skillIndex] = now + (skill.cooldown * 1000);
+        socket.emit('skill_cooldown', { slot: skillIndex, duration: skill.cooldown });
+
+        // Calculate base damage & Intelligence multiplier (+5% per INT point)
+        const baseWeaponDmg = wep ? wep.dmg : 5;
+        const armorDmg = (p.equipment && p.equipment.armor && p.equipment.armor.dmgBonus) ? p.equipment.armor.dmgBonus : 0;
+        const totalBaseDmg = p.stats.baseDamage + baseWeaponDmg + armorDmg;
+        const intMult = 1 + ((p.stats.intelligence || 1) - 1) * 0.05;
+        const finalSkillDmg = Math.floor(totalBaseDmg * (skill.dmgMult || 1) * intMult);
+
+        // Find targeted mob or closest mob
+        let targetMob = null;
+        if (data.targetMobId && liveWorld.monsters[data.targetMobId]) {
+            targetMob = liveWorld.monsters[data.targetMobId];
+        } else {
+            let closestDist = 12;
+            Object.values(liveWorld.monsters).forEach(m => {
+                const d = Math.hypot(m.x - p.stats.pos.x, m.z - p.stats.pos.z);
+                if (d < closestDist) {
+                    closestDist = d;
+                    targetMob = m;
+                }
+            });
+        }
+
+        const px = p.stats.pos.x, pz = p.stats.pos.z;
+        const clientFacingAngle = (data && data.facingAngle !== undefined) ? Number(data.facingAngle) : null;
+
+        if (skill.type === 'self_heal') {
+            const effectiveMaxHp = p.stats.maxHp + ((p.equipment && p.equipment.armor && p.equipment.armor.hpBonus) ? p.equipment.armor.hpBonus : 0);
+            const healAmt = Math.floor(effectiveMaxHp * 0.3);
+            p.stats.hp = Math.min(effectiveMaxHp, p.stats.hp + healAmt);
+            socket.emit('combatLog', { msg: `✨ ${skill.name} restored +${healAmt} HP!`, type: 'lvl_up' });
+            io.emit('vfx', { type: 'skill_vfx', skillId: skill.id, skillName: skill.name, vfx: skill.vfx, x: px, z: pz, fromX: px, fromZ: pz, playerId: socket.id });
+        } else {
+            let hitMobs = [];
+            let tx, tz, angle;
+
+            if (targetMob) {
+                tx = targetMob.x;
+                tz = targetMob.z;
+                angle = Math.atan2(tz - pz, tx - px);
+            } else if (data && data.targetPos) {
+                tx = data.targetPos.x;
+                tz = data.targetPos.z;
+                angle = Math.atan2(tz - pz, tx - px);
+            } else {
+                angle = clientFacingAngle !== null ? clientFacingAngle : (p.rot || 0);
+                const reach = skill.length || skill.range || 8;
+                tx = px + Math.cos(angle) * reach;
+                tz = pz + Math.sin(angle) * reach;
+            }
+
+            if (skill.type === 'aoe_around') {
+                const rad = skill.radius || 7;
+                Object.values(liveWorld.monsters).forEach((m) => {
+                    if (Math.hypot(m.x - px, m.z - pz) <= rad) hitMobs.push(m);
+                });
+                io.emit('vfx', { type: 'skill_vfx', skillId: skill.id, skillName: skill.name, vfx: skill.vfx, x: px, z: pz, fromX: px, fromZ: pz, angle: angle, radius: rad, playerId: socket.id });
+            } else if (skill.type === 'aoe_target' || skill.type === 'dash_strike') {
+                if (skill.type === 'dash_strike') {
+                    p.stats.pos.x = tx;
+                    p.stats.pos.z = tz;
+                }
+                const rad = skill.radius || 6;
+                Object.values(liveWorld.monsters).forEach((m) => {
+                    if (Math.hypot(m.x - tx, m.z - tz) <= rad) hitMobs.push(m);
+                });
+                io.emit('vfx', { type: 'skill_vfx', skillId: skill.id, skillName: skill.name, vfx: skill.vfx, x: tx, z: tz, fromX: px, fromZ: pz, angle: angle, radius: rad, playerId: socket.id });
+            } else if (skill.type === 'fissure_line' || skill.type === 'line_beam') {
+                const len = skill.length || 15;
+                Object.values(liveWorld.monsters).forEach((m) => {
+                    const distToLine = Math.hypot(m.x - px, m.z - pz);
+                    if (distToLine <= len) {
+                        const mAngle = Math.atan2(m.z - pz, m.x - px);
+                        let diff = Math.abs(angle - mAngle);
+                        if (diff > Math.PI) diff = 2 * Math.PI - diff;
+                        if (diff < 0.45) hitMobs.push(m);
+                    }
+                });
+                io.emit('vfx', { type: 'skill_vfx', skillId: skill.id, skillName: skill.name, vfx: skill.vfx, x: tx, z: tz, fromX: px, fromZ: pz, angle: angle, length: len, playerId: socket.id });
+            } else {
+                if (targetMob && Math.hypot(targetMob.x - px, targetMob.z - pz) <= (wep ? (wep.range || 6) + 4 : 8)) {
+                    hitMobs.push(targetMob);
+                }
+                io.emit('vfx', { type: 'skill_vfx', skillId: skill.id, skillName: skill.name, vfx: skill.vfx, x: tx, z: tz, fromX: px, fromZ: pz, angle: angle, playerId: socket.id });
+            }
+
+            hitMobs.forEach((m) => {
+                let dmgToDeal = finalSkillDmg;
+                if (skill.id === 'execute_chop' && (m.hp / (MONSTER_TYPES[m.type]?.hp || 100)) < 0.5) {
+                    dmgToDeal = Math.floor(dmgToDeal * 1.8);
+                }
+                m.hp -= dmgToDeal;
+                m.lastHit = Date.now();
+
+                socket.emit('combatLog', { msg: `💥 ${skill.name} hit ${MONSTER_TYPES[m.type]?.name || m.type} for ${dmgToDeal} DMG!`, type: 'dmg_out' });
+                io.emit('vfx', { type: 'damage', x: m.x, z: m.z, amount: dmgToDeal, weaponType: wepType });
+
+                if (m.hp <= 0) {
+                    processMonsterDeath(m, m.id || targetMob?.id, p);
+                }
+            });
+        }
+
+        socket.emit('inventory', { stats: p.stats, inventory: p.inventory, equipment: p.equipment });
+        broadcastState();
     });
 
     socket.on('lootItem', (lid) => {
@@ -827,6 +1889,7 @@ io.on('connection', async (socket) => {
         p.stats.gold -= recipe.gold;
         p.inventory.push({ ...targetItem, itemId, uid: Date.now().toString() });
         socket.emit('notice', `✨ Successfully forged ${targetItem.name}!`);
+        updatePlayerQuestProgress(p, 'craft_item', 1);
         socket.emit('inventory', { stats: p.stats, inventory: p.inventory, equipment: p.equipment });
         broadcastState();
     });
@@ -927,6 +1990,7 @@ io.on('connection', async (socket) => {
         p.stats.vitality = p.stats.vitality || 1;
         p.stats.agility = p.stats.agility || 1;
         p.stats.defense = p.stats.defense || 1;
+        p.stats.intelligence = p.stats.intelligence || 1;
 
         if (statName === 'strength') {
             p.stats.strength++;
@@ -939,6 +2003,10 @@ io.on('connection', async (socket) => {
             p.stats.agility++;
         } else if (statName === 'defense') {
             p.stats.defense++;
+        } else if (statName === 'intelligence') {
+            p.stats.intelligence++;
+            p.stats.maxMp = (p.stats.maxMp || 100) + 15;
+            p.stats.mp = (p.stats.mp || 100) + 15;
         } else {
             return;
         }
@@ -1013,13 +2081,26 @@ io.on('connection', async (socket) => {
                 });
             }
         }
-        await db.saveUser(p.username, { stats: p.stats, inventory: p.inventory, equipment: p.equipment }); 
+        await db.saveUser(p.username, { 
+            stats: p.stats, 
+            inventory: p.inventory, 
+            equipment: p.equipment,
+            quests: p.quests,
+            dailyReward: p.dailyReward
+        }); 
         delete liveWorld.players[socket.id]; 
     });
 });
 
 setInterval(() => {
     Object.values(liveWorld.players).forEach(p => { 
+        if (!p.dead) {
+            p.stats.mp = p.stats.mp !== undefined ? p.stats.mp : 100;
+            p.stats.maxMp = p.stats.maxMp || 100;
+            if (p.stats.mp < p.stats.maxMp) {
+                p.stats.mp = Math.min(p.stats.maxMp, p.stats.mp + 0.5);
+            }
+        }
         if (!p.target || p.dead) return; 
         const dx = p.target.x - p.stats.pos.x, dz = p.target.z - p.stats.pos.z, dist = Math.hypot(dx, dz); 
         if (dist > 0.4) { 
