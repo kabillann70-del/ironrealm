@@ -3113,7 +3113,7 @@
       ctx.save();
       ctx.translate(center, center);
       const rotY = meshes.players[myId].rotation.y;
-      ctx.rotate(rotY);
+      ctx.rotate(-rotY);
 
       // Vision field cone
       const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, 45);
@@ -3866,6 +3866,8 @@
       if (key === 'b') toggleBag();
       if (key === 'p') toggleShop();
       if (key === 'm') toggleExpandMap();
+      if (key === 'q') cameraDistance = Math.min(55, cameraDistance + 3);
+      if (key === 'e') cameraDistance = Math.max(10, cameraDistance - 3);
 
       // WASD Directional Walking
       if (['w', 'a', 's', 'd'].includes(key) && myId && meshes.players[myId]) {
@@ -3879,7 +3881,26 @@
       }
     });
 
+    let isRightMouseDown = false;
+    let lastMouseX = 0, lastMouseY = 0;
+    let cameraAngleYaw = 0;
+    let cameraAnglePitch = 0.6;
+    let cameraDistance = 28;
+
+    window.addEventListener('contextmenu', (e) => {
+      if (e.target.tagName === 'CANVAS' || e.target === document.body) {
+        e.preventDefault();
+      }
+    });
+
     window.addEventListener('mousedown', (e) => {
+      if (e.button === 2) {
+        isRightMouseDown = true;
+        lastMouseX = e.clientX;
+        lastMouseY = e.clientY;
+        e.preventDefault();
+        return;
+      }
       if (e.target !== document.body && e.target.tagName !== 'CANVAS') return;
       if (e.target.closest('#minimap-container, #ui-top, #hotbar, #inv-ui, #shop-ui, #controls-hint, #chat-panel')) return;
 
@@ -3912,6 +3933,24 @@
       if (gHit[0]) {
         socket.emit('move', { x: gHit[0].point.x, z: gHit[0].point.z });
         triggerClickRipple(gHit[0].point.x, gHit[0].point.z);
+      }
+    });
+
+    window.addEventListener('mouseup', (e) => {
+      if (e.button === 2) {
+        isRightMouseDown = false;
+      }
+    });
+
+    window.addEventListener('mousemove', (e) => {
+      if (isRightMouseDown) {
+        const dx = e.clientX - lastMouseX;
+        const dy = e.clientY - lastMouseY;
+        lastMouseX = e.clientX;
+        lastMouseY = e.clientY;
+
+        cameraAngleYaw -= dx * 0.005;
+        cameraAnglePitch = Math.max(0.15, Math.min(1.4, cameraAnglePitch + dy * 0.005));
       }
     });
 
@@ -4111,11 +4150,15 @@
         }
       });
 
-      // Smooth 3rd-Person Camera Follow on local player
+      // Smooth 3rd-Person Camera Follow & Orbit on local player
       if (myId && meshes.players[myId]) {
         const p = meshes.players[myId].position;
-        const targetCam = new THREE.Vector3(p.x, p.y + 32, p.z + 24);
-        camera.position.lerp(targetCam, 0.1);
+        const offsetX = Math.sin(cameraAngleYaw) * cameraDistance * Math.cos(cameraAnglePitch);
+        const offsetZ = Math.cos(cameraAngleYaw) * cameraDistance * Math.cos(cameraAnglePitch);
+        const offsetY = Math.sin(cameraAnglePitch) * cameraDistance + 2;
+
+        const targetCam = new THREE.Vector3(p.x + offsetX, p.y + offsetY, p.z + offsetZ);
+        camera.position.lerp(targetCam, 0.15);
         camera.lookAt(p.x, p.y + 1.2, p.z);
       }
 
@@ -4154,8 +4197,9 @@
       const text = input.value.trim();
       if (!text) return;
       if (socket) {
-        socket.emit('chat', { text, tab: currentChatTab });
+        socket.emit('chatMessage', { text, channel: currentChatTab });
       }
+      handleIncomingChatMessage({ username: 'You', text });
       input.value = '';
     }
 
