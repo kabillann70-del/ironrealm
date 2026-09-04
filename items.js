@@ -40,10 +40,10 @@ const ITEMS = {
     // =========================================================================
     // TIER 2 (NOVICE) - Level Rec: 1 - 10
     // =========================================================================
-    wood_sword: { name: 'Novice Broadsword', tier: 2, type: 'weapon', weaponType: 'sword', category: 'warrior', dmg: 10, range: 6, sellValue: 90, price: 550, desc: 'T2 Novice blade carved for aspiring warriors.' },
-    novice_axe: { name: 'Novice Battleaxe', tier: 2, type: 'weapon', toolType: 'tree', weaponType: 'axe', category: 'warrior', dmg: 8, range: 6, sellValue: 80, price: 480, desc: 'T2 Dual-purpose woodsman axe.' },
-    novice_bow: { name: 'Novice Recurve Bow', tier: 2, type: 'weapon', weaponType: 'bow', category: 'hunter', dmg: 9, range: 15, projectile: 'arrow', sellValue: 95, price: 580, desc: 'T2 Flexible yew bow for hunters.' },
-    novice_fire_staff: { name: 'Novice Fire Staff', tier: 2, type: 'weapon', weaponType: 'staff', category: 'mage', dmg: 11, range: 14, projectile: 'fireball', sellValue: 110, price: 620, desc: 'T2 Wooden focus staff channeling ember sparks.' },
+    wood_sword: { name: 'Novice Broadsword', tier: 2, type: 'weapon', weaponType: 'sword', category: 'warrior', dmg: 10, range: 4, sellValue: 90, price: 550, desc: 'T2 Novice blade carved for aspiring warriors.' },
+    novice_axe: { name: 'Novice Battleaxe', tier: 2, type: 'weapon', toolType: 'tree', weaponType: 'axe', category: 'warrior', dmg: 8, range: 4, sellValue: 80, price: 480, desc: 'T2 Dual-purpose woodsman axe.' },
+    novice_bow: { name: 'Novice Recurve Bow', tier: 2, type: 'weapon', weaponType: 'bow', category: 'hunter', dmg: 9, range: 20, projectile: 'arrow', sellValue: 95, price: 580, desc: 'T2 Flexible yew bow for hunters.' },
+    novice_fire_staff: { name: 'Novice Fire Staff', tier: 2, type: 'weapon', weaponType: 'staff', category: 'mage', dmg: 11, range: 20, projectile: 'fireball', sellValue: 110, price: 620, desc: 'T2 Wooden focus staff channeling ember sparks.' },
     novice_robe: { name: 'Novice Scholar Robe', tier: 2, type: 'armor', armorType: 'cloth', category: 'mage', defense: 3, hpBonus: 25, dmgBonus: 3, sellValue: 85, price: 500, desc: 'T2 Light cloth robe with mana focus.' },
     leather_armor: { name: 'Novice Hunter Jacket', tier: 2, type: 'armor', armorType: 'leather', category: 'hunter', defense: 6, hpBonus: 40, sellValue: 105, price: 600, desc: 'T2 Boiled leather armor with mobility.' },
     novice_plate: { name: 'Novice Soldier Armor', tier: 2, type: 'armor', armorType: 'iron', category: 'warrior', defense: 9, hpBonus: 65, sellValue: 130, price: 750, desc: 'T2 Basic cast-iron knight cuirass.' },
@@ -51,10 +51,10 @@ const ITEMS = {
     // =========================================================================
     // TIER 3 (JOURNEYMAN) - Level Rec: 11 - 22
     // =========================================================================
-    journeyman_claymore: { name: 'Journeyman Claymore', tier: 3, type: 'weapon', weaponType: 'broadsword', category: 'warrior', dmg: 18, range: 6, sellValue: 380, price: 2500, desc: 'T3 Two-handed steel claymore.' },
-    journeyman_warbow: { name: 'Journeyman Warbow', tier: 3, type: 'weapon', weaponType: 'bow', category: 'hunter', dmg: 16, range: 16, projectile: 'arrow', sellValue: 400, price: 2600, desc: 'T3 Reinforced recurve warbow.' },
-    journeyman_frost_staff: { name: 'Journeyman Frost Staff', tier: 3, type: 'weapon', weaponType: 'staff', category: 'mage', dmg: 20, range: 15, projectile: 'frost_bolt', sellValue: 440, price: 2850, desc: 'T3 Staff tipped with chilling frost orbs.' },
-    journeyman_hammer: { name: 'Journeyman War Hammer', tier: 3, type: 'weapon', weaponType: 'hammer', category: 'warrior', dmg: 22, range: 6, sellValue: 420, price: 2700, desc: 'T3 Heavy iron bludgeon for armor breaking.' },
+    journeyman_claymore: { name: 'Journeyman Claymore', tier: 3, type: 'weapon', weaponType: 'broadsword', category: 'warrior', dmg: 18, range: 5, sellValue: 380, price: 2500, desc: 'T3 Two-handed steel claymore.' },
+    journeyman_warbow: { name: 'Journeyman Warbow', tier: 3, type: 'weapon', weaponType: 'bow', category: 'hunter', dmg: 16, range: 21, projectile: 'arrow', sellValue: 400, price: 2600, desc: 'T3 Reinforced recurve warbow.' },
+    journeyman_frost_staff: { name: 'Journeyman Frost Staff', tier: 3, type: 'weapon', weaponType: 'staff', category: 'mage', dmg: 20, range: 21, projectile: 'frost_bolt', sellValue: 440, price: 2850, desc: 'T3 Staff tipped with chilling frost orbs.' },
+    journeyman_hammer: { name: 'Journeyman War Hammer', tier: 3, type: 'weapon', weaponType: 'hammer', category: 'warrior', dmg: 22, range: 5, sellValue: 420, price: 2700, desc: 'T3 Heavy iron bludgeon for armor breaking.' },
     journeyman_robe: { name: 'Journeyman Cleric Robe', tier: 3, type: 'armor', armorType: 'cloth', category: 'mage', defense: 6, hpBonus: 55, dmgBonus: 6, sellValue: 350, price: 2200, desc: 'T3 Blessed woven silk vestment.' },
     journeyman_leather: { name: 'Journeyman Scout Garb', tier: 3, type: 'armor', armorType: 'leather', category: 'hunter', defense: 12, hpBonus: 80, sellValue: 400, price: 2550, desc: 'T3 Supple treated leather vest.' },
     journeyman_plate: { name: 'Journeyman Knight Mail', tier: 3, type: 'armor', armorType: 'iron', category: 'warrior', defense: 18, hpBonus: 120, sellValue: 500, price: 3200, desc: 'T3 Tempered steel chest harness.' },
@@ -62,11 +62,11 @@ const ITEMS = {
     // =========================================================================
     // TIER 4 (ADEPT) - Level Rec: 23 - 35
     // =========================================================================
-    steel_broadsword: { name: 'Adept Broadsword', tier: 4, type: 'weapon', weaponType: 'broadsword', category: 'warrior', dmg: 28, range: 6, sellValue: 1200, price: 8500, desc: 'T4 Polished rune-etched steel broadsword.' },
-    adept_longbow: { name: 'Adept Longbow', tier: 4, type: 'weapon', weaponType: 'bow', category: 'hunter', dmg: 26, range: 17, projectile: 'arrow', sellValue: 1300, price: 9200, desc: 'T4 High-tension longbow piercing distant foes.' },
-    adept_cursed_staff: { name: 'Adept Cursed Staff', tier: 4, type: 'weapon', weaponType: 'staff', category: 'mage', dmg: 32, range: 15, projectile: 'arcane_bolt', sellValue: 1450, price: 10500, desc: 'T4 Darkwood staff harboring ethereal souls.' },
-    adept_dagger: { name: 'Adept Dual Daggers', tier: 4, type: 'weapon', weaponType: 'dagger', category: 'hunter', dmg: 25, range: 5, sellValue: 1150, price: 8200, desc: 'T4 Twin keen assassin daggers.' },
-    adept_pike: { name: 'Adept Pike', tier: 4, type: 'weapon', weaponType: 'spear', category: 'warrior', dmg: 27, range: 7, sellValue: 1250, price: 8900, desc: 'T4 Long reach thrusting lance.' },
+    steel_broadsword: { name: 'Adept Broadsword', tier: 4, type: 'weapon', weaponType: 'broadsword', category: 'warrior', dmg: 28, range: 5, sellValue: 1200, price: 8500, desc: 'T4 Polished rune-etched steel broadsword.' },
+    adept_longbow: { name: 'Adept Longbow', tier: 4, type: 'weapon', weaponType: 'bow', category: 'hunter', dmg: 26, range: 22, projectile: 'arrow', sellValue: 1300, price: 9200, desc: 'T4 High-tension longbow piercing distant foes.' },
+    adept_cursed_staff: { name: 'Adept Cursed Staff', tier: 4, type: 'weapon', weaponType: 'staff', category: 'mage', dmg: 32, range: 22, projectile: 'arcane_bolt', sellValue: 1450, price: 10500, desc: 'T4 Darkwood staff harboring ethereal souls.' },
+    adept_dagger: { name: 'Adept Dual Daggers', tier: 4, type: 'weapon', weaponType: 'dagger', category: 'hunter', dmg: 25, range: 4, sellValue: 1150, price: 8200, desc: 'T4 Twin keen assassin daggers.' },
+    adept_pike: { name: 'Adept Pike', tier: 4, type: 'weapon', weaponType: 'spear', category: 'warrior', dmg: 27, range: 6, sellValue: 1250, price: 8900, desc: 'T4 Long reach thrusting lance.' },
     adept_mage_robe: { name: 'Adept Pyromancer Robe', tier: 4, type: 'armor', armorType: 'cloth', category: 'mage', defense: 10, hpBonus: 95, dmgBonus: 10, sellValue: 1100, price: 7800, desc: 'T4 Robes infused with spell-weaving gems.' },
     adept_assassin_jacket: { name: 'Adept Assassin Jacket', tier: 4, type: 'armor', armorType: 'leather', category: 'hunter', defense: 18, hpBonus: 135, sellValue: 1350, price: 9500, desc: 'T4 Studded stealth tunic with dark clasps.' },
     iron_plate: { name: 'Adept Guardian Plate', tier: 4, type: 'armor', armorType: 'iron', category: 'warrior', defense: 26, hpBonus: 190, sellValue: 1700, price: 12000, desc: 'T4 Heavy fortress plate mail with gold crest.' },
@@ -74,11 +74,11 @@ const ITEMS = {
     // =========================================================================
     // TIER 5 (EXPERT) - Level Rec: 36 - 48
     // =========================================================================
-    flame_dagger: { name: 'Expert Flame Dagger', tier: 5, type: 'weapon', weaponType: 'dagger', category: 'hunter', dmg: 38, range: 5, sellValue: 4200, price: 28000, desc: 'T5 Obsidian stiletto burning with hellfire.' },
-    expert_whispering_bow: { name: 'Expert Whispering Bow', tier: 5, type: 'weapon', weaponType: 'bow', category: 'hunter', dmg: 40, range: 18, projectile: 'energy_arrow', sellValue: 4500, price: 30000, desc: 'T5 Ethereal bow whispered by woodland spirits.' },
-    expert_infernal_staff: { name: 'Expert Infernal Staff', tier: 5, type: 'weapon', weaponType: 'staff', category: 'mage', dmg: 46, range: 16, projectile: 'fireball', sellValue: 5000, price: 34000, desc: 'T5 Demon-crested staff unleashing magma fury.' },
-    battle_hammer: { name: 'Expert Earthbreaker', tier: 5, type: 'weapon', weaponType: 'hammer', category: 'warrior', dmg: 48, range: 6, sellValue: 4800, price: 32000, desc: 'T5 Colossal hammer shattering ground & shields.' },
-    crystal_spear: { name: 'Expert Frost Pike', tier: 5, type: 'weapon', weaponType: 'spear', category: 'warrior', dmg: 44, range: 7, sellValue: 4600, price: 31000, desc: 'T5 Subzero crystal lance freezing blood.' },
+    flame_dagger: { name: 'Expert Flame Dagger', tier: 5, type: 'weapon', weaponType: 'dagger', category: 'hunter', dmg: 38, range: 4, sellValue: 4200, price: 28000, desc: 'T5 Obsidian stiletto burning with hellfire.' },
+    expert_whispering_bow: { name: 'Expert Whispering Bow', tier: 5, type: 'weapon', weaponType: 'bow', category: 'hunter', dmg: 40, range: 23, projectile: 'energy_arrow', sellValue: 4500, price: 30000, desc: 'T5 Ethereal bow whispered by woodland spirits.' },
+    expert_infernal_staff: { name: 'Expert Infernal Staff', tier: 5, type: 'weapon', weaponType: 'staff', category: 'mage', dmg: 46, range: 23, projectile: 'fireball', sellValue: 5000, price: 34000, desc: 'T5 Demon-crested staff unleashing magma fury.' },
+    battle_hammer: { name: 'Expert Earthbreaker', tier: 5, type: 'weapon', weaponType: 'hammer', category: 'warrior', dmg: 48, range: 5, sellValue: 4800, price: 32000, desc: 'T5 Colossal hammer shattering ground & shields.' },
+    crystal_spear: { name: 'Expert Frost Pike', tier: 5, type: 'weapon', weaponType: 'spear', category: 'warrior', dmg: 44, range: 6, sellValue: 4600, price: 31000, desc: 'T5 Subzero crystal lance freezing blood.' },
     expert_royal_robe: { name: 'Expert Royal Robe', tier: 5, type: 'armor', armorType: 'cloth', category: 'mage', defense: 15, hpBonus: 150, dmgBonus: 16, sellValue: 3800, price: 26000, desc: 'T5 Gilded archmage robe boosting raw sorcery.' },
     expert_stalker_leather: { name: 'Expert Stalker Leather', tier: 5, type: 'armor', armorType: 'leather', category: 'hunter', defense: 26, hpBonus: 210, sellValue: 4400, price: 30000, desc: 'T5 Dragon-scale reinforced leather tunic.' },
     demon_carapace: { name: 'Expert Demon Carapace', tier: 5, type: 'armor', armorType: 'demon', category: 'warrior', defense: 38, hpBonus: 300, sellValue: 5500, price: 38000, desc: 'T5 Abyssal bone plate pulsing brimstone heat.' },
@@ -86,10 +86,10 @@ const ITEMS = {
     // =========================================================================
     // TIER 6 (MASTER & WORLD BOSS RELICS) - Level Rec: 50+
     // =========================================================================
-    master_relic_blade: { name: 'Master Relic Greatsword', tier: 6, type: 'weapon', weaponType: 'broadsword', category: 'warrior', dmg: 62, range: 6, sellValue: 14000, price: 95000, desc: 'T6 Ancient kingdom relic radiating golden power.' },
-    master_bow_of_shadows: { name: 'Master Bow of Shadows', tier: 6, type: 'weapon', weaponType: 'bow', category: 'hunter', dmg: 58, range: 19, projectile: 'shadow_arrow', sellValue: 15000, price: 102000, desc: 'T6 Dark composite bow firing shadow bolts.' },
-    master_archmage_staff: { name: 'Master Archmage Staff', tier: 6, type: 'weapon', weaponType: 'staff', category: 'mage', dmg: 68, range: 17, projectile: 'arcane_orb', sellValue: 17000, price: 115000, desc: 'T6 Orbiting celestial gem channeling cosmic blast.' },
-    master_abyssal_hammer: { name: 'Master Abyssal Hammer', tier: 6, type: 'weapon', weaponType: 'hammer', category: 'warrior', dmg: 72, range: 6, sellValue: 16000, price: 108000, desc: 'T6 Cataclysmic obsidian war hammer.' },
+    master_relic_blade: { name: 'Master Relic Greatsword', tier: 6, type: 'weapon', weaponType: 'broadsword', category: 'warrior', dmg: 62, range: 5, sellValue: 14000, price: 95000, desc: 'T6 Ancient kingdom relic radiating golden power.' },
+    master_bow_of_shadows: { name: 'Master Bow of Shadows', tier: 6, type: 'weapon', weaponType: 'bow', category: 'hunter', dmg: 58, range: 24, projectile: 'shadow_arrow', sellValue: 15000, price: 102000, desc: 'T6 Dark composite bow firing shadow bolts.' },
+    master_archmage_staff: { name: 'Master Archmage Staff', tier: 6, type: 'weapon', weaponType: 'staff', category: 'mage', dmg: 68, range: 24, projectile: 'arcane_orb', sellValue: 17000, price: 115000, desc: 'T6 Orbiting celestial gem channeling cosmic blast.' },
+    master_abyssal_hammer: { name: 'Master Abyssal Hammer', tier: 6, type: 'weapon', weaponType: 'hammer', category: 'warrior', dmg: 72, range: 5, sellValue: 16000, price: 108000, desc: 'T6 Cataclysmic obsidian war hammer.' },
     master_archmage_vestment: { name: 'Master Archmage Vestment', tier: 6, type: 'armor', armorType: 'cloth', category: 'mage', defense: 22, hpBonus: 220, dmgBonus: 25, sellValue: 13000, price: 88000, desc: 'T6 Celestial woven vestments of grand sorcerers.' },
     master_shadow_jacket: { name: 'Master Shadow Garb', tier: 6, type: 'armor', armorType: 'leather', category: 'hunter', defense: 36, hpBonus: 310, sellValue: 15500, price: 105000, desc: 'T6 Phantom leather coat with umbral wards.' },
     master_judicator_plate: { name: 'Master Judicator Carapace', tier: 6, type: 'armor', armorType: 'demon', category: 'warrior', defense: 52, hpBonus: 440, sellValue: 19000, price: 128000, desc: 'T6 Indestructible titan armor forged in hell.' },
@@ -97,9 +97,9 @@ const ITEMS = {
     // =========================================================================
     // TIER 7 (WORLD-CLASS CELESTIAL RELICS) - Level Rec: 65+ [WORLD-CLASS]
     // =========================================================================
-    celestial_greatsword: { name: 'Astraeus Void Cleaver', tier: 7, type: 'weapon', weaponType: 'broadsword', category: 'warrior', dmg: 88, range: 7, sellValue: 45000, price: 320000, desc: 'T7 World-Class Greatsword forged from collapsed star cores.' },
-    celestial_bow: { name: 'Star-Strider Longbow', tier: 7, type: 'weapon', weaponType: 'bow', category: 'hunter', dmg: 82, range: 21, projectile: 'energy_arrow', sellValue: 48000, price: 340000, desc: 'T7 World-Class bow firing astral supernovas.' },
-    celestial_staff: { name: 'Void Emperor Scepter', tier: 7, type: 'weapon', weaponType: 'staff', category: 'mage', dmg: 96, range: 18, projectile: 'arcane_orb', sellValue: 52000, price: 380000, desc: 'T7 World-Class scepter commanding astral black holes.' },
+    celestial_greatsword: { name: 'Astraeus Void Cleaver', tier: 7, type: 'weapon', weaponType: 'broadsword', category: 'warrior', dmg: 88, range: 5, sellValue: 45000, price: 320000, desc: 'T7 World-Class Greatsword forged from collapsed star cores.' },
+    celestial_bow: { name: 'Star-Strider Longbow', tier: 7, type: 'weapon', weaponType: 'bow', category: 'hunter', dmg: 82, range: 25, projectile: 'energy_arrow', sellValue: 48000, price: 340000, desc: 'T7 World-Class bow firing astral supernovas.' },
+    celestial_staff: { name: 'Void Emperor Scepter', tier: 7, type: 'weapon', weaponType: 'staff', category: 'mage', dmg: 96, range: 25, projectile: 'arcane_orb', sellValue: 52000, price: 380000, desc: 'T7 World-Class scepter commanding astral black holes.' },
     celestial_carapace: { name: 'Void Emperor Regalia', tier: 7, type: 'armor', armorType: 'demon', category: 'warrior', defense: 75, hpBonus: 650, sellValue: 58000, price: 420000, desc: 'T7 Supreme titan plate resonating with cosmic eternity.' }
 };
 
