@@ -135,7 +135,11 @@ function broadcastState() {
             isAttacking: p.isAttacking, 
             dead: p.dead, 
             weaponType: (p.equipment && p.equipment.weapon) ? p.equipment.weapon.weaponType : null,
+            weaponId: (p.equipment && p.equipment.weapon) ? (p.equipment.weapon.itemId || p.equipment.weapon.id) : null,
+            weaponTier: (p.equipment && p.equipment.weapon) ? (p.equipment.weapon.tier || 2) : null,
             armorType: (p.equipment && p.equipment.armor) ? p.equipment.armor.armorType : null,
+            armorId: (p.equipment && p.equipment.armor) ? (p.equipment.armor.itemId || p.equipment.armor.id) : null,
+            armorTier: (p.equipment && p.equipment.armor) ? (p.equipment.armor.tier || 2) : null,
             gold: p.stats.gold,
             level: p.stats.level || 1,
             xp: p.stats.xp || 0,
@@ -197,13 +201,23 @@ io.on('connection', async (socket) => {
     socket.on('startAttack', (mobId) => {
         const mob = liveWorld.monsters[mobId];
         if (!mob || p.dead) return;
-        if (Math.hypot(mob.x - p.stats.pos.x, mob.z - p.stats.pos.z) > 6) return;
+        const maxRange = (p.equipment && p.equipment.weapon && p.equipment.weapon.range) ? p.equipment.weapon.range : 6;
+        if (Math.hypot(mob.x - p.stats.pos.x, mob.z - p.stats.pos.z) > maxRange) return;
         if (Date.now() > p.atkCd) {
             p.isAttacking = true;
             const weaponDmg = (p.equipment && p.equipment.weapon) ? p.equipment.weapon.dmg : 5;
-            const totalDmg = (p.stats.baseDamage + weaponDmg);
+            const armorDmg = (p.equipment && p.equipment.armor && p.equipment.armor.dmgBonus) ? p.equipment.armor.dmgBonus : 0;
+            const totalDmg = (p.stats.baseDamage + weaponDmg + armorDmg);
             mob.hp -= totalDmg; mob.lastHit = Date.now(); p.atkCd = Date.now() + 800;
-            io.emit('vfx', { type: 'damage', x: mob.x, z: mob.z, amount: totalDmg });
+
+            const wepType = (p.equipment && p.equipment.weapon) ? p.equipment.weapon.weaponType : 'sword';
+            const projType = (p.equipment && p.equipment.weapon && p.equipment.weapon.projectile) ? p.equipment.weapon.projectile : (wepType === 'bow' ? 'arrow' : (wepType === 'staff' ? 'fireball' : null));
+
+            if (projType) {
+                io.emit('vfx', { type: 'projectile', fromX: p.stats.pos.x, fromZ: p.stats.pos.z, toX: mob.x, toZ: mob.z, projectile: projType, weaponType: wepType });
+            }
+            io.emit('vfx', { type: 'damage', x: mob.x, z: mob.z, amount: totalDmg, weaponType: wepType });
+
             if (mob.hp <= 0) {
                 const mobDef = MONSTER_TYPES[mob.type];
                 mobDef.drops && mobDef.drops.forEach(drop => { if (Math.random() < drop.chance) { const lid = 'loot_' + Math.random().toString(36).substr(2, 5); liveWorld.loot[lid] = { id: lid, itemId: drop.item, x: mob.x + (Math.random()-0.5), z: mob.z + (Math.random()-0.5) }; } });
@@ -240,24 +254,61 @@ io.on('connection', async (socket) => {
         const item = ITEMS[itemId];
         if (!item) return;
         if ((p.stats.gold || 0) < item.price) {
-            return socket.emit('notice', `❌ Not enough gold to buy ${item.name}! (Need ${item.price}g)`);
+            return socket.emit('notice', `❌ Not enough gold to buy ${item.name}! (Need ${item.price.toLocaleString()}g)`);
         }
         p.stats.gold -= item.price;
         p.inventory.push({ ...item, itemId, uid: Date.now().toString() });
-        socket.emit('notice', `🛍️ Purchased ${item.name} for ${item.price}g!`);
+        socket.emit('notice', `🛍️ Purchased ${item.name} for ${item.price.toLocaleString()}g!`);
         socket.emit('inventory', { stats: p.stats, inventory: p.inventory, equipment: p.equipment });
         broadcastState();
     });
     const RECIPES = {
-        wood_sword: { mats: { raw_wood: 3 }, gold: 10 },
-        novice_axe: { mats: { raw_wood: 2, raw_ore: 1 }, gold: 10 },
-        steel_broadsword: { mats: { raw_ore: 4, raw_wood: 2 }, gold: 30 },
-        flame_dagger: { mats: { demon_horn: 2, raw_ore: 2 }, gold: 35 },
-        battle_hammer: { mats: { ogre_bone: 3, raw_ore: 4 }, gold: 50 },
-        crystal_spear: { mats: { spider_silk: 3, skeleton_skull: 2 }, gold: 45 },
-        leather_armor: { mats: { raw_wood: 4, ogre_bone: 1 }, gold: 20 },
-        iron_plate: { mats: { raw_ore: 6 }, gold: 40 },
-        demon_carapace: { mats: { demon_horn: 3, skeleton_skull: 2 }, gold: 75 }
+        // --- TIER 2 (NOVICE) ---
+        wood_sword: { mats: { raw_wood: 3 }, gold: 60 },
+        novice_axe: { mats: { raw_wood: 2, raw_ore: 1 }, gold: 50 },
+        novice_bow: { mats: { raw_wood: 4 }, gold: 65 },
+        novice_fire_staff: { mats: { raw_wood: 3, raw_ore: 1 }, gold: 70 },
+        novice_robe: { mats: { raw_wood: 3 }, gold: 55 },
+        leather_armor: { mats: { raw_wood: 4, ogre_bone: 1 }, gold: 70 },
+        novice_plate: { mats: { raw_ore: 4 }, gold: 80 },
+
+        // --- TIER 3 (JOURNEYMAN) ---
+        journeyman_claymore: { mats: { raw_ore: 4, raw_wood: 2 }, gold: 220 },
+        journeyman_warbow: { mats: { raw_wood: 4, spider_silk: 2 }, gold: 230 },
+        journeyman_frost_staff: { mats: { spider_silk: 3, raw_wood: 2 }, gold: 250 },
+        journeyman_hammer: { mats: { raw_ore: 4, ogre_bone: 2 }, gold: 240 },
+        journeyman_robe: { mats: { spider_silk: 3, ogre_bone: 1 }, gold: 200 },
+        journeyman_leather: { mats: { raw_wood: 3, ogre_bone: 2 }, gold: 220 },
+        journeyman_plate: { mats: { raw_ore: 5, ogre_bone: 1 }, gold: 280 },
+
+        // --- TIER 4 (ADEPT) ---
+        steel_broadsword: { mats: { raw_ore: 5, skeleton_skull: 2 }, gold: 650 },
+        adept_longbow: { mats: { raw_wood: 4, spider_silk: 3, skeleton_skull: 1 }, gold: 680 },
+        adept_cursed_staff: { mats: { skeleton_skull: 3, spider_silk: 2 }, gold: 750 },
+        adept_dagger: { mats: { raw_ore: 4, skeleton_skull: 2 }, gold: 620 },
+        adept_pike: { mats: { raw_ore: 4, spider_silk: 2 }, gold: 660 },
+        adept_mage_robe: { mats: { spider_silk: 3, skeleton_skull: 2 }, gold: 600 },
+        adept_assassin_jacket: { mats: { spider_silk: 3, ogre_bone: 2 }, gold: 700 },
+        iron_plate: { mats: { raw_ore: 6, skeleton_skull: 2 }, gold: 850 },
+
+        // --- TIER 5 (EXPERT) ---
+        flame_dagger: { mats: { demon_horn: 3, raw_ore: 3 }, gold: 1800 },
+        expert_whispering_bow: { mats: { raw_wood: 4, spider_silk: 3, demon_horn: 2 }, gold: 1900 },
+        expert_infernal_staff: { mats: { demon_horn: 4, skeleton_skull: 2 }, gold: 2100 },
+        battle_hammer: { mats: { ogre_bone: 4, raw_ore: 5, demon_horn: 2 }, gold: 2000 },
+        crystal_spear: { mats: { spider_silk: 4, skeleton_skull: 3, demon_horn: 2 }, gold: 1950 },
+        expert_royal_robe: { mats: { spider_silk: 4, demon_horn: 2 }, gold: 1750 },
+        expert_stalker_leather: { mats: { ogre_bone: 3, demon_horn: 3 }, gold: 1950 },
+        demon_carapace: { mats: { demon_horn: 4, skeleton_skull: 3 }, gold: 2400 },
+
+        // --- TIER 6 (MASTER) ---
+        master_relic_blade: { mats: { raw_ore: 6, demon_horn: 4, skeleton_skull: 3 }, gold: 4500 },
+        master_bow_of_shadows: { mats: { raw_wood: 5, spider_silk: 4, demon_horn: 4 }, gold: 4800 },
+        master_archmage_staff: { mats: { demon_horn: 4, spider_silk: 4, skeleton_skull: 4 }, gold: 5200 },
+        master_abyssal_hammer: { mats: { raw_ore: 6, demon_horn: 5, ogre_bone: 3 }, gold: 5000 },
+        master_archmage_vestment: { mats: { spider_silk: 5, demon_horn: 4, skeleton_skull: 3 }, gold: 4200 },
+        master_shadow_jacket: { mats: { spider_silk: 4, demon_horn: 4, ogre_bone: 4 }, gold: 4900 },
+        master_judicator_plate: { mats: { raw_ore: 6, demon_horn: 5, skeleton_skull: 3 }, gold: 6000 }
     };
     socket.on('craftItem', (itemId) => {
         const recipe = RECIPES[itemId];

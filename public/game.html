@@ -240,10 +240,10 @@
     }
     #controls-hint b { color: #f8fafc; }
 
-    /* Inventory Panel (Docked cleanly below Minimap on the right) */
+    /* Inventory Panel (Docked cleanly beside Minimap on the right) */
     #inv-ui {
-      position: absolute; right: 16px; top: 195px;
-      width: 310px; max-height: calc(100vh - 280px); overflow-y: auto;
+      position: absolute; right: 180px; top: 16px;
+      width: 310px; max-height: calc(100vh - 120px); overflow-y: auto;
       background: linear-gradient(165deg, rgba(15, 23, 42, 0.96), rgba(9, 14, 26, 0.98));
       backdrop-filter: blur(20px);
       border: 1px solid rgba(255, 255, 255, 0.12);
@@ -825,7 +825,9 @@
       });
 
       socket.on('vfx', (d) => {
-        if (d.type === 'damage') {
+        if (d.type === 'projectile') {
+          spawnProjectile(d.fromX, d.fromZ, d.toX, d.toZ, d.projectile, d.weaponType);
+        } else if (d.type === 'damage') {
           playSfx('hit');
           spawnDamageText(d.x, d.z, d.amount);
           spawnHitSparks(new THREE.Vector3(d.x, 1.2, d.z));
@@ -1074,14 +1076,53 @@
       return sprite;
     }
 
-    function createWeaponModel(type) {
+    function createWeaponModel(weaponKey, weaponType) {
       if (typeof Item3D !== 'undefined' && Item3D.createItemMesh) {
-        const item3dMesh = Item3D.createItemMesh(type);
-        if (item3dMesh) return item3dMesh;
+        let item3dMesh = Item3D.createItemMesh(weaponKey);
+        if (!item3dMesh && weaponType) item3dMesh = Item3D.createItemMesh(weaponType);
+        if (item3dMesh) {
+          // Adjust weapon scale and pivot inside player hand
+          const wrapper = new THREE.Group();
+          wrapper.add(item3dMesh);
+          
+          if (weaponType === 'bow' || (weaponKey && weaponKey.includes('bow'))) {
+            item3dMesh.rotation.set(0, Math.PI / 2, 0);
+            item3dMesh.position.set(0, 0.2, 0.1);
+            item3dMesh.scale.set(0.95, 0.95, 0.95);
+          } else if (weaponType === 'staff' || (weaponKey && weaponKey.includes('staff'))) {
+            item3dMesh.position.set(0, -0.2, 0);
+            item3dMesh.scale.set(0.9, 0.9, 0.9);
+          } else if (weaponType === 'dagger' || (weaponKey && weaponKey.includes('dagger'))) {
+            item3dMesh.position.set(0, 0.1, 0);
+            item3dMesh.scale.set(0.85, 0.85, 0.85);
+          } else if (weaponType === 'hammer' || (weaponKey && weaponKey.includes('hammer'))) {
+            item3dMesh.position.set(0, 0, 0);
+            item3dMesh.scale.set(0.9, 0.9, 0.9);
+          } else if (weaponType === 'spear' || (weaponKey && weaponKey.includes('spear'))) {
+            item3dMesh.position.set(0, -0.4, 0);
+            item3dMesh.scale.set(0.85, 0.85, 0.85);
+          } else if (weaponType === 'broadsword' || (weaponKey && weaponKey.includes('broadsword'))) {
+            item3dMesh.position.set(0, -0.1, 0);
+            item3dMesh.scale.set(0.9, 0.9, 0.9);
+          }
+          return wrapper;
+        }
       }
       const group = new THREE.Group();
-      if (type === 'sword') {
-        // Wood Sword / Practice Blade
+      if (weaponType === 'axe' || (weaponKey && weaponKey.includes('axe'))) {
+        const shaftGeo = new THREE.CylinderGeometry(0.045, 0.045, 1.2, 8);
+        const shaftMat = new THREE.MeshStandardMaterial({ color: 0x78350f, roughness: 0.8 });
+        const shaft = new THREE.Mesh(shaftGeo, shaftMat);
+        shaft.position.y = 0.45;
+        group.add(shaft);
+
+        const headGeo = new THREE.BoxGeometry(0.42, 0.38, 0.12);
+        const headMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.85, roughness: 0.25 });
+        const head = new THREE.Mesh(headGeo, headMat);
+        head.position.set(0.18, 0.85, 0);
+        head.castShadow = true;
+        group.add(head);
+      } else {
         const bladeGeo = new THREE.BoxGeometry(0.12, 1.1, 0.05);
         const bladeMat = new THREE.MeshStandardMaterial({ color: 0xa16207, roughness: 0.6 });
         const blade = new THREE.Mesh(bladeGeo, bladeMat);
@@ -1099,117 +1140,11 @@
         const hilt = new THREE.Mesh(hiltGeo, guardMat);
         hilt.position.y = -0.12;
         group.add(hilt);
-      } else if (type === 'axe') {
-        // Novice Battle Axe
-        const shaftGeo = new THREE.CylinderGeometry(0.045, 0.045, 1.2, 8);
-        const shaftMat = new THREE.MeshStandardMaterial({ color: 0x78350f, roughness: 0.8 });
-        const shaft = new THREE.Mesh(shaftGeo, shaftMat);
-        shaft.position.y = 0.45;
-        group.add(shaft);
-
-        const headGeo = new THREE.BoxGeometry(0.42, 0.38, 0.12);
-        const headMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.85, roughness: 0.25 });
-        const head = new THREE.Mesh(headGeo, headMat);
-        head.position.set(0.18, 0.85, 0);
-        head.castShadow = true;
-        group.add(head);
-      } else if (type === 'broadsword') {
-        // Steel Broadsword (Heavy Two-Handed Rune Blade)
-        const bladeGeo = new THREE.BoxGeometry(0.22, 1.5, 0.06);
-        const bladeMat = new THREE.MeshStandardMaterial({
-          color: 0xf1f5f9,
-          metalness: 0.95,
-          roughness: 0.12,
-          emissive: 0x38bdf8,
-          emissiveIntensity: 0.35
-        });
-        const blade = new THREE.Mesh(bladeGeo, bladeMat);
-        blade.position.y = 0.75;
-        blade.castShadow = true;
-        group.add(blade);
-
-        const guardGeo = new THREE.BoxGeometry(0.5, 0.09, 0.14);
-        const guardMat = new THREE.MeshStandardMaterial({ color: 0xf59e0b, metalness: 0.8, roughness: 0.2 });
-        const guard = new THREE.Mesh(guardGeo, guardMat);
-        guard.position.y = 0.06;
-        group.add(guard);
-
-        const hiltGeo = new THREE.CylinderGeometry(0.045, 0.045, 0.4, 8);
-        const hiltMat = new THREE.MeshStandardMaterial({ color: 0x1e293b });
-        const hilt = new THREE.Mesh(hiltGeo, hiltMat);
-        hilt.position.y = -0.16;
-        group.add(hilt);
-      } else if (type === 'dagger') {
-        // Flame Dagger (Fiery Serrated Blade)
-        const bladeGeo = new THREE.BoxGeometry(0.1, 0.8, 0.04);
-        const bladeMat = new THREE.MeshStandardMaterial({
-          color: 0x1c1917,
-          emissive: 0xef4444,
-          emissiveIntensity: 0.85,
-          roughness: 0.3
-        });
-        const blade = new THREE.Mesh(bladeGeo, bladeMat);
-        blade.position.y = 0.4;
-        blade.castShadow = true;
-        group.add(blade);
-
-        const guardGeo = new THREE.BoxGeometry(0.26, 0.06, 0.08);
-        const guardMat = new THREE.MeshStandardMaterial({ color: 0xb91c1c });
-        const guard = new THREE.Mesh(guardGeo, guardMat);
-        guard.position.y = 0.04;
-        group.add(guard);
-
-        const hiltGeo = new THREE.CylinderGeometry(0.035, 0.035, 0.25, 8);
-        const hiltMat = new THREE.MeshStandardMaterial({ color: 0x451a03 });
-        const hilt = new THREE.Mesh(hiltGeo, hiltMat);
-        hilt.position.y = -0.1;
-        group.add(hilt);
-      } else if (type === 'hammer') {
-        // War Hammer (Massive Iron Head)
-        const shaftGeo = new THREE.CylinderGeometry(0.05, 0.05, 1.4, 8);
-        const shaftMat = new THREE.MeshStandardMaterial({ color: 0x475569, metalness: 0.8, roughness: 0.4 });
-        const shaft = new THREE.Mesh(shaftGeo, shaftMat);
-        shaft.position.y = 0.55;
-        group.add(shaft);
-
-        const headGeo = new THREE.BoxGeometry(0.48, 0.42, 0.65);
-        const headMat = new THREE.MeshStandardMaterial({ color: 0x334155, metalness: 0.9, roughness: 0.2 });
-        const head = new THREE.Mesh(headGeo, headMat);
-        head.position.set(0, 1.05, 0);
-        head.castShadow = true;
-        group.add(head);
-
-        const spikeGeo = new THREE.ConeGeometry(0.12, 0.35, 4);
-        const spikeMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.9 });
-        const spike = new THREE.Mesh(spikeGeo, spikeMat);
-        spike.rotation.x = Math.PI / 2;
-        spike.position.set(0, 1.05, -0.45);
-        group.add(spike);
-      } else if (type === 'spear') {
-        // Frost Pike (Crystal Ice Polearm)
-        const shaftGeo = new THREE.CylinderGeometry(0.04, 0.04, 1.8, 8);
-        const shaftMat = new THREE.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.7 });
-        const shaft = new THREE.Mesh(shaftGeo, shaftMat);
-        shaft.position.y = 0.7;
-        group.add(shaft);
-
-        const tipGeo = new THREE.ConeGeometry(0.15, 0.6, 6);
-        const tipMat = new THREE.MeshStandardMaterial({
-          color: 0x38bdf8,
-          emissive: 0x0284c7,
-          emissiveIntensity: 0.75,
-          roughness: 0.1,
-          metalness: 0.8
-        });
-        const tip = new THREE.Mesh(tipGeo, tipMat);
-        tip.position.set(0, 1.85, 0);
-        tip.castShadow = true;
-        group.add(tip);
       }
       return group;
     }
 
-    // ARMORED KNIGHT PLAYER MODEL
+    // ARMORED KNIGHT & HERO PLAYER MODEL
     function createCharMesh(isMe, name) {
       const g = new THREE.Group();
 
@@ -1249,12 +1184,14 @@
       helm.position.y = 1.95;
       helm.castShadow = true;
       g.add(helm);
+      g.userData.helm = helm;
 
       const visorGeo = new THREE.BoxGeometry(0.45, 0.12, 0.05);
       const visorMat = new THREE.MeshBasicMaterial({ color: isMe ? 0x38bdf8 : 0xf87171 });
       const visor = new THREE.Mesh(visorGeo, visorMat);
       visor.position.set(0, 1.95, 0.33);
       g.add(visor);
+      g.userData.visor = visor;
 
       // Animated Cape
       const capeGeo = new THREE.PlaneGeometry(0.75, 1.1);
@@ -1270,11 +1207,17 @@
       g.add(cape);
       g.userData.cape = cape;
 
-      // Weapon Arm Pivot
-      const arm = new THREE.Group();
-      arm.position.set(0.65, 1.1, 0.1);
-      g.add(arm);
-      g.userData.weaponArm = arm;
+      // Right Weapon Arm Pivot
+      const rightArm = new THREE.Group();
+      rightArm.position.set(0.65, 1.1, 0.1);
+      g.add(rightArm);
+      g.userData.weaponArm = rightArm;
+
+      // Left Arm Pivot (For dual wielding, bow holding, staff channeling, shield)
+      const leftArm = new THREE.Group();
+      leftArm.position.set(-0.65, 1.1, 0.1);
+      g.add(leftArm);
+      g.userData.leftArm = leftArm;
 
       // Shield on left arm
       const shieldGeo = new THREE.CylinderGeometry(0.42, 0.42, 0.08, 6);
@@ -1282,9 +1225,10 @@
       const shield = new THREE.Mesh(shieldGeo, shieldMat);
       shield.rotation.z = Math.PI / 2;
       shield.rotation.y = Math.PI / 2;
-      shield.position.set(-0.65, 1.1, 0.1);
+      shield.position.set(0, 0, 0);
       shield.castShadow = true;
-      g.add(shield);
+      leftArm.add(shield);
+      g.userData.shield = shield;
 
       // Floating Name Tag
       const tag = createNameTag(name, isMe);
@@ -1628,6 +1572,73 @@
     }
 
     const activeSparks = [];
+    const activeProjectiles = [];
+
+    function spawnProjectile(fromX, fromZ, toX, toZ, projType, weaponType) {
+      const group = new THREE.Group();
+      if (projType === 'arrow' || weaponType === 'bow') {
+        const shaftGeo = new THREE.CylinderGeometry(0.02, 0.02, 1.1, 6);
+        const shaftMat = new THREE.MeshStandardMaterial({ color: 0x78350f });
+        const shaft = new THREE.Mesh(shaftGeo, shaftMat);
+        shaft.rotation.x = Math.PI / 2;
+        group.add(shaft);
+
+        const tipGeo = new THREE.ConeGeometry(0.06, 0.22, 5);
+        const tipMat = new THREE.MeshStandardMaterial({ color: 0x38bdf8, emissive: 0x0284c7, emissiveIntensity: 0.8 });
+        const tip = new THREE.Mesh(tipGeo, tipMat);
+        tip.rotation.x = Math.PI / 2;
+        tip.position.z = 0.6;
+        group.add(tip);
+      } else if (projType === 'frost' || (projType && projType.includes('frost'))) {
+        const iceGeo = new THREE.OctahedronGeometry(0.28, 0);
+        const iceMat = new THREE.MeshStandardMaterial({
+          color: 0x38bdf8,
+          emissive: 0x0ea5e9,
+          emissiveIntensity: 0.9,
+          roughness: 0.1
+        });
+        const iceMesh = new THREE.Mesh(iceGeo, iceMat);
+        group.add(iceMesh);
+      } else if (projType === 'curse' || (projType && projType.includes('curse'))) {
+        const curseGeo = new THREE.DodecahedronGeometry(0.3, 1);
+        const curseMat = new THREE.MeshStandardMaterial({
+          color: 0x581c87,
+          emissive: 0x9333ea,
+          emissiveIntensity: 0.95
+        });
+        const curseMesh = new THREE.Mesh(curseGeo, curseMat);
+        group.add(curseMesh);
+      } else {
+        // Fireball / Arcane Orb (Mage)
+        const fireGeo = new THREE.SphereGeometry(0.32, 12, 12);
+        const fireMat = new THREE.MeshStandardMaterial({
+          color: 0xf59e0b,
+          emissive: 0xef4444,
+          emissiveIntensity: 1.0,
+          roughness: 0.2
+        });
+        const fireMesh = new THREE.Mesh(fireGeo, fireMat);
+        group.add(fireMesh);
+      }
+
+      group.position.set(fromX, 1.3, fromZ);
+      scene.add(group);
+
+      const dx = toX - fromX;
+      const dz = toZ - fromZ;
+      const dist = Math.hypot(dx, dz);
+      const duration = Math.max(0.18, dist / 24); // speed
+
+      activeProjectiles.push({
+        group,
+        from: new THREE.Vector3(fromX, 1.3, fromZ),
+        to: new THREE.Vector3(toX, 1.1, toZ),
+        progress: 0,
+        duration,
+        projType,
+        weaponType
+      });
+    }
     function spawnHitSparks(pos) {
       const count = 10;
       const geo = new THREE.BufferGeometry();
@@ -1901,35 +1912,87 @@
         m.userData.isAttacking = p.isAttacking;
         m.visible = !p.dead;
 
-        if (m.userData.currentWep !== p.weaponType) {
+        m.userData.weaponId = p.weaponId;
+        m.userData.weaponType = p.weaponType;
+        m.userData.weaponTier = p.weaponTier;
+
+        const wepKey = (p.weaponId || p.weaponType || 'none');
+        if (m.userData.currentWepKey !== wepKey) {
           m.userData.weaponArm.clear();
-          if (p.weaponType) m.userData.weaponArm.add(createWeaponModel(p.weaponType));
+          if (p.weaponId || p.weaponType) {
+            const wepModel = createWeaponModel(p.weaponId || p.weaponType, p.weaponType);
+            if (wepModel) m.userData.weaponArm.add(wepModel);
+          }
+          m.userData.currentWepKey = wepKey;
           m.userData.currentWep = p.weaponType;
         }
 
-        if (m.userData.currentArmor !== p.armorType) {
+        // Toggle shield based on two-handed weapons (Bow, Mage Staff, Broadsword, Hammer, Spear)
+        const isTwoHanded = ['bow', 'staff', 'broadsword', 'hammer', 'spear'].includes(p.weaponType) || (p.weaponId && (p.weaponId.includes('bow') || p.weaponId.includes('staff') || p.weaponId.includes('broadsword') || p.weaponId.includes('hammer') || p.weaponId.includes('spear')));
+        if (m.userData.shield) {
+          m.userData.shield.visible = !isTwoHanded;
+        }
+
+        const armorKey = (p.armorId || p.armorType || 'none');
+        if (m.userData.currentArmorKey !== armorKey) {
+          m.userData.currentArmorKey = armorKey;
           m.userData.currentArmor = p.armorType;
           if (m.userData.bodyMesh) {
-            if (p.armorType === 'leather') {
-              m.userData.bodyMesh.material.color.setHex(0x92400e);
-              m.userData.bodyMesh.material.roughness = 0.8;
-              m.userData.bodyMesh.material.metalness = 0.1;
-              if (m.userData.pL) m.userData.pL.material.color.setHex(0x78350f);
-              if (m.userData.pR) m.userData.pR.material.color.setHex(0x78350f);
-            } else if (p.armorType === 'iron') {
-              m.userData.bodyMesh.material.color.setHex(0xcbd5e1);
-              m.userData.bodyMesh.material.roughness = 0.2;
-              m.userData.bodyMesh.material.metalness = 0.95;
-              if (m.userData.pL) m.userData.pL.material.color.setHex(0x94a3b8);
-              if (m.userData.pR) m.userData.pR.material.color.setHex(0x94a3b8);
-            } else if (p.armorType === 'demon') {
-              m.userData.bodyMesh.material.color.setHex(0x18181b);
-              m.userData.bodyMesh.material.emissive.setHex(0x991b1b);
-              m.userData.bodyMesh.material.emissiveIntensity = 0.5;
-              m.userData.bodyMesh.material.roughness = 0.3;
-              m.userData.bodyMesh.material.metalness = 0.8;
-              if (m.userData.pL) m.userData.pL.material.color.setHex(0xb91c1c);
-              if (m.userData.pR) m.userData.pR.material.color.setHex(0xb91c1c);
+            const aId = p.armorId || '';
+            const isRobe = p.armorType === 'robe' || aId.includes('robe') || aId.includes('vestment');
+            const isLeather = p.armorType === 'leather' || aId.includes('leather') || aId.includes('jacket') || aId.includes('stalker');
+            const isPlate = p.armorType === 'plate' || p.armorType === 'iron' || aId.includes('plate') || aId.includes('carapace') || aId.includes('judicator');
+
+            if (isRobe) {
+              // Arcane Cloth Robe (Mage)
+              m.userData.bodyMesh.material.color.setHex(0x3730a3);
+              m.userData.bodyMesh.material.emissive.setHex(0x6366f1);
+              m.userData.bodyMesh.material.emissiveIntensity = 0.35;
+              m.userData.bodyMesh.material.roughness = 0.85;
+              m.userData.bodyMesh.material.metalness = 0.05;
+              if (m.userData.pL) m.userData.pL.material.color.setHex(0x818cf8);
+              if (m.userData.pR) m.userData.pR.material.color.setHex(0x818cf8);
+              if (m.userData.cape) m.userData.cape.material.color.setHex(0x312e81);
+            } else if (isLeather) {
+              // Ranger / Assassin Leather (Hunter)
+              const isShadow = aId.includes('shadow') || aId.includes('stalker');
+              m.userData.bodyMesh.material.color.setHex(isShadow ? 0x1c1917 : 0x78350f);
+              m.userData.bodyMesh.material.emissive.setHex(isShadow ? 0x10b981 : 0x000000);
+              m.userData.bodyMesh.material.emissiveIntensity = isShadow ? 0.25 : 0;
+              m.userData.bodyMesh.material.roughness = 0.7;
+              m.userData.bodyMesh.material.metalness = 0.15;
+              if (m.userData.pL) m.userData.pL.material.color.setHex(isShadow ? 0x064e3b : 0x451a03);
+              if (m.userData.pR) m.userData.pR.material.color.setHex(isShadow ? 0x064e3b : 0x451a03);
+              if (m.userData.cape) m.userData.cape.material.color.setHex(isShadow ? 0x064e3b : 0x15803d);
+            } else if (isPlate) {
+              // Heavy Knight Plate (Warrior)
+              if (aId.includes('demon') || aId.includes('carapace')) {
+                m.userData.bodyMesh.material.color.setHex(0x18181b);
+                m.userData.bodyMesh.material.emissive.setHex(0xef4444);
+                m.userData.bodyMesh.material.emissiveIntensity = 0.6;
+                m.userData.bodyMesh.material.roughness = 0.25;
+                m.userData.bodyMesh.material.metalness = 0.85;
+                if (m.userData.pL) m.userData.pL.material.color.setHex(0xb91c1c);
+                if (m.userData.pR) m.userData.pR.material.color.setHex(0xb91c1c);
+                if (m.userData.cape) m.userData.cape.material.color.setHex(0x7f1d1d);
+              } else if (aId.includes('judicator') || aId.includes('master')) {
+                m.userData.bodyMesh.material.color.setHex(0xfef08a);
+                m.userData.bodyMesh.material.emissive.setHex(0xf59e0b);
+                m.userData.bodyMesh.material.emissiveIntensity = 0.4;
+                m.userData.bodyMesh.material.roughness = 0.15;
+                m.userData.bodyMesh.material.metalness = 0.95;
+                if (m.userData.pL) m.userData.pL.material.color.setHex(0xfbbf24);
+                if (m.userData.pR) m.userData.pR.material.color.setHex(0xfbbf24);
+                if (m.userData.cape) m.userData.cape.material.color.setHex(0xd97706);
+              } else {
+                m.userData.bodyMesh.material.color.setHex(0xcbd5e1);
+                m.userData.bodyMesh.material.emissive.setHex(0x000000);
+                m.userData.bodyMesh.material.roughness = 0.2;
+                m.userData.bodyMesh.material.metalness = 0.95;
+                if (m.userData.pL) m.userData.pL.material.color.setHex(0x94a3b8);
+                if (m.userData.pR) m.userData.pR.material.color.setHex(0x94a3b8);
+                if (m.userData.cape) m.userData.cape.material.color.setHex(0x334155);
+              }
             } else {
               m.userData.bodyMesh.material.color.setHex(p.id === myId ? 0x2563eb : 0xdc2626);
               m.userData.bodyMesh.material.emissive.setHex(0x000000);
@@ -1937,6 +2000,7 @@
               m.userData.bodyMesh.material.metalness = 0.6;
               if (m.userData.pL) m.userData.pL.material.color.setHex(0xf59e0b);
               if (m.userData.pR) m.userData.pR.material.color.setHex(0xf59e0b);
+              if (m.userData.cape) m.userData.cape.material.color.setHex(p.id === myId ? 0x1d4ed8 : 0x991b1b);
             }
           }
         }
@@ -2055,27 +2119,78 @@
     let selectedInventoryUid = null;
 
     const SHOP_ITEMS = [
-      { id: 'wood_sword', name: 'Wood Sword', type: 'weapon', desc: '+5 DMG', price: 50, icon: '🗡️' },
-      { id: 'novice_axe', name: 'Novice Axe', type: 'weapon', desc: '+4 DMG', price: 40, icon: '🪓' },
-      { id: 'steel_broadsword', name: 'Steel Broadsword', type: 'weapon', desc: '+14 DMG', price: 120, icon: '⚔️' },
-      { id: 'flame_dagger', name: 'Flame Dagger', type: 'weapon', desc: '+18 DMG', price: 150, icon: '🗡️' },
-      { id: 'battle_hammer', name: 'War Hammer', type: 'weapon', desc: '+24 DMG', price: 220, icon: '🔨' },
-      { id: 'crystal_spear', name: 'Frost Pike', type: 'weapon', desc: '+30 DMG', price: 260, icon: '🔱' },
-      { id: 'leather_armor', name: 'Leather Tunic', type: 'armor', desc: '+20 HP, +5 DEF', price: 60, icon: '🥋' },
-      { id: 'iron_plate', name: 'Iron Plate Mail', type: 'armor', desc: '+50 HP, +15 DEF', price: 180, icon: '🛡️' },
-      { id: 'demon_carapace', name: 'Demon Carapace', type: 'armor', desc: '+100 HP, +30 DEF', price: 350, icon: '🦺' }
+      // T2 Novice
+      { id: 'wood_sword', name: 'Novice Broadsword', tier: 'T2', type: 'weapon', cat: 'warrior', desc: '+6 DMG', price: 250, icon: '🗡️' },
+      { id: 'novice_bow', name: 'Novice Shortbow', tier: 'T2', type: 'weapon', cat: 'hunter', desc: '+5 DMG (Ranged)', price: 260, icon: '🏹' },
+      { id: 'novice_staff', name: 'Novice Fire Staff', tier: 'T2', type: 'weapon', cat: 'mage', desc: '+6 DMG (Magic)', price: 280, icon: '🪄' },
+      { id: 'novice_robe', name: 'Novice Cloth Robe', tier: 'T2', type: 'armor', cat: 'mage', desc: '+20 HP, +4 DEF, +2 MAG', price: 220, icon: '🥋' },
+      { id: 'leather_armor', name: 'Novice Leather Jacket', tier: 'T2', type: 'armor', cat: 'hunter', desc: '+30 HP, +8 DEF', price: 270, icon: '🦺' },
+      { id: 'novice_plate', name: 'Novice Plate Armor', tier: 'T2', type: 'armor', cat: 'warrior', desc: '+40 HP, +12 DEF', price: 320, icon: '🛡️' },
+
+      // T3 Journeyman
+      { id: 'journeyman_claymore', name: 'Journeyman Claymore', tier: 'T3', type: 'weapon', cat: 'warrior', desc: '+12 DMG', price: 850, icon: '⚔️' },
+      { id: 'journeyman_warbow', name: 'Journeyman Warbow', tier: 'T3', type: 'weapon', cat: 'hunter', desc: '+11 DMG (Ranged)', price: 880, icon: '🏹' },
+      { id: 'journeyman_frost_staff', name: 'Journeyman Frost Staff', tier: 'T3', type: 'weapon', cat: 'mage', desc: '+12 DMG (Frost)', price: 950, icon: '❄️' },
+      { id: 'journeyman_robe', name: 'Journeyman Mage Robe', tier: 'T3', type: 'armor', cat: 'mage', desc: '+45 HP, +8 DEF, +4 MAG', price: 780, icon: '🥋' },
+      { id: 'journeyman_leather', name: 'Journeyman Hunter Garb', tier: 'T3', type: 'armor', cat: 'hunter', desc: '+60 HP, +16 DEF', price: 860, icon: '🦺' },
+      { id: 'journeyman_plate', name: 'Journeyman Iron Plate', tier: 'T3', type: 'armor', cat: 'warrior', desc: '+80 HP, +22 DEF', price: 1050, icon: '🛡️' },
+
+      // T4 Adept
+      { id: 'steel_broadsword', name: 'Adept Broadsword', tier: 'T4', type: 'weapon', cat: 'warrior', desc: '+20 DMG', price: 2400, icon: '⚔️' },
+      { id: 'adept_longbow', name: 'Adept Longbow', tier: 'T4', type: 'weapon', cat: 'hunter', desc: '+19 DMG (Ranged)', price: 2500, icon: '🏹' },
+      { id: 'adept_cursed_staff', name: 'Adept Cursed Staff', tier: 'T4', type: 'weapon', cat: 'mage', desc: '+21 DMG (Dark)', price: 2750, icon: '🔮' },
+      { id: 'iron_plate', name: 'Adept Knight Mail', tier: 'T4', type: 'armor', cat: 'warrior', desc: '+120 HP, +32 DEF', price: 3200, icon: '🛡️' },
+
+      // T5 Expert
+      { id: 'flame_dagger', name: 'Expert Flame Dagger', tier: 'T5', type: 'weapon', cat: 'hunter', desc: '+30 DMG', price: 6500, icon: '🗡️' },
+      { id: 'expert_whispering_bow', name: 'Expert Whispering Bow', tier: 'T5', type: 'weapon', cat: 'hunter', desc: '+29 DMG (Ranged)', price: 6800, icon: '🏹' },
+      { id: 'expert_infernal_staff', name: 'Expert Infernal Staff', tier: 'T5', type: 'weapon', cat: 'mage', desc: '+32 DMG (Fire)', price: 7500, icon: '🔥' },
+      { id: 'demon_carapace', name: 'Expert Demon Carapace', tier: 'T5', type: 'armor', cat: 'warrior', desc: '+180 HP, +45 DEF', price: 8500, icon: '🦺' },
+
+      // T6 Master
+      { id: 'crystal_spear', name: 'Master Frost Pike', tier: 'T6', type: 'weapon', cat: 'warrior', desc: '+42 DMG', price: 16500, icon: '🔱' },
+      { id: 'master_shadow_bow', name: 'Master Bow of Shadows', tier: 'T6', type: 'weapon', cat: 'hunter', desc: '+40 DMG (Ranged)', price: 17500, icon: '🏹' },
+      { id: 'master_archmage_staff', name: 'Master Archmage Staff', tier: 'T6', type: 'weapon', cat: 'mage', desc: '+44 DMG (Arcane)', price: 19000, icon: '⚡' },
+      { id: 'master_judicator_plate', name: 'Master Judicator Plate', tier: 'T6', type: 'armor', cat: 'warrior', desc: '+260 HP, +65 DEF', price: 22500, icon: '👑' }
     ];
 
     const CRAFT_RECIPES = [
-      { id: 'wood_sword', name: 'Wood Sword', stat: '+5 DMG', gold: 10, mats: { raw_wood: 3 }, icon: '🗡️' },
-      { id: 'novice_axe', name: 'Novice Axe', stat: '+4 DMG', gold: 10, mats: { raw_wood: 2, raw_ore: 1 }, icon: '🪓' },
-      { id: 'steel_broadsword', name: 'Steel Broadsword', stat: '+14 DMG', gold: 30, mats: { raw_ore: 4, raw_wood: 2 }, icon: '⚔️' },
-      { id: 'flame_dagger', name: 'Flame Dagger', stat: '+18 DMG', gold: 35, mats: { demon_horn: 2, raw_ore: 2 }, icon: '🗡️' },
-      { id: 'battle_hammer', name: 'War Hammer', stat: '+24 DMG', gold: 50, mats: { ogre_bone: 3, raw_ore: 4 }, icon: '🔨' },
-      { id: 'crystal_spear', name: 'Frost Pike', stat: '+30 DMG', gold: 45, mats: { spider_silk: 3, skeleton_skull: 2 }, icon: '🔱' },
-      { id: 'leather_armor', name: 'Leather Tunic', stat: '+20 HP, +5 DEF', gold: 20, mats: { raw_wood: 4, ogre_bone: 1 }, icon: '🥋' },
-      { id: 'iron_plate', name: 'Iron Plate Mail', stat: '+50 HP, +15 DEF', gold: 40, mats: { raw_ore: 6 }, icon: '🛡️' },
-      { id: 'demon_carapace', name: 'Demon Carapace', stat: '+100 HP, +30 DEF', gold: 75, mats: { demon_horn: 3, skeleton_skull: 2 }, icon: '🦺' }
+      // T2 Novice
+      { id: 'wood_sword', name: 'Novice Broadsword', tier: 'T2', stat: '+6 DMG', gold: 60, mats: { raw_wood: 3 }, icon: '🗡️' },
+      { id: 'novice_bow', name: 'Novice Shortbow', tier: 'T2', stat: '+5 DMG', gold: 65, mats: { raw_wood: 4 }, icon: '🏹' },
+      { id: 'novice_staff', name: 'Novice Fire Staff', tier: 'T2', stat: '+6 DMG', gold: 70, mats: { raw_wood: 3, raw_ore: 1 }, icon: '🪄' },
+      { id: 'novice_robe', name: 'Novice Cloth Robe', tier: 'T2', stat: '+20 HP, +4 DEF', gold: 55, mats: { raw_wood: 3 }, icon: '🥋' },
+      { id: 'leather_armor', name: 'Novice Leather Jacket', tier: 'T2', stat: '+30 HP, +8 DEF', gold: 70, mats: { raw_wood: 4, ogre_bone: 1 }, icon: '🦺' },
+      { id: 'novice_plate', name: 'Novice Plate Armor', tier: 'T2', stat: '+40 HP, +12 DEF', gold: 80, mats: { raw_ore: 4 }, icon: '🛡️' },
+
+      // T3 Journeyman
+      { id: 'journeyman_claymore', name: 'Journeyman Claymore', tier: 'T3', stat: '+12 DMG', gold: 220, mats: { raw_ore: 4, raw_wood: 2 }, icon: '⚔️' },
+      { id: 'journeyman_warbow', name: 'Journeyman Warbow', tier: 'T3', stat: '+11 DMG', gold: 230, mats: { raw_wood: 5, spider_silk: 1 }, icon: '🏹' },
+      { id: 'journeyman_frost_staff', name: 'Journeyman Frost Staff', tier: 'T3', stat: '+12 DMG', gold: 250, mats: { raw_wood: 3, spider_silk: 2 }, icon: '❄️' },
+      { id: 'journeyman_robe', name: 'Journeyman Mage Robe', tier: 'T3', stat: '+45 HP, +8 DEF', gold: 200, mats: { spider_silk: 3, raw_wood: 2 }, icon: '🥋' },
+      { id: 'journeyman_leather', name: 'Journeyman Hunter Garb', tier: 'T3', stat: '+60 HP, +16 DEF', gold: 220, mats: { ogre_bone: 3, spider_silk: 2 }, icon: '🦺' },
+      { id: 'journeyman_plate', name: 'Journeyman Iron Plate', tier: 'T3', stat: '+80 HP, +22 DEF', gold: 280, mats: { raw_ore: 6, ogre_bone: 2 }, icon: '🛡️' },
+
+      // T4 Adept
+      { id: 'steel_broadsword', name: 'Adept Broadsword', tier: 'T4', stat: '+20 DMG', gold: 650, mats: { raw_ore: 6, raw_wood: 3, skeleton_skull: 2 }, icon: '⚔️' },
+      { id: 'adept_longbow', name: 'Adept Longbow', tier: 'T4', stat: '+19 DMG', gold: 680, mats: { raw_wood: 6, spider_silk: 3, skeleton_skull: 2 }, icon: '🏹' },
+      { id: 'adept_cursed_staff', name: 'Adept Cursed Staff', tier: 'T4', stat: '+21 DMG', gold: 750, mats: { skeleton_skull: 4, raw_wood: 4, spider_silk: 3 }, icon: '🔮' },
+      { id: 'adept_robe', name: 'Adept Mage Robe', tier: 'T4', stat: '+75 HP, +14 DEF', gold: 600, mats: { spider_silk: 5, skeleton_skull: 2 }, icon: '🥋' },
+      { id: 'adept_jacket', name: 'Adept Assassin Jacket', tier: 'T4', stat: '+95 HP, +24 DEF', gold: 700, mats: { ogre_bone: 4, skeleton_skull: 3 }, icon: '🦺' },
+      { id: 'iron_plate', name: 'Adept Knight Mail', tier: 'T4', stat: '+120 HP, +32 DEF', gold: 850, mats: { raw_ore: 8, ogre_bone: 3, skeleton_skull: 2 }, icon: '🛡️' },
+
+      // T5 Expert
+      { id: 'flame_dagger', name: 'Expert Flame Dagger', tier: 'T5', stat: '+30 DMG', gold: 1800, mats: { demon_horn: 3, raw_ore: 4, skeleton_skull: 3 }, icon: '🗡️' },
+      { id: 'battle_hammer', name: 'Expert War Hammer', tier: 'T5', stat: '+32 DMG', gold: 2000, mats: { ogre_bone: 5, raw_ore: 6, demon_horn: 2 }, icon: '🔨' },
+      { id: 'expert_whispering_bow', name: 'Expert Whispering Bow', tier: 'T5', stat: '+29 DMG', gold: 1900, mats: { raw_wood: 8, spider_silk: 6, demon_horn: 3 }, icon: '🏹' },
+      { id: 'expert_infernal_staff', name: 'Expert Infernal Staff', tier: 'T5', stat: '+32 DMG', gold: 2100, mats: { demon_horn: 5, spider_silk: 4, raw_ore: 4 }, icon: '🔥' },
+      { id: 'demon_carapace', name: 'Expert Demon Carapace', tier: 'T5', stat: '+180 HP, +45 DEF', gold: 2400, mats: { demon_horn: 5, skeleton_skull: 4, ogre_bone: 3 }, icon: '🦺' },
+
+      // T6 Master
+      { id: 'crystal_spear', name: 'Master Frost Pike', tier: 'T6', stat: '+42 DMG', gold: 4500, mats: { spider_silk: 8, demon_horn: 5, skeleton_skull: 5 }, icon: '🔱' },
+      { id: 'master_shadow_bow', name: 'Master Bow of Shadows', tier: 'T6', stat: '+40 DMG', gold: 4800, mats: { raw_wood: 10, spider_silk: 8, demon_horn: 6 }, icon: '🏹' },
+      { id: 'master_archmage_staff', name: 'Master Archmage Staff', tier: 'T6', stat: '+44 DMG', gold: 5200, mats: { demon_horn: 8, spider_silk: 8, skeleton_skull: 6 }, icon: '⚡' },
+      { id: 'master_judicator_plate', name: 'Master Judicator Plate', tier: 'T6', stat: '+260 HP, +65 DEF', gold: 6000, mats: { raw_ore: 12, demon_horn: 6, skeleton_skull: 6 }, icon: '👑' }
     ];
 
     const MAT_NAMES = {
@@ -2333,12 +2448,20 @@
     function buyShopItem(id, name, price) {
       const gold = latestInventoryData && latestInventoryData.stats ? (latestInventoryData.stats.gold || 0) : 0;
       if (gold < price) {
-        showToast(`❌ Not enough gold to buy ${name}! Need ${price}g.`, 'error');
+        showToast(`❌ Not enough gold to buy ${name}! Need ${price.toLocaleString()}g.`, 'error');
         return;
       }
       playSfx('loot');
       socket.emit('buyItem', id);
     }
+
+    const TIER_COLORS = {
+      'T2': { bg: 'rgba(163, 230, 53, 0.15)', text: '#a3e635', border: '#a3e635' },
+      'T3': { bg: 'rgba(56, 189, 248, 0.15)', text: '#38bdf8', border: '#38bdf8' },
+      'T4': { bg: 'rgba(168, 85, 247, 0.15)', text: '#c084fc', border: '#a855f7' },
+      'T5': { bg: 'rgba(244, 63, 94, 0.15)', text: '#fb7185', border: '#f43f5e' },
+      'T6': { bg: 'rgba(251, 191, 36, 0.2)', text: '#fbbf24', border: '#fbbf24' }
+    };
 
     function renderShopList() {
       const container = document.getElementById('shop-buy-list');
@@ -2350,12 +2473,16 @@
         card.className = 'shop-item-card';
         const canAfford = gold >= it.price;
         const thumb = (typeof Item3D !== 'undefined') ? Item3D.getThumbnail(it.id) : '';
+        const tInfo = TIER_COLORS[it.tier || 'T2'] || TIER_COLORS['T2'];
         card.innerHTML = `
           <div style="display:flex; align-items:center; gap:8px;">
             ${thumb ? `<img src="${thumb}" class="shop-item-3d-img" alt="${it.name}">` : `<span style="font-size:20px;">${it.icon}</span>`}
             <div class="shop-item-info">
-              <span class="shop-item-name">${it.name}</span>
-              <span class="shop-item-desc">${it.desc} &bull; <span style="color:#fbbf24; font-weight:700;">${it.price}g</span></span>
+              <div style="display:flex; align-items:center; gap:6px;">
+                <span class="shop-item-name">${it.name}</span>
+                <span style="font-size:9px; font-weight:800; padding:1px 5px; border-radius:4px; background:${tInfo.bg}; color:${tInfo.text}; border:1px solid ${tInfo.border};">${it.tier || 'T2'}</span>
+              </div>
+              <span class="shop-item-desc">${it.desc} &bull; <span style="color:#fbbf24; font-weight:700;">${it.price.toLocaleString()}g</span></span>
             </div>
           </div>
           <button class="shop-btn" ${canAfford ? '' : 'disabled'} onclick="buyShopItem('${it.id}', '${it.name}', ${it.price})">
@@ -2391,12 +2518,17 @@
         const card = document.createElement('div');
         card.className = 'shop-item-card';
         const thumb = (typeof Item3D !== 'undefined') ? Item3D.getThumbnail(r.id) : '';
+        const tInfo = TIER_COLORS[r.tier || 'T2'] || TIER_COLORS['T2'];
         card.innerHTML = `
           <div style="display:flex; align-items:center; gap:8px;">
             ${thumb ? `<img src="${thumb}" class="shop-item-3d-img" alt="${r.name}">` : `<span style="font-size:20px;">${r.icon}</span>`}
             <div class="shop-item-info">
-              <span class="shop-item-name">${r.name} <span style="color:#38bdf8; font-size:10px;">(${r.stat})</span></span>
-              <span class="shop-item-desc" style="display:flex; flex-wrap:wrap; gap:5px; align-items:center;">${matParts.join(' ')} &bull; <span style="color:#fbbf24; font-weight:700;">${r.gold}g</span></span>
+              <div style="display:flex; align-items:center; gap:6px;">
+                <span class="shop-item-name">${r.name}</span>
+                <span style="font-size:9px; font-weight:800; padding:1px 5px; border-radius:4px; background:${tInfo.bg}; color:${tInfo.text}; border:1px solid ${tInfo.border};">${r.tier || 'T2'}</span>
+                <span style="color:#38bdf8; font-size:10px;">(${r.stat})</span>
+              </div>
+              <span class="shop-item-desc" style="display:flex; flex-wrap:wrap; gap:5px; align-items:center;">${matParts.join(' ')} &bull; <span style="color:#fbbf24; font-weight:700;">${r.gold.toLocaleString()}g</span></span>
             </div>
           </div>
           <button class="shop-btn" ${canCraft ? '' : 'disabled'} onclick="playSfx('craft'); socket.emit('craftItem', '${r.id}')">
@@ -2550,7 +2682,38 @@
         }
       });
 
-      // Player animations (Smooth Movement & Swinging)
+      // Active flying projectiles (Bow arrows, Mage fireballs, frost shards, curse orbs)
+      for (let i = activeProjectiles.length - 1; i >= 0; i--) {
+        const pr = activeProjectiles[i];
+        pr.progress += delta / pr.duration;
+        if (pr.progress >= 1.0) {
+          spawnHitSparks(pr.to);
+          scene.remove(pr.group);
+          activeProjectiles.splice(i, 1);
+        } else {
+          const t = pr.progress;
+          const curX = pr.from.x + (pr.to.x - pr.from.x) * t;
+          const curZ = pr.from.z + (pr.to.z - pr.from.z) * t;
+          // Arc trajectory height
+          const arc = Math.sin(t * Math.PI) * 1.8;
+          const curY = pr.from.y + (pr.to.y - pr.from.y) * t + arc;
+          pr.group.position.set(curX, curY, curZ);
+          
+          // Face travel direction
+          const nextT = Math.min(1.0, t + 0.05);
+          const nX = pr.from.x + (pr.to.x - pr.from.x) * nextT;
+          const nZ = pr.from.z + (pr.to.z - pr.from.z) * nextT;
+          const nY = pr.from.y + (pr.to.y - pr.from.y) * nextT + Math.sin(nextT * Math.PI) * 1.8;
+          pr.group.lookAt(nX, nY, nZ);
+
+          // Rotate magic projectiles
+          if (pr.projType !== 'arrow') {
+            pr.group.rotation.z += delta * 6;
+          }
+        }
+      }
+
+      // Player animations (Smooth Movement & Dynamic Weapon Combat)
       Object.values(meshes.players).forEach(m => {
         if (m.targetPos) {
           const dx = m.targetPos.x - m.position.x;
@@ -2565,12 +2728,88 @@
           m.position.lerp(m.targetPos, 0.2);
         }
 
+        let wepType = m.userData.weaponType || 'sword';
+        if (m.userData.weaponId) {
+          const wid = m.userData.weaponId;
+          if (wid.includes('bow')) wepType = 'bow';
+          else if (wid.includes('staff')) wepType = 'staff';
+          else if (wid.includes('dagger')) wepType = 'dagger';
+          else if (wid.includes('hammer')) wepType = 'hammer';
+          else if (wid.includes('spear')) wepType = 'spear';
+          else if (wid.includes('broadsword') || wid.includes('claymore') || wid.includes('blade')) wepType = 'broadsword';
+          else if (wid.includes('axe')) wepType = 'axe';
+        }
+
         if (m.userData.isAttacking) {
-          m.userData.weaponArm.rotation.x = Math.sin(now * 0.02) * 2.2;
+          if (wepType === 'bow') {
+            // Bow drawing and release recoil
+            const pull = Math.sin(now * 0.02);
+            m.userData.weaponArm.rotation.set(-0.5 + pull * 0.3, -0.4, 0.1);
+            m.userData.weaponArm.position.z = 0.1 - pull * 0.2;
+            if (m.userData.leftArm) {
+              m.userData.leftArm.rotation.set(-1.4, 0.2, -0.1);
+            }
+          } else if (wepType === 'staff') {
+            // Mage Staff Channeling & Overhead Summoning
+            const cast = Math.sin(now * 0.025);
+            m.userData.weaponArm.rotation.set(-1.9 + cast * 0.35, 0.2, 0.15);
+            if (m.userData.leftArm) {
+              m.userData.leftArm.rotation.set(-1.5 + cast * 0.3, -0.3, -0.2);
+            }
+          } else if (wepType === 'broadsword') {
+            // Heavy Two-Handed Horizontal Cleave
+            const swing = Math.sin(now * 0.018);
+            m.userData.weaponArm.rotation.set(-0.7 + swing * 2.0, Math.cos(now * 0.018) * 1.1, 0.2);
+            if (m.userData.leftArm) {
+              m.userData.leftArm.rotation.set(-0.7 + swing * 2.0, Math.cos(now * 0.018) * 1.1, -0.2);
+            }
+          } else if (wepType === 'hammer') {
+            // Massive Overhead Ground Smash
+            const smash = Math.sin(now * 0.016);
+            m.userData.weaponArm.rotation.set(smash * 2.7, 0, 0);
+            if (m.userData.leftArm) {
+              m.userData.leftArm.rotation.set(smash * 2.7, 0, 0);
+            }
+          } else if (wepType === 'spear') {
+            // Piercing Forward Thrust
+            const thrust = Math.sin(now * 0.024);
+            m.userData.weaponArm.rotation.set(-1.25, 0, 0);
+            m.userData.weaponArm.position.z = 0.1 + thrust * 0.55;
+            if (m.userData.leftArm) {
+              m.userData.leftArm.rotation.set(-1.1, 0.1, 0);
+            }
+          } else if (wepType === 'dagger') {
+            // Rapid Alternating Twin Stabs
+            const stabR = Math.sin(now * 0.035);
+            m.userData.weaponArm.rotation.set(-0.7 + stabR * 1.6, 0, 0);
+            if (m.userData.leftArm) {
+              const stabL = Math.sin(now * 0.035 + Math.PI);
+              m.userData.leftArm.rotation.set(-0.7 + stabL * 1.6, 0, 0);
+            }
+          } else if (wepType === 'axe') {
+            // Battle Axe Diagonal Chop
+            m.userData.weaponArm.rotation.set(Math.sin(now * 0.02) * 2.4, 0, 0.3);
+            if (m.userData.leftArm) {
+              m.userData.leftArm.rotation.set(0.4, 0, 0);
+            }
+          } else {
+            // Dynamic Sword Slash
+            m.userData.weaponArm.rotation.set(Math.sin(now * 0.022) * 2.2, 0, Math.sin(now * 0.022) * 0.4);
+            if (m.userData.leftArm) {
+              m.userData.leftArm.rotation.set(0.4, 0, 0);
+            }
+          }
         } else if (m.userData.isGathering) {
-          m.userData.weaponArm.rotation.x = Math.sin(now * 0.015) * 1.6;
+          m.userData.weaponArm.rotation.set(Math.sin(now * 0.015) * 1.6, 0, 0);
+          if (m.userData.leftArm) m.userData.leftArm.rotation.set(0.2, 0, 0);
         } else {
-          m.userData.weaponArm.rotation.x = 0.4;
+          // Idle stance
+          m.userData.weaponArm.rotation.set(0.4, 0, 0);
+          m.userData.weaponArm.position.set(0.65, 1.1, 0.1);
+          if (m.userData.leftArm) {
+            m.userData.leftArm.rotation.set(0.4, 0, 0);
+            m.userData.leftArm.position.set(-0.65, 1.1, 0.1);
+          }
         }
       });
 

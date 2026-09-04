@@ -1,10 +1,10 @@
 /**
  * IronRealm 3D Item Models & Visual Registry
  * 
- * Connects the game item catalog to procedural Three.js 3D models,
- * provides in-game world loot rendering with hover/spin animations,
- * and generates high-resolution 3D isometric thumbnails for the slotbar,
- * inventory, equipment, and village blacksmith forge.
+ * Inspired by Albion Online equipment tiers & aesthetics.
+ * Procedural 3D models for all weapons (Mage Staves, Recurve Bows, Swords, Greatswords,
+ * Battleaxes, War Hammers, Assassin Daggers, Frost Pikes) and armors (Cloth Robes,
+ * Leather Jackets, Knight Plates, Demonic Carapaces) across T2 to T6.
  */
 
 (function(root, factory) {
@@ -15,14 +15,191 @@
   }
 }(typeof self !== 'undefined' ? self : this, function(THREE) {
 
-  // Catalog linking item IDs to 3D model builders and aesthetic metadata
+  // -------------------------------------------------------------
+  // HELPER 3D MODEL BUILDERS
+  // -------------------------------------------------------------
+
+  function createBowMesh(T, opt = {}) {
+    const group = new T.Group();
+    const limbMat = new T.MeshStandardMaterial({
+      color: opt.limbColor || 0x78350f,
+      roughness: opt.limbRoughness || 0.6,
+      metalness: opt.limbMetalness || 0.2
+    });
+    const gripMat = new T.MeshStandardMaterial({
+      color: opt.gripColor || 0x451a03,
+      roughness: 0.8
+    });
+    const stringMat = new T.MeshBasicMaterial({
+      color: opt.stringColor || 0xffffff,
+      transparent: true,
+      opacity: 0.95
+    });
+    const tipMat = new T.MeshStandardMaterial({
+      color: opt.tipColor || 0xd97706,
+      metalness: 0.85,
+      roughness: 0.25
+    });
+
+    // Central Riser Grip
+    const riser = new T.Mesh(new T.BoxGeometry(0.09, 0.28, 0.08), gripMat);
+    riser.position.y = 0;
+    riser.castShadow = true;
+    group.add(riser);
+
+    // Upper Limb Segments (Curved Arch)
+    const u1 = new T.Mesh(new T.CylinderGeometry(0.035, 0.04, 0.45, 8), limbMat);
+    u1.position.set(0.06, 0.32, 0);
+    u1.rotation.z = -0.25;
+    group.add(u1);
+
+    const u2 = new T.Mesh(new T.CylinderGeometry(0.025, 0.035, 0.45, 8), limbMat);
+    u2.position.set(0.18, 0.68, 0);
+    u2.rotation.z = -0.55;
+    group.add(u2);
+
+    const uTip = new T.Mesh(new T.ConeGeometry(0.045, 0.16, 5), tipMat);
+    uTip.position.set(0.29, 0.92, 0);
+    uTip.rotation.z = -1.1;
+    group.add(uTip);
+
+    // Lower Limb Segments
+    const l1 = new T.Mesh(new T.CylinderGeometry(0.04, 0.035, 0.45, 8), limbMat);
+    l1.position.set(0.06, -0.32, 0);
+    l1.rotation.z = 0.25;
+    group.add(l1);
+
+    const l2 = new T.Mesh(new T.CylinderGeometry(0.035, 0.025, 0.45, 8), limbMat);
+    l2.position.set(0.18, -0.68, 0);
+    l2.rotation.z = 0.55;
+    group.add(l2);
+
+    const lTip = new T.Mesh(new T.ConeGeometry(0.045, 0.16, 5), tipMat);
+    lTip.position.set(0.29, -0.92, 0);
+    lTip.rotation.z = 1.1;
+    group.add(lTip);
+
+    // Taut Bowstring
+    const stringGeo = new T.CylinderGeometry(0.008, 0.008, 1.85, 4);
+    const bowstring = new T.Mesh(stringGeo, stringMat);
+    bowstring.position.set(0.28, 0, 0);
+    group.add(bowstring);
+
+    // Optional Glowing Nocked Arrow
+    if (opt.hasArrow) {
+      const arrowMat = new T.MeshStandardMaterial({ color: 0x38bdf8, emissive: 0x0284c7, emissiveIntensity: 0.8 });
+      const arrowShaft = new T.Mesh(new T.CylinderGeometry(0.015, 0.015, 1.2, 6), limbMat);
+      arrowShaft.rotation.z = Math.PI / 2;
+      arrowShaft.position.set(0.1, 0, 0);
+      group.add(arrowShaft);
+
+      const arrowHead = new T.Mesh(new T.ConeGeometry(0.05, 0.2, 4), arrowMat);
+      arrowHead.rotation.z = -Math.PI / 2;
+      arrowHead.position.set(-0.55, 0, 0);
+      group.add(arrowHead);
+    }
+
+    // Optional Ethereal / Runic Gem Ornaments
+    if (opt.gemColor) {
+      const gemMat = new T.MeshStandardMaterial({
+        color: opt.gemColor,
+        emissive: opt.gemColor,
+        emissiveIntensity: 0.9,
+        roughness: 0.1
+      });
+      const gem = new T.Mesh(new T.OctahedronGeometry(0.07), gemMat);
+      gem.position.set(-0.04, 0, 0);
+      group.add(gem);
+    }
+
+    group.scale.set(1.1, 1.1, 1.1);
+    return group;
+  }
+
+  function createStaffMesh(T, opt = {}) {
+    const group = new T.Group();
+    const shaftMat = new T.MeshStandardMaterial({
+      color: opt.shaftColor || 0x451a03,
+      roughness: 0.75,
+      metalness: opt.shaftMetal || 0.1
+    });
+    const headMat = new T.MeshStandardMaterial({
+      color: opt.headColor || 0xd97706,
+      metalness: 0.88,
+      roughness: 0.2
+    });
+    const orbMat = new T.MeshStandardMaterial({
+      color: opt.orbColor || 0xef4444,
+      emissive: opt.emissiveColor || 0xf97316,
+      emissiveIntensity: opt.emissiveIntensity || 0.9,
+      roughness: 0.1,
+      metalness: 0.5
+    });
+
+    // Long Staff Shaft
+    const shaft = new T.Mesh(new T.CylinderGeometry(0.04, 0.045, 1.9, 8), shaftMat);
+    shaft.position.y = 0.8;
+    shaft.castShadow = true;
+    group.add(shaft);
+
+    // Grip bands
+    const grip1 = new T.Mesh(new T.CylinderGeometry(0.048, 0.048, 0.35, 8), headMat);
+    grip1.position.y = 0.75;
+    group.add(grip1);
+
+    // Metallic Head Crown Bracket
+    const socket = new T.Mesh(new T.CylinderGeometry(0.08, 0.05, 0.22, 8), headMat);
+    socket.position.y = 1.75;
+    group.add(socket);
+
+    // Crown Prongs / Crest
+    const prongs = opt.prongCount || 3;
+    for (let i = 0; i < prongs; i++) {
+      const angle = (i / prongs) * Math.PI * 2;
+      const prong = new T.Mesh(new T.ConeGeometry(0.045, 0.35, 4), headMat);
+      prong.position.set(Math.cos(angle) * 0.12, 1.95, Math.sin(angle) * 0.12);
+      prong.rotation.x = Math.sin(angle) * 0.25;
+      prong.rotation.z = -Math.cos(angle) * 0.25;
+      group.add(prong);
+    }
+
+    // Glowing Spell Focus Orb / Gem
+    const orb = new T.Mesh(new T.SphereGeometry(opt.orbRadius || 0.16, 12, 12), orbMat);
+    orb.position.y = 1.95;
+    group.add(orb);
+
+    // Optional Orbiting Celestial Runic Rings
+    if (opt.hasRings) {
+      const ringMat = new T.MeshBasicMaterial({
+        color: opt.emissiveColor || 0x38bdf8,
+        transparent: true,
+        opacity: 0.75
+      });
+      const r1 = new T.Mesh(new T.TorusGeometry(0.26, 0.02, 6, 16), ringMat);
+      r1.position.y = 1.95;
+      r1.rotation.x = Math.PI / 4;
+      group.add(r1);
+
+      const r2 = new T.Mesh(new T.TorusGeometry(0.24, 0.02, 6, 16), ringMat);
+      r2.position.y = 1.95;
+      r2.rotation.y = Math.PI / 3;
+      group.add(r2);
+    }
+
+    group.scale.set(1.0, 1.0, 1.0);
+    return group;
+  }
+
+  // -------------------------------------------------------------
+  // ITEM REGISTRY (All items mapped to 3D procedural meshes)
+  // -------------------------------------------------------------
   const ITEM_REGISTRY = {
     // --- MATERIALS ---
     raw_wood: {
       id: 'raw_wood',
       name: 'Raw Wood',
       type: 'material',
-      rarity: 'common',
+      tier: 1,
       accentColor: 0xa16207,
       desc: 'Sturdy timber logs chopped from ancient forest trees.',
       buildMesh: function(T) {
@@ -36,7 +213,6 @@
           const bark = new T.Mesh(new T.CylinderGeometry(radius, radius, len, 8), barkMat);
           bark.castShadow = true;
           log.add(bark);
-          // End rings
           const cap1 = new T.Mesh(new T.CircleGeometry(radius * 0.95, 8), coreMat);
           cap1.rotation.x = -Math.PI / 2;
           cap1.position.y = len / 2 + 0.005;
@@ -48,27 +224,12 @@
           return log;
         }
 
-        // Pyramid stack of 3 logs
-        const l1 = makeLog(0.16, 0.95);
-        l1.rotation.z = Math.PI / 2;
-        l1.position.set(0, 0.16, -0.16);
-        group.add(l1);
+        const l1 = makeLog(0.16, 0.95); l1.rotation.z = Math.PI / 2; l1.position.set(0, 0.16, -0.16); group.add(l1);
+        const l2 = makeLog(0.16, 0.95); l2.rotation.z = Math.PI / 2; l2.position.set(0, 0.16, 0.16); group.add(l2);
+        const l3 = makeLog(0.15, 0.9); l3.rotation.z = Math.PI / 2; l3.position.set(0, 0.42, 0); group.add(l3);
 
-        const l2 = makeLog(0.16, 0.95);
-        l2.rotation.z = Math.PI / 2;
-        l2.position.set(0, 0.16, 0.16);
-        group.add(l2);
-
-        const l3 = makeLog(0.15, 0.9);
-        l3.rotation.z = Math.PI / 2;
-        l3.position.set(0, 0.42, 0);
-        group.add(l3);
-
-        // Rope binding
         const rope = new T.Mesh(new T.TorusGeometry(0.32, 0.03, 6, 12), ropeMat);
-        rope.rotation.y = Math.PI / 2;
-        rope.position.set(0, 0.26, 0);
-        group.add(rope);
+        rope.rotation.y = Math.PI / 2; rope.position.set(0, 0.26, 0); group.add(rope);
 
         group.scale.set(1.1, 1.1, 1.1);
         return group;
@@ -79,12 +240,11 @@
       id: 'raw_ore',
       name: 'Iron Ore',
       type: 'material',
-      rarity: 'common',
+      tier: 1,
       accentColor: 0x94a3b8,
       desc: 'Dense chunk of raw ironstone sparkling with metallic veins.',
       buildMesh: function(T) {
         const group = new T.Group();
-        // Rocky base
         const rockMat = new T.MeshStandardMaterial({ color: 0x334155, roughness: 0.85, metalness: 0.3 });
         const rock = new T.Mesh(new T.DodecahedronGeometry(0.48, 1), rockMat);
         rock.scale.set(1.2, 0.9, 1.1);
@@ -92,7 +252,6 @@
         rock.castShadow = true;
         group.add(rock);
 
-        // Glowing metallic crystal spikes
         const crystalMat = new T.MeshStandardMaterial({
           color: 0xe2e8f0,
           emissive: 0x64748b,
@@ -127,7 +286,7 @@
       id: 'ogre_bone',
       name: 'Ogre Bone',
       type: 'material',
-      rarity: 'uncommon',
+      tier: 3,
       accentColor: 0xfef08a,
       desc: 'Heavy prehistoric femur bone from a woodland ogre.',
       buildMesh: function(T) {
@@ -135,95 +294,18 @@
         const boneMat = new T.MeshStandardMaterial({ color: 0xfef3c7, roughness: 0.65, metalness: 0.1 });
         const notchMat = new T.MeshStandardMaterial({ color: 0xca8a04, roughness: 0.8 });
 
-        // Shaft
         const shaft = new T.Mesh(new T.CylinderGeometry(0.09, 0.09, 1.0, 8), boneMat);
-        shaft.position.y = 0.5;
-        shaft.castShadow = true;
-        group.add(shaft);
+        shaft.position.y = 0.5; shaft.castShadow = true; group.add(shaft);
 
-        // Top condyles
-        const t1 = new T.Mesh(new T.SphereGeometry(0.15, 8, 8), boneMat);
-        t1.position.set(-0.1, 1.0, 0);
-        group.add(t1);
-        const t2 = new T.Mesh(new T.SphereGeometry(0.15, 8, 8), boneMat);
-        t2.position.set(0.1, 1.0, 0);
-        group.add(t2);
+        const t1 = new T.Mesh(new T.SphereGeometry(0.15, 8, 8), boneMat); t1.position.set(-0.1, 1.0, 0); group.add(t1);
+        const t2 = new T.Mesh(new T.SphereGeometry(0.15, 8, 8), boneMat); t2.position.set(0.1, 1.0, 0); group.add(t2);
+        const b1 = new T.Mesh(new T.SphereGeometry(0.14, 8, 8), boneMat); b1.position.set(-0.09, 0.02, 0); group.add(b1);
+        const b2 = new T.Mesh(new T.SphereGeometry(0.14, 8, 8), boneMat); b2.position.set(0.09, 0.02, 0); group.add(b2);
 
-        // Bottom condyles
-        const b1 = new T.Mesh(new T.SphereGeometry(0.14, 8, 8), boneMat);
-        b1.position.set(-0.09, 0.02, 0);
-        group.add(b1);
-        const b2 = new T.Mesh(new T.SphereGeometry(0.14, 8, 8), boneMat);
-        b2.position.set(0.09, 0.02, 0);
-        group.add(b2);
-
-        // Tribal carving band
         const band = new T.Mesh(new T.CylinderGeometry(0.105, 0.105, 0.18, 8), notchMat);
-        band.position.y = 0.52;
-        group.add(band);
+        band.position.y = 0.52; group.add(band);
 
-        group.rotation.z = 0.35;
-        group.scale.set(1.1, 1.1, 1.1);
-        return group;
-      }
-    },
-
-    demon_horn: {
-      id: 'demon_horn',
-      name: 'Demon Horn',
-      type: 'material',
-      rarity: 'rare',
-      accentColor: 0xef4444,
-      desc: 'Twisted obsidian horn pulsing with searing underworld heat.',
-      buildMesh: function(T) {
-        const group = new T.Group();
-        const hornMat = new T.MeshStandardMaterial({
-          color: 0x18181b,
-          roughness: 0.35,
-          metalness: 0.6
-        });
-        const lavaMat = new T.MeshStandardMaterial({
-          color: 0xef4444,
-          emissive: 0xdc2626,
-          emissiveIntensity: 0.8,
-          roughness: 0.2
-        });
-
-        // Curved segmented horn sections
-        const segs = [
-          { rB: 0.24, rT: 0.20, h: 0.32, y: 0.16, rz: 0.08, rx: 0.05 },
-          { rB: 0.20, rT: 0.16, h: 0.32, y: 0.44, rz: 0.22, rx: 0.12 },
-          { rB: 0.16, rT: 0.11, h: 0.32, y: 0.72, rz: 0.42, rx: 0.22 },
-          { rB: 0.11, rT: 0.02, h: 0.35, y: 0.98, rz: 0.70, rx: 0.35 }
-        ];
-
-        segs.forEach(s => {
-          const m = new T.Mesh(new T.CylinderGeometry(s.rT, s.rB, s.h, 7), hornMat);
-          m.position.set(-s.rz * 0.35, s.y, s.rx * 0.25);
-          m.rotation.z = s.rz;
-          m.rotation.x = s.rx;
-          m.castShadow = true;
-          group.add(m);
-        });
-
-        // Glowing infernal lava ridges
-        const ring1 = new T.Mesh(new T.TorusGeometry(0.21, 0.03, 6, 12), lavaMat);
-        ring1.position.y = 0.28;
-        ring1.rotation.x = Math.PI / 2 + 0.1;
-        group.add(ring1);
-
-        const ring2 = new T.Mesh(new T.TorusGeometry(0.16, 0.025, 6, 12), lavaMat);
-        ring2.position.set(-0.1, 0.58, 0.08);
-        ring2.rotation.x = Math.PI / 2 + 0.2;
-        ring2.rotation.z = 0.25;
-        group.add(ring2);
-
-        // Core fiery ember tip
-        const ember = new T.Mesh(new T.SphereGeometry(0.05, 6, 6), lavaMat);
-        ember.position.set(-0.35, 1.15, 0.32);
-        group.add(ember);
-
-        group.scale.set(1.1, 1.1, 1.1);
+        group.rotation.z = 0.35; group.scale.set(1.1, 1.1, 1.1);
         return group;
       }
     },
@@ -232,50 +314,25 @@
       id: 'spider_silk',
       name: 'Frost Silk',
       type: 'material',
-      rarity: 'uncommon',
+      tier: 3,
       accentColor: 0x38bdf8,
       desc: 'Gleaming spool of spun silk coated in subzero frost crystals.',
       buildMesh: function(T) {
         const group = new T.Group();
         const coreMat = new T.MeshStandardMaterial({
-          color: 0x0284c7,
-          emissive: 0x0369a1,
-          emissiveIntensity: 0.45,
-          roughness: 0.25,
-          metalness: 0.4
+          color: 0x0284c7, emissive: 0x0369a1, emissiveIntensity: 0.45, roughness: 0.25, metalness: 0.4
         });
         const silkMat = new T.MeshStandardMaterial({
-          color: 0xe0f2fe,
-          emissive: 0x38bdf8,
-          emissiveIntensity: 0.6,
-          roughness: 0.2,
-          transparent: true,
-          opacity: 0.9
+          color: 0xe0f2fe, emissive: 0x38bdf8, emissiveIntensity: 0.6, roughness: 0.2, transparent: true, opacity: 0.9
         });
 
-        // Spindle core
         const core = new T.Mesh(new T.OctahedronGeometry(0.42, 1), coreMat);
-        core.position.y = 0.45;
-        core.scale.set(0.9, 1.3, 0.9);
-        core.castShadow = true;
-        group.add(core);
+        core.position.y = 0.45; core.scale.set(0.9, 1.3, 0.9); core.castShadow = true; group.add(core);
 
-        // Crystalline cross filament rings
         for (let i = 0; i < 4; i++) {
           const ring = new T.Mesh(new T.TorusGeometry(0.38, 0.035, 6, 16), silkMat);
-          ring.position.y = 0.45;
-          ring.rotation.x = (i * Math.PI) / 4;
-          ring.rotation.y = (i * Math.PI) / 6;
+          ring.position.y = 0.45; ring.rotation.x = (i * Math.PI) / 4; ring.rotation.y = (i * Math.PI) / 6;
           group.add(ring);
-        }
-
-        // Floating frost shards
-        for (let i = 0; i < 3; i++) {
-          const angle = (i / 3) * Math.PI * 2;
-          const shard = new T.Mesh(new T.ConeGeometry(0.08, 0.35, 4), silkMat);
-          shard.position.set(Math.cos(angle) * 0.45, 0.45 + (i - 1) * 0.15, Math.sin(angle) * 0.45);
-          shard.rotation.z = Math.cos(angle) * 0.5;
-          group.add(shard);
         }
 
         group.scale.set(1.2, 1.2, 1.2);
@@ -287,105 +344,95 @@
       id: 'skeleton_skull',
       name: 'Ancient Skull',
       type: 'material',
-      rarity: 'rare',
+      tier: 4,
       accentColor: 0x10b981,
-      desc: 'Cursed skeleton skull with emerald flame burning in its eye sockets.',
+      desc: 'Cursed skeleton skull with emerald soul flame in its sockets.',
       buildMesh: function(T) {
         const group = new T.Group();
         const boneMat = new T.MeshStandardMaterial({ color: 0xe2e8f0, roughness: 0.75, metalness: 0.1 });
         const darkMat = new T.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.9 });
-        const eyeMat = new T.MeshStandardMaterial({
-          color: 0x10b981,
-          emissive: 0x10b981,
-          emissiveIntensity: 0.9,
-          roughness: 0.1
-        });
+        const eyeMat = new T.MeshStandardMaterial({ color: 0x10b981, emissive: 0x10b981, emissiveIntensity: 0.9 });
 
-        // Cranium dome
         const cranium = new T.Mesh(new T.BoxGeometry(0.65, 0.55, 0.65), boneMat);
-        cranium.position.set(0, 0.62, 0);
-        cranium.castShadow = true;
-        group.add(cranium);
+        cranium.position.set(0, 0.62, 0); cranium.castShadow = true; group.add(cranium);
 
-        // Jaw / cheekbones
         const jaw = new T.Mesh(new T.BoxGeometry(0.48, 0.3, 0.45), boneMat);
-        jaw.position.set(0, 0.25, 0.1);
-        jaw.castShadow = true;
-        group.add(jaw);
+        jaw.position.set(0, 0.25, 0.1); jaw.castShadow = true; group.add(jaw);
 
-        // Eye Sockets
-        const sL = new T.Mesh(new T.BoxGeometry(0.16, 0.16, 0.08), darkMat);
-        sL.position.set(-0.18, 0.56, 0.32);
-        group.add(sL);
-        const sR = new T.Mesh(new T.BoxGeometry(0.16, 0.16, 0.08), darkMat);
-        sR.position.set(0.18, 0.56, 0.32);
-        group.add(sR);
+        const sL = new T.Mesh(new T.BoxGeometry(0.16, 0.16, 0.08), darkMat); sL.position.set(-0.18, 0.56, 0.32); group.add(sL);
+        const sR = new T.Mesh(new T.BoxGeometry(0.16, 0.16, 0.08), darkMat); sR.position.set(0.18, 0.56, 0.32); group.add(sR);
 
-        // Glowing Emerald Soul Embers in Eyes
-        const eL = new T.Mesh(new T.SphereGeometry(0.06, 6, 6), eyeMat);
-        eL.position.set(-0.18, 0.56, 0.34);
-        group.add(eL);
-        const eR = new T.Mesh(new T.SphereGeometry(0.06, 6, 6), eyeMat);
-        eR.position.set(0.18, 0.56, 0.34);
-        group.add(eR);
-
-        // Nasal cavity
-        const nose = new T.Mesh(new T.ConeGeometry(0.06, 0.12, 3), darkMat);
-        nose.rotation.x = Math.PI;
-        nose.position.set(0, 0.42, 0.33);
-        group.add(nose);
-
-        // Teeth row
-        const teeth = new T.Mesh(new T.BoxGeometry(0.32, 0.08, 0.06), boneMat);
-        teeth.position.set(0, 0.28, 0.33);
-        group.add(teeth);
+        const eL = new T.Mesh(new T.SphereGeometry(0.06, 6, 6), eyeMat); eL.position.set(-0.18, 0.56, 0.34); group.add(eL);
+        const eR = new T.Mesh(new T.SphereGeometry(0.06, 6, 6), eyeMat); eR.position.set(0.18, 0.56, 0.34); group.add(eR);
 
         group.scale.set(1.15, 1.15, 1.15);
         return group;
       }
     },
 
-    // --- WEAPONS ---
+    demon_horn: {
+      id: 'demon_horn',
+      name: 'Demon Horn',
+      type: 'material',
+      tier: 5,
+      accentColor: 0xef4444,
+      desc: 'Twisted obsidian horn pulsing with searing underworld magma.',
+      buildMesh: function(T) {
+        const group = new T.Group();
+        const hornMat = new T.MeshStandardMaterial({ color: 0x18181b, roughness: 0.35, metalness: 0.6 });
+        const lavaMat = new T.MeshStandardMaterial({ color: 0xef4444, emissive: 0xdc2626, emissiveIntensity: 0.8 });
+
+        const segs = [
+          { rB: 0.24, rT: 0.20, h: 0.32, y: 0.16, rz: 0.08, rx: 0.05 },
+          { rB: 0.20, rT: 0.16, h: 0.32, y: 0.44, rz: 0.22, rx: 0.12 },
+          { rB: 0.16, rT: 0.11, h: 0.32, y: 0.72, rz: 0.42, rx: 0.22 },
+          { rB: 0.11, rT: 0.02, h: 0.35, y: 0.98, rz: 0.70, rx: 0.35 }
+        ];
+
+        segs.forEach(s => {
+          const m = new T.Mesh(new T.CylinderGeometry(s.rT, s.rB, s.h, 7), hornMat);
+          m.position.set(-s.rz * 0.35, s.y, s.rx * 0.25);
+          m.rotation.z = s.rz; m.rotation.x = s.rx; m.castShadow = true;
+          group.add(m);
+        });
+
+        const ring1 = new T.Mesh(new T.TorusGeometry(0.21, 0.03, 6, 12), lavaMat);
+        ring1.position.y = 0.28; ring1.rotation.x = Math.PI / 2 + 0.1; group.add(ring1);
+
+        group.scale.set(1.1, 1.1, 1.1);
+        return group;
+      }
+    },
+
+    // =========================================================================
+    // TIER 2 (NOVICE) WEAPONS & ARMORS
+    // =========================================================================
     wood_sword: {
       id: 'wood_sword',
-      name: 'Wood Sword',
+      name: 'Novice Broadsword',
       type: 'weapon',
-      rarity: 'common',
+      tier: 2,
       accentColor: 0xd97706,
-      desc: 'Hand-carved wooden blade crafted for novice adventurers.',
+      desc: 'T2 Novice broadsword carved for training adventurers.',
       buildMesh: function(T) {
         const group = new T.Group();
         const bladeMat = new T.MeshStandardMaterial({ color: 0xb45309, roughness: 0.65 });
         const hiltMat = new T.MeshStandardMaterial({ color: 0x78350f, roughness: 0.85 });
 
-        // Blade with beveled edge
         const blade = new T.Mesh(new T.BoxGeometry(0.18, 1.35, 0.06), bladeMat);
-        blade.position.y = 0.72;
-        blade.castShadow = true;
-        group.add(blade);
+        blade.position.y = 0.72; blade.castShadow = true; group.add(blade);
 
-        // Pointed blade tip
         const tip = new T.Mesh(new T.ConeGeometry(0.128, 0.28, 4), bladeMat);
-        tip.rotation.y = Math.PI / 4;
-        tip.position.y = 1.52;
-        tip.castShadow = true;
-        group.add(tip);
+        tip.rotation.y = Math.PI / 4; tip.position.y = 1.52; tip.castShadow = true; group.add(tip);
 
-        // Crossguard
         const guard = new T.Mesh(new T.BoxGeometry(0.42, 0.08, 0.12), hiltMat);
-        guard.position.y = 0.06;
-        guard.castShadow = true;
-        group.add(guard);
+        guard.position.y = 0.06; guard.castShadow = true; group.add(guard);
 
-        // Handle grip
         const grip = new T.Mesh(new T.CylinderGeometry(0.045, 0.045, 0.36, 8), hiltMat);
-        grip.position.y = -0.16;
-        group.add(grip);
+        grip.position.y = -0.16; group.add(grip);
 
-        // Pommel
         const pommel = new T.Mesh(new T.SphereGeometry(0.08, 8, 8), hiltMat);
-        pommel.position.y = -0.38;
-        group.add(pommel);
+        pommel.position.y = -0.38; group.add(pommel);
 
         return group;
       }
@@ -393,317 +440,516 @@
 
     novice_axe: {
       id: 'novice_axe',
-      name: 'Novice Axe',
+      name: 'Novice Battleaxe',
       type: 'weapon',
-      rarity: 'common',
+      tier: 2,
       accentColor: 0x94a3b8,
-      desc: 'Stout woodsman axe capable of harvesting lumber and cleaving beasts.',
+      desc: 'T2 Woodsman axe capable of harvesting lumber and cleaving beasts.',
       buildMesh: function(T) {
         const group = new T.Group();
         const shaftMat = new T.MeshStandardMaterial({ color: 0x78350f, roughness: 0.85 });
         const headMat = new T.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.88, roughness: 0.25 });
         const edgeMat = new T.MeshStandardMaterial({ color: 0xf1f5f9, metalness: 0.95, roughness: 0.1 });
 
-        // Shaft
         const shaft = new T.Mesh(new T.CylinderGeometry(0.045, 0.05, 1.35, 8), shaftMat);
-        shaft.position.y = 0.55;
-        shaft.castShadow = true;
-        group.add(shaft);
+        shaft.position.y = 0.55; shaft.castShadow = true; group.add(shaft);
 
-        // Axe Head Block
         const head = new T.Mesh(new T.BoxGeometry(0.35, 0.38, 0.14), headMat);
-        head.position.set(0.12, 1.05, 0);
-        head.castShadow = true;
-        group.add(head);
+        head.position.set(0.12, 1.05, 0); head.castShadow = true; group.add(head);
 
-        // Curved cutting edge blade
         const edge = new T.Mesh(new T.CylinderGeometry(0.24, 0.24, 0.06, 8, 1, false, 0, Math.PI), edgeMat);
-        edge.rotation.z = -Math.PI / 2;
-        edge.rotation.x = Math.PI / 2;
-        edge.position.set(0.35, 1.05, 0);
-        edge.castShadow = true;
-        group.add(edge);
-
-        // Hammer back poll
-        const poll = new T.Mesh(new T.BoxGeometry(0.16, 0.22, 0.15), headMat);
-        poll.position.set(-0.16, 1.05, 0);
-        group.add(poll);
+        edge.rotation.z = -Math.PI / 2; edge.rotation.x = Math.PI / 2;
+        edge.position.set(0.35, 1.05, 0); edge.castShadow = true; group.add(edge);
 
         return group;
       }
     },
 
-    steel_broadsword: {
-      id: 'steel_broadsword',
-      name: 'Steel Broadsword',
+    novice_bow: {
+      id: 'novice_bow',
+      name: 'Novice Recurve Bow',
       type: 'weapon',
-      rarity: 'rare',
-      accentColor: 0x38bdf8,
-      desc: 'Forged high-carbon steel broadsword etched with glowing runic power.',
+      tier: 2,
+      accentColor: 0x10b981,
+      desc: 'T2 Flexible yew recurve bow with rapid arrow draw.',
+      buildMesh: function(T) {
+        return createBowMesh(T, {
+          limbColor: 0x92400e,
+          gripColor: 0x78350f,
+          stringColor: 0xffffff,
+          tipColor: 0xd97706,
+          hasArrow: true
+        });
+      }
+    },
+
+    novice_fire_staff: {
+      id: 'novice_fire_staff',
+      name: 'Novice Fire Staff',
+      type: 'weapon',
+      tier: 2,
+      accentColor: 0xf97316,
+      desc: 'T2 Carved wooden staff channeling sparks of primal pyromancy.',
+      buildMesh: function(T) {
+        return createStaffMesh(T, {
+          shaftColor: 0x78350f,
+          headColor: 0xd97706,
+          orbColor: 0xf97316,
+          emissiveColor: 0xea580c,
+          prongCount: 3,
+          orbRadius: 0.15
+        });
+      }
+    },
+
+    novice_robe: {
+      id: 'novice_robe',
+      name: 'Novice Scholar Robe',
+      type: 'armor',
+      tier: 2,
+      accentColor: 0x06b6d4,
+      desc: 'T2 Light woven cloth robe tailored with mana focus channels.',
       buildMesh: function(T) {
         const group = new T.Group();
-        const bladeMat = new T.MeshStandardMaterial({
-          color: 0xf8fafc,
-          metalness: 0.95,
-          roughness: 0.12
-        });
-        const runeMat = new T.MeshStandardMaterial({
-          color: 0x38bdf8,
-          emissive: 0x0284c7,
-          emissiveIntensity: 0.85,
-          roughness: 0.1
-        });
-        const goldMat = new T.MeshStandardMaterial({
-          color: 0xf59e0b,
-          metalness: 0.9,
-          roughness: 0.2
-        });
-        const gripMat = new T.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.7 });
+        const clothMat = new T.MeshStandardMaterial({ color: 0x0284c7, roughness: 0.85 });
+        const trimMat = new T.MeshStandardMaterial({ color: 0xfcd34d, roughness: 0.4, metalness: 0.7 });
+        const sashMat = new T.MeshStandardMaterial({ color: 0x047857, roughness: 0.8 });
 
-        // Main Blade
-        const blade = new T.Mesh(new T.BoxGeometry(0.24, 1.6, 0.055), bladeMat);
-        blade.position.y = 0.88;
-        blade.castShadow = true;
-        group.add(blade);
+        const tunic = new T.Mesh(new T.BoxGeometry(0.82, 1.15, 0.52), clothMat);
+        tunic.position.y = 0.65; group.add(tunic);
 
-        // Runic fuller groove
-        const rune = new T.Mesh(new T.BoxGeometry(0.06, 1.25, 0.065), runeMat);
-        rune.position.y = 0.84;
-        group.add(rune);
+        const mantle = new T.Mesh(new T.BoxGeometry(0.9, 0.28, 0.58), trimMat);
+        mantle.position.y = 1.12; group.add(mantle);
 
-        // Pointed Tip
-        const tip = new T.Mesh(new T.ConeGeometry(0.17, 0.35, 4), bladeMat);
-        tip.rotation.y = Math.PI / 4;
-        tip.position.y = 1.84;
-        tip.castShadow = true;
-        group.add(tip);
-
-        // Winged Golden Crossguard
-        const guard = new T.Mesh(new T.BoxGeometry(0.56, 0.1, 0.16), goldMat);
-        guard.position.y = 0.07;
-        guard.castShadow = true;
-        group.add(guard);
-
-        // Handle Grip
-        const grip = new T.Mesh(new T.CylinderGeometry(0.045, 0.045, 0.42, 8), gripMat);
-        grip.position.y = -0.18;
-        group.add(grip);
-
-        // Golden Gem Pommel
-        const pommel = new T.Mesh(new T.OctahedronGeometry(0.11), goldMat);
-        pommel.position.y = -0.42;
-        group.add(pommel);
-
-        const gem = new T.Mesh(new T.SphereGeometry(0.05, 6, 6), runeMat);
-        gem.position.y = -0.42;
-        group.add(gem);
+        const sash = new T.Mesh(new T.BoxGeometry(0.85, 0.16, 0.55), sashMat);
+        sash.position.y = 0.35; group.add(sash);
 
         return group;
       }
     },
 
-    flame_dagger: {
-      id: 'flame_dagger',
-      name: 'Flame Dagger',
-      type: 'weapon',
-      rarity: 'rare',
-      accentColor: 0xef4444,
-      desc: 'Obsidian stiletto radiating volcanic heat and piercing serrations.',
-      buildMesh: function(T) {
-        const group = new T.Group();
-        const obsMat = new T.MeshStandardMaterial({ color: 0x18181b, roughness: 0.3, metalness: 0.7 });
-        const flameMat = new T.MeshStandardMaterial({
-          color: 0xef4444,
-          emissive: 0xf97316,
-          emissiveIntensity: 0.95,
-          roughness: 0.2
-        });
-        const rubyMat = new T.MeshStandardMaterial({ color: 0xb91c1c, emissive: 0xef4444, emissiveIntensity: 0.5 });
-
-        // Blade
-        const blade = new T.Mesh(new T.BoxGeometry(0.12, 0.9, 0.04), obsMat);
-        blade.position.y = 0.48;
-        blade.castShadow = true;
-        group.add(blade);
-
-        // Molten Flame Edge
-        const flameEdge = new T.Mesh(new T.BoxGeometry(0.05, 0.85, 0.05), flameMat);
-        flameEdge.position.set(0.05, 0.48, 0);
-        group.add(flameEdge);
-
-        // Piercing Tip
-        const tip = new T.Mesh(new T.ConeGeometry(0.085, 0.24, 4), flameMat);
-        tip.rotation.y = Math.PI / 4;
-        tip.position.y = 1.02;
-        tip.castShadow = true;
-        group.add(tip);
-
-        // Curved Red Guard
-        const guard = new T.Mesh(new T.BoxGeometry(0.34, 0.08, 0.1), rubyMat);
-        guard.position.y = 0.04;
-        group.add(guard);
-
-        // Grip
-        const grip = new T.Mesh(new T.CylinderGeometry(0.038, 0.038, 0.28, 8), obsMat);
-        grip.position.y = -0.12;
-        group.add(grip);
-
-        // Ruby Pommel
-        const pommel = new T.Mesh(new T.OctahedronGeometry(0.08), rubyMat);
-        pommel.position.y = -0.28;
-        group.add(pommel);
-
-        group.scale.set(1.15, 1.15, 1.15);
-        return group;
-      }
-    },
-
-    battle_hammer: {
-      id: 'battle_hammer',
-      name: 'War Hammer',
-      type: 'weapon',
-      rarity: 'epic',
-      accentColor: 0x64748b,
-      desc: 'Crushing dwarven war hammer designed to shatter heavy armor plates.',
-      buildMesh: function(T) {
-        const group = new T.Group();
-        const ironMat = new T.MeshStandardMaterial({ color: 0x334155, metalness: 0.92, roughness: 0.22 });
-        const goldTrim = new T.MeshStandardMaterial({ color: 0xf59e0b, metalness: 0.85, roughness: 0.25 });
-        const handleMat = new T.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.6, roughness: 0.4 });
-
-        // Shaft
-        const shaft = new T.Mesh(new T.CylinderGeometry(0.05, 0.055, 1.5, 8), handleMat);
-        shaft.position.y = 0.6;
-        shaft.castShadow = true;
-        group.add(shaft);
-
-        // Heavy Head Block
-        const head = new T.Mesh(new T.BoxGeometry(0.55, 0.48, 0.65), ironMat);
-        head.position.set(0, 1.15, 0);
-        head.castShadow = true;
-        group.add(head);
-
-        // Gold head bands
-        const band1 = new T.Mesh(new T.BoxGeometry(0.57, 0.08, 0.67), goldTrim);
-        band1.position.set(0, 1.15, 0);
-        group.add(band1);
-
-        // Rear Armor-Piercing Spike
-        const spike = new T.Mesh(new T.ConeGeometry(0.14, 0.45, 4), ironMat);
-        spike.rotation.x = Math.PI / 2;
-        spike.position.set(0, 1.15, -0.5);
-        spike.castShadow = true;
-        group.add(spike);
-
-        // Top Crown Spike
-        const topSpike = new T.Mesh(new T.ConeGeometry(0.1, 0.3, 4), goldTrim);
-        topSpike.position.set(0, 1.5, 0);
-        group.add(topSpike);
-
-        return group;
-      }
-    },
-
-    crystal_spear: {
-      id: 'crystal_spear',
-      name: 'Frost Pike',
-      type: 'weapon',
-      rarity: 'epic',
-      accentColor: 0x38bdf8,
-      desc: 'Glacial polearm tipping a diamond-honed spearhead of absolute zero ice.',
-      buildMesh: function(T) {
-        const group = new T.Group();
-        const shaftMat = new T.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.6 });
-        const iceMat = new T.MeshStandardMaterial({
-          color: 0x38bdf8,
-          emissive: 0x0284c7,
-          emissiveIntensity: 0.9,
-          metalness: 0.7,
-          roughness: 0.12
-        });
-        const silverMat = new T.MeshStandardMaterial({ color: 0xe2e8f0, metalness: 0.95, roughness: 0.15 });
-
-        // Long Shaft
-        const shaft = new T.Mesh(new T.CylinderGeometry(0.04, 0.045, 2.0, 8), shaftMat);
-        shaft.position.y = 0.8;
-        shaft.castShadow = true;
-        group.add(shaft);
-
-        // Silver Socket Collar
-        const collar = new T.Mesh(new T.CylinderGeometry(0.07, 0.05, 0.25, 8), silverMat);
-        collar.position.y = 1.7;
-        group.add(collar);
-
-        // Faceted Crystal Spearhead
-        const spearhead = new T.Mesh(new T.ConeGeometry(0.18, 0.75, 4), iceMat);
-        spearhead.position.y = 2.15;
-        spearhead.rotation.y = Math.PI / 4;
-        spearhead.castShadow = true;
-        group.add(spearhead);
-
-        // Twin Side Barbs
-        for (let side of [-1, 1]) {
-          const barb = new T.Mesh(new T.ConeGeometry(0.08, 0.35, 4), iceMat);
-          barb.position.set(side * 0.15, 1.82, 0);
-          barb.rotation.z = -side * 0.65;
-          group.add(barb);
-        }
-
-        group.scale.set(0.9, 0.9, 0.9);
-        return group;
-      }
-    },
-
-    // --- ARMORS ---
     leather_armor: {
       id: 'leather_armor',
-      name: 'Leather Tunic',
+      name: 'Novice Hunter Jacket',
       type: 'armor',
-      rarity: 'common',
+      tier: 2,
       accentColor: 0xd97706,
-      desc: 'Tough boiled leather cuirass fitted with bronze rivets and shoulder guards.',
+      desc: 'T2 Tough boiled leather cuirass fitted with bronze rivets.',
       buildMesh: function(T) {
         const group = new T.Group();
         const leatherMat = new T.MeshStandardMaterial({ color: 0x92400e, roughness: 0.85 });
         const darkLeatherMat = new T.MeshStandardMaterial({ color: 0x78350f, roughness: 0.9 });
         const brassMat = new T.MeshStandardMaterial({ color: 0xf59e0b, metalness: 0.9, roughness: 0.25 });
 
-        // Torso Cuirass
         const torso = new T.Mesh(new T.BoxGeometry(0.85, 1.05, 0.55), leatherMat);
-        torso.position.y = 0.65;
-        torso.castShadow = true;
-        group.add(torso);
+        torso.position.y = 0.65; torso.castShadow = true; group.add(torso);
 
-        // Studded Bronze Rivets
-        const rivetOffsets = [
-          [-0.26, 0.85, 0.29], [0.26, 0.85, 0.29],
-          [-0.26, 0.65, 0.29], [0.26, 0.65, 0.29],
-          [-0.14, 0.75, 0.29], [0.14, 0.75, 0.29],
-          [-0.26, 0.45, 0.29], [0.26, 0.45, 0.29]
-        ];
-        rivetOffsets.forEach(pos => {
-          const rivet = new T.Mesh(new T.SphereGeometry(0.035, 6, 6), brassMat);
-          rivet.position.set(pos[0], pos[1], pos[2]);
-          group.add(rivet);
-        });
-
-        // Shoulder Straps / Pads
         const pL = new T.Mesh(new T.BoxGeometry(0.32, 0.18, 0.58), darkLeatherMat);
-        pL.position.set(-0.52, 1.05, 0);
-        group.add(pL);
-
+        pL.position.set(-0.52, 1.05, 0); group.add(pL);
         const pR = new T.Mesh(new T.BoxGeometry(0.32, 0.18, 0.58), darkLeatherMat);
-        pR.position.set(0.52, 1.05, 0);
-        group.add(pR);
+        pR.position.set(0.52, 1.05, 0); group.add(pR);
 
-        // Waist Belt
         const belt = new T.Mesh(new T.BoxGeometry(0.9, 0.16, 0.58), darkLeatherMat);
-        belt.position.set(0, 0.25, 0);
-        group.add(belt);
+        belt.position.set(0, 0.25, 0); group.add(belt);
 
         const buckle = new T.Mesh(new T.BoxGeometry(0.18, 0.2, 0.62), brassMat);
-        buckle.position.set(0, 0.25, 0);
-        group.add(buckle);
+        buckle.position.set(0, 0.25, 0); group.add(buckle);
+
+        return group;
+      }
+    },
+
+    novice_plate: {
+      id: 'novice_plate',
+      name: 'Novice Soldier Armor',
+      type: 'armor',
+      tier: 2,
+      accentColor: 0x64748b,
+      desc: 'T2 Tempered cast-iron knight cuirass for frontline warriors.',
+      buildMesh: function(T) {
+        const group = new T.Group();
+        const ironMat = new T.MeshStandardMaterial({ color: 0x64748b, metalness: 0.85, roughness: 0.3 });
+        const trimMat = new T.MeshStandardMaterial({ color: 0xd97706, metalness: 0.8, roughness: 0.3 });
+
+        const torso = new T.Mesh(new T.BoxGeometry(0.88, 1.1, 0.58), ironMat);
+        torso.position.y = 0.68; torso.castShadow = true; group.add(torso);
+
+        const crest = new T.Mesh(new T.BoxGeometry(0.1, 0.75, 0.06), trimMat);
+        crest.position.set(0, 0.72, 0.3); group.add(crest);
+
+        const pL = new T.Mesh(new T.BoxGeometry(0.34, 0.22, 0.62), ironMat);
+        pL.position.set(-0.54, 1.08, 0); group.add(pL);
+        const pR = new T.Mesh(new T.BoxGeometry(0.34, 0.22, 0.62), ironMat);
+        pR.position.set(0.54, 1.08, 0); group.add(pR);
+
+        return group;
+      }
+    },
+
+    // =========================================================================
+    // TIER 3 (JOURNEYMAN) WEAPONS & ARMORS
+    // =========================================================================
+    journeyman_claymore: {
+      id: 'journeyman_claymore',
+      name: 'Journeyman Claymore',
+      type: 'weapon',
+      tier: 3,
+      accentColor: 0x38bdf8,
+      desc: 'T3 Two-handed steel claymore delivering wide sweeping slashes.',
+      buildMesh: function(T) {
+        const group = new T.Group();
+        const bladeMat = new T.MeshStandardMaterial({ color: 0xe2e8f0, metalness: 0.9, roughness: 0.2 });
+        const fullerMat = new T.MeshStandardMaterial({ color: 0x0284c7, emissive: 0x0284c7, emissiveIntensity: 0.4 });
+        const guardMat = new T.MeshStandardMaterial({ color: 0x475569, metalness: 0.85, roughness: 0.3 });
+        const gripMat = new T.MeshStandardMaterial({ color: 0x1e293b, roughness: 0.7 });
+
+        const blade = new T.Mesh(new T.BoxGeometry(0.22, 1.55, 0.05), bladeMat);
+        blade.position.y = 0.85; blade.castShadow = true; group.add(blade);
+
+        const fuller = new T.Mesh(new T.BoxGeometry(0.05, 1.1, 0.06), fullerMat);
+        fuller.position.y = 0.82; group.add(fuller);
+
+        const tip = new T.Mesh(new T.ConeGeometry(0.155, 0.3, 4), bladeMat);
+        tip.rotation.y = Math.PI / 4; tip.position.y = 1.78; group.add(tip);
+
+        const guard = new T.Mesh(new T.BoxGeometry(0.52, 0.08, 0.12), guardMat);
+        guard.position.y = 0.06; group.add(guard);
+
+        const grip = new T.Mesh(new T.CylinderGeometry(0.04, 0.04, 0.42, 8), gripMat);
+        grip.position.y = -0.18; group.add(grip);
+
+        const pommel = new T.Mesh(new T.OctahedronGeometry(0.09), guardMat);
+        pommel.position.y = -0.42; group.add(pommel);
+
+        return group;
+      }
+    },
+
+    journeyman_warbow: {
+      id: 'journeyman_warbow',
+      name: 'Journeyman Warbow',
+      type: 'weapon',
+      tier: 3,
+      accentColor: 0x06b6d4,
+      desc: 'T3 High-draw composite warbow tipped with steel horn notches.',
+      buildMesh: function(T) {
+        return createBowMesh(T, {
+          limbColor: 0x451a03,
+          gripColor: 0x1e293b,
+          stringColor: 0x38bdf8,
+          tipColor: 0x94a3b8,
+          gemColor: 0x06b6d4,
+          hasArrow: true
+        });
+      }
+    },
+
+    journeyman_frost_staff: {
+      id: 'journeyman_frost_staff',
+      name: 'Journeyman Frost Staff',
+      type: 'weapon',
+      tier: 3,
+      accentColor: 0x38bdf8,
+      desc: 'T3 Chilled ashwood staff crowned with orbiting subzero frost shards.',
+      buildMesh: function(T) {
+        return createStaffMesh(T, {
+          shaftColor: 0x1e293b,
+          headColor: 0x94a3b8,
+          orbColor: 0x38bdf8,
+          emissiveColor: 0x0284c7,
+          prongCount: 4,
+          orbRadius: 0.16,
+          hasRings: true
+        });
+      }
+    },
+
+    journeyman_hammer: {
+      id: 'journeyman_hammer',
+      name: 'Journeyman War Hammer',
+      type: 'weapon',
+      tier: 3,
+      accentColor: 0x64748b,
+      desc: 'T3 Heavy forged iron warhammer shattering shields and bone.',
+      buildMesh: function(T) {
+        const group = new T.Group();
+        const shaftMat = new T.MeshStandardMaterial({ color: 0x334155, metalness: 0.6, roughness: 0.5 });
+        const headMat = new T.MeshStandardMaterial({ color: 0x475569, metalness: 0.9, roughness: 0.2 });
+        const spikeMat = new T.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.95 });
+
+        const shaft = new T.Mesh(new T.CylinderGeometry(0.045, 0.05, 1.4, 8), shaftMat);
+        shaft.position.y = 0.55; group.add(shaft);
+
+        const head = new T.Mesh(new T.BoxGeometry(0.46, 0.4, 0.58), headMat);
+        head.position.set(0, 1.1, 0); head.castShadow = true; group.add(head);
+
+        const spike = new T.Mesh(new T.ConeGeometry(0.12, 0.38, 4), spikeMat);
+        spike.rotation.x = Math.PI / 2; spike.position.set(0, 1.1, -0.42); group.add(spike);
+
+        return group;
+      }
+    },
+
+    journeyman_robe: {
+      id: 'journeyman_robe',
+      name: 'Journeyman Cleric Robe',
+      type: 'armor',
+      tier: 3,
+      accentColor: 0x818cf8,
+      desc: 'T3 Woven blessed silk vestment with runic shoulder mantle.',
+      buildMesh: function(T) {
+        const group = new T.Group();
+        const clothMat = new T.MeshStandardMaterial({ color: 0x4338ca, roughness: 0.75 });
+        const silverTrim = new T.MeshStandardMaterial({ color: 0xe0e7ff, metalness: 0.9, roughness: 0.2 });
+
+        const torso = new T.Mesh(new T.BoxGeometry(0.84, 1.12, 0.54), clothMat);
+        torso.position.y = 0.66; group.add(torso);
+
+        const mantle = new T.Mesh(new T.BoxGeometry(0.92, 0.32, 0.6), silverTrim);
+        mantle.position.y = 1.12; group.add(mantle);
+
+        const brooch = new T.Mesh(new T.OctahedronGeometry(0.1), silverTrim);
+        broachMat: brooch.position.set(0, 1.1, 0.32); group.add(brooch);
+
+        return group;
+      }
+    },
+
+    journeyman_leather: {
+      id: 'journeyman_leather',
+      name: 'Journeyman Scout Garb',
+      type: 'armor',
+      tier: 3,
+      accentColor: 0xca8a04,
+      desc: 'T3 Supple treated leather vest with reinforced archery straps.',
+      buildMesh: function(T) {
+        const group = new T.Group();
+        const leatherMat = new T.MeshStandardMaterial({ color: 0x854d0e, roughness: 0.8 });
+        const darkTrim = new T.MeshStandardMaterial({ color: 0x3f2e18, roughness: 0.9 });
+
+        const torso = new T.Mesh(new T.BoxGeometry(0.86, 1.08, 0.56), leatherMat);
+        torso.position.y = 0.66; group.add(torso);
+
+        const pL = new T.Mesh(new T.BoxGeometry(0.34, 0.22, 0.6), darkTrim);
+        pL.position.set(-0.54, 1.06, 0); group.add(pL);
+        const pR = new T.Mesh(new T.BoxGeometry(0.34, 0.22, 0.6), darkTrim);
+        pR.position.set(0.54, 1.06, 0); group.add(pR);
+
+        return group;
+      }
+    },
+
+    journeyman_plate: {
+      id: 'journeyman_plate',
+      name: 'Journeyman Knight Mail',
+      type: 'armor',
+      tier: 3,
+      accentColor: 0x38bdf8,
+      desc: 'T3 High-polish tempered steel chest harness with winged gorget.',
+      buildMesh: function(T) {
+        const group = new T.Group();
+        const steelMat = new T.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.92, roughness: 0.2 });
+        const blueTrim = new T.MeshStandardMaterial({ color: 0x0284c7, metalness: 0.85, roughness: 0.3 });
+
+        const torso = new T.Mesh(new T.BoxGeometry(0.9, 1.14, 0.6), steelMat);
+        torso.position.y = 0.68; group.add(torso);
+
+        const crest = new T.Mesh(new T.BoxGeometry(0.12, 0.8, 0.08), blueTrim);
+        crest.position.set(0, 0.75, 0.32); group.add(crest);
+
+        const pL = new T.Mesh(new T.BoxGeometry(0.36, 0.25, 0.64), steelMat);
+        pL.position.set(-0.56, 1.1, 0); group.add(pL);
+        const pR = new T.Mesh(new T.BoxGeometry(0.36, 0.25, 0.64), steelMat);
+        pR.position.set(0.56, 1.1, 0); group.add(pR);
+
+        return group;
+      }
+    },
+
+    // =========================================================================
+    // TIER 4 (ADEPT) WEAPONS & ARMORS
+    // =========================================================================
+    steel_broadsword: {
+      id: 'steel_broadsword',
+      name: 'Adept Broadsword',
+      type: 'weapon',
+      tier: 4,
+      accentColor: 0x38bdf8,
+      desc: 'T4 Polished rune-etched steel broadsword with winged gold crossguard.',
+      buildMesh: function(T) {
+        const group = new T.Group();
+        const bladeMat = new T.MeshStandardMaterial({ color: 0xf8fafc, metalness: 0.95, roughness: 0.12 });
+        const runeMat = new T.MeshStandardMaterial({ color: 0x38bdf8, emissive: 0x0284c7, emissiveIntensity: 0.85 });
+        const goldMat = new T.MeshStandardMaterial({ color: 0xf59e0b, metalness: 0.9, roughness: 0.2 });
+        const gripMat = new T.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.7 });
+
+        const blade = new T.Mesh(new T.BoxGeometry(0.24, 1.6, 0.055), bladeMat);
+        blade.position.y = 0.88; blade.castShadow = true; group.add(blade);
+
+        const rune = new T.Mesh(new T.BoxGeometry(0.06, 1.25, 0.065), runeMat);
+        rune.position.y = 0.84; group.add(rune);
+
+        const tip = new T.Mesh(new T.ConeGeometry(0.17, 0.35, 4), bladeMat);
+        tip.rotation.y = Math.PI / 4; tip.position.y = 1.84; group.add(tip);
+
+        const guard = new T.Mesh(new T.BoxGeometry(0.56, 0.1, 0.16), goldMat);
+        guard.position.y = 0.07; group.add(guard);
+
+        const grip = new T.Mesh(new T.CylinderGeometry(0.045, 0.045, 0.42, 8), gripMat);
+        grip.position.y = -0.18; group.add(grip);
+
+        const pommel = new T.Mesh(new T.OctahedronGeometry(0.11), goldMat);
+        pommel.position.y = -0.42; group.add(pommel);
+
+        return group;
+      }
+    },
+
+    adept_longbow: {
+      id: 'adept_longbow',
+      name: 'Adept Longbow',
+      type: 'weapon',
+      tier: 4,
+      accentColor: 0xa855f7,
+      desc: 'T4 High-tension master crafted longbow with purple runic sight.',
+      buildMesh: function(T) {
+        return createBowMesh(T, {
+          limbColor: 0x1e1b4b,
+          gripColor: 0x312e81,
+          stringColor: 0xc084fc,
+          tipColor: 0xa855f7,
+          gemColor: 0xc084fc,
+          hasArrow: true
+        });
+      }
+    },
+
+    adept_cursed_staff: {
+      id: 'adept_cursed_staff',
+      name: 'Adept Cursed Staff',
+      type: 'weapon',
+      tier: 4,
+      accentColor: 0x10b981,
+      desc: 'T4 Twisted ebony staff harboring emerald soul fire in an ancient skull socket.',
+      buildMesh: function(T) {
+        return createStaffMesh(T, {
+          shaftColor: 0x09090b,
+          headColor: 0x27272a,
+          orbColor: 0x10b981,
+          emissiveColor: 0x059669,
+          prongCount: 4,
+          orbRadius: 0.17,
+          hasRings: true
+        });
+      }
+    },
+
+    adept_dagger: {
+      id: 'adept_dagger',
+      name: 'Adept Dual Daggers',
+      type: 'weapon',
+      tier: 4,
+      accentColor: 0x10b981,
+      desc: 'T4 Twin keen assassin stilettos coated in deadly venom.',
+      buildMesh: function(T) {
+        const group = new T.Group();
+        const bladeMat = new T.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.9, roughness: 0.2 });
+        const venomMat = new T.MeshStandardMaterial({ color: 0x10b981, emissive: 0x059669, emissiveIntensity: 0.8 });
+        const goldMat = new T.MeshStandardMaterial({ color: 0xf59e0b, metalness: 0.85 });
+
+        const blade = new T.Mesh(new T.BoxGeometry(0.11, 0.92, 0.04), bladeMat);
+        blade.position.y = 0.5; group.add(blade);
+
+        const edge = new T.Mesh(new T.BoxGeometry(0.04, 0.88, 0.05), venomMat);
+        edge.position.set(0.05, 0.5, 0); group.add(edge);
+
+        const tip = new T.Mesh(new T.ConeGeometry(0.08, 0.25, 4), venomMat);
+        tip.position.y = 1.05; group.add(tip);
+
+        const guard = new T.Mesh(new T.BoxGeometry(0.32, 0.07, 0.09), goldMat);
+        guard.position.y = 0.04; group.add(guard);
+
+        const grip = new T.Mesh(new T.CylinderGeometry(0.035, 0.035, 0.3, 8), bladeMat);
+        grip.position.y = -0.14; group.add(grip);
+
+        return group;
+      }
+    },
+
+    adept_pike: {
+      id: 'adept_pike',
+      name: 'Adept Pike',
+      type: 'weapon',
+      tier: 4,
+      accentColor: 0x64748b,
+      desc: 'T4 Long reach knight spear tipping a razor steel lance.',
+      buildMesh: function(T) {
+        const group = new T.Group();
+        const shaftMat = new T.MeshStandardMaterial({ color: 0x334155, roughness: 0.6 });
+        const steelMat = new T.MeshStandardMaterial({ color: 0xf1f5f9, metalness: 0.95, roughness: 0.1 });
+        const goldTrim = new T.MeshStandardMaterial({ color: 0xf59e0b, metalness: 0.9 });
+
+        const shaft = new T.Mesh(new T.CylinderGeometry(0.04, 0.045, 1.9, 8), shaftMat);
+        shaft.position.y = 0.8; group.add(shaft);
+
+        const collar = new T.Mesh(new T.CylinderGeometry(0.07, 0.05, 0.22, 8), goldTrim);
+        collar.position.y = 1.7; group.add(collar);
+
+        const head = new T.Mesh(new T.ConeGeometry(0.16, 0.65, 4), steelMat);
+        head.position.y = 2.1; head.rotation.y = Math.PI / 4; group.add(head);
+
+        return group;
+      }
+    },
+
+    adept_mage_robe: {
+      id: 'adept_mage_robe',
+      name: 'Adept Pyromancer Robe',
+      type: 'armor',
+      tier: 4,
+      accentColor: 0xef4444,
+      desc: 'T4 Crimson velvet mantle with gold trim boosting raw sorcery.',
+      buildMesh: function(T) {
+        const group = new T.Group();
+        const clothMat = new T.MeshStandardMaterial({ color: 0x991b1b, roughness: 0.7 });
+        const goldMat = new T.MeshStandardMaterial({ color: 0xf59e0b, metalness: 0.9, roughness: 0.2 });
+        const rubyMat = new T.MeshStandardMaterial({ color: 0xef4444, emissive: 0xdc2626, emissiveIntensity: 0.8 });
+
+        const torso = new T.Mesh(new T.BoxGeometry(0.88, 1.15, 0.58), clothMat);
+        torso.position.y = 0.68; group.add(torso);
+
+        const cowl = new T.Mesh(new T.BoxGeometry(0.96, 0.35, 0.65), goldMat);
+        cowl.position.y = 1.15; group.add(cowl);
+
+        const gem = new T.Mesh(new T.OctahedronGeometry(0.12), rubyMat);
+        gem.position.set(0, 1.15, 0.36); group.add(gem);
+
+        return group;
+      }
+    },
+
+    adept_assassin_jacket: {
+      id: 'adept_assassin_jacket',
+      name: 'Adept Assassin Jacket',
+      type: 'armor',
+      tier: 4,
+      accentColor: 0x10b981,
+      desc: 'T4 Studded stealth tunic with dark clasps and silent leather.',
+      buildMesh: function(T) {
+        const group = new T.Group();
+        const darkMat = new T.MeshStandardMaterial({ color: 0x18181b, roughness: 0.85 });
+        const emeraldTrim = new T.MeshStandardMaterial({ color: 0x059669, metalness: 0.8 });
+
+        const torso = new T.Mesh(new T.BoxGeometry(0.88, 1.1, 0.56), darkMat);
+        torso.position.y = 0.68; group.add(torso);
+
+        const pL = new T.Mesh(new T.BoxGeometry(0.35, 0.25, 0.62), darkMat);
+        pL.position.set(-0.55, 1.1, 0); group.add(pL);
+        const pR = new T.Mesh(new T.BoxGeometry(0.35, 0.25, 0.62), darkMat);
+        pR.position.set(0.55, 1.1, 0); group.add(pR);
+
+        const band = new T.Mesh(new T.BoxGeometry(0.92, 0.12, 0.6), emeraldTrim);
+        band.position.set(0, 0.4, 0); group.add(band);
 
         return group;
       }
@@ -711,51 +957,218 @@
 
     iron_plate: {
       id: 'iron_plate',
-      name: 'Iron Plate Mail',
+      name: 'Adept Guardian Plate',
       type: 'armor',
-      rarity: 'rare',
+      tier: 4,
       accentColor: 0x94a3b8,
-      desc: 'Heavy tempered knight cuirass with mirror-polished steel and gold crest.',
+      desc: 'T4 Heavy tempered knight cuirass with mirror-polished steel and gold crest.',
       buildMesh: function(T) {
         const group = new T.Group();
-        const plateMat = new T.MeshStandardMaterial({
-          color: 0xcbd5e1,
-          metalness: 0.96,
-          roughness: 0.16
-        });
-        const goldTrim = new T.MeshStandardMaterial({
-          color: 0xf59e0b,
-          metalness: 0.9,
-          roughness: 0.25
-        });
+        const plateMat = new T.MeshStandardMaterial({ color: 0xcbd5e1, metalness: 0.96, roughness: 0.16 });
+        const goldTrim = new T.MeshStandardMaterial({ color: 0xf59e0b, metalness: 0.9, roughness: 0.25 });
 
-        // Breastplate
         const torso = new T.Mesh(new T.BoxGeometry(0.9, 1.15, 0.6), plateMat);
-        torso.position.y = 0.7;
-        torso.castShadow = true;
-        group.add(torso);
+        torso.position.y = 0.7; torso.castShadow = true; group.add(torso);
 
-        // Raised Central Crest Ridge
         const crest = new T.Mesh(new T.BoxGeometry(0.12, 0.85, 0.08), goldTrim);
-        crest.position.set(0, 0.78, 0.32);
-        group.add(crest);
+        crest.position.set(0, 0.78, 0.32); group.add(crest);
 
-        // Armored Neck Gorget
         const gorget = new T.Mesh(new T.CylinderGeometry(0.35, 0.42, 0.16, 8, 1, false, 0, Math.PI), goldTrim);
-        gorget.rotation.x = Math.PI;
-        gorget.position.set(0, 1.25, 0.18);
-        group.add(gorget);
+        gorget.rotation.x = Math.PI; gorget.position.set(0, 1.25, 0.18); group.add(gorget);
 
-        // Flanged Pauldrons
         const pL = new T.Mesh(new T.BoxGeometry(0.36, 0.28, 0.66), plateMat);
-        pL.position.set(-0.56, 1.12, 0);
-        pL.rotation.z = -0.15;
-        group.add(pL);
+        pL.position.set(-0.56, 1.12, 0); pL.rotation.z = -0.15; group.add(pL);
 
         const pR = new T.Mesh(new T.BoxGeometry(0.36, 0.28, 0.66), plateMat);
-        pR.position.set(0.56, 1.12, 0);
-        pR.rotation.z = 0.15;
-        group.add(pR);
+        pR.position.set(0.56, 1.12, 0); pR.rotation.z = 0.15; group.add(pR);
+
+        return group;
+      }
+    },
+
+    // =========================================================================
+    // TIER 5 (EXPERT) WEAPONS & ARMORS
+    // =========================================================================
+    flame_dagger: {
+      id: 'flame_dagger',
+      name: 'Expert Flame Dagger',
+      type: 'weapon',
+      tier: 5,
+      accentColor: 0xef4444,
+      desc: 'T5 Obsidian stiletto radiating volcanic heat and piercing serrations.',
+      buildMesh: function(T) {
+        const group = new T.Group();
+        const obsMat = new T.MeshStandardMaterial({ color: 0x18181b, roughness: 0.3, metalness: 0.7 });
+        const flameMat = new T.MeshStandardMaterial({
+          color: 0xef4444, emissive: 0xf97316, emissiveIntensity: 0.95, roughness: 0.2
+        });
+        const rubyMat = new T.MeshStandardMaterial({ color: 0xb91c1c, emissive: 0xef4444, emissiveIntensity: 0.5 });
+
+        const blade = new T.Mesh(new T.BoxGeometry(0.12, 0.9, 0.04), obsMat);
+        blade.position.y = 0.48; blade.castShadow = true; group.add(blade);
+
+        const flameEdge = new T.Mesh(new T.BoxGeometry(0.05, 0.85, 0.05), flameMat);
+        flameEdge.position.set(0.05, 0.48, 0); group.add(flameEdge);
+
+        const tip = new T.Mesh(new T.ConeGeometry(0.085, 0.24, 4), flameMat);
+        tip.rotation.y = Math.PI / 4; tip.position.y = 1.02; group.add(tip);
+
+        const guard = new T.Mesh(new T.BoxGeometry(0.34, 0.08, 0.1), rubyMat);
+        guard.position.y = 0.04; group.add(guard);
+
+        const grip = new T.Mesh(new T.CylinderGeometry(0.038, 0.038, 0.28, 8), obsMat);
+        grip.position.y = -0.12; group.add(grip);
+
+        return group;
+      }
+    },
+
+    expert_whispering_bow: {
+      id: 'expert_whispering_bow',
+      name: 'Expert Whispering Bow',
+      type: 'weapon',
+      tier: 5,
+      accentColor: 0x10b981,
+      desc: 'T5 Ethereal spirit wood bow infused with emerald energy arrows.',
+      buildMesh: function(T) {
+        return createBowMesh(T, {
+          limbColor: 0x064e3b,
+          gripColor: 0x022c22,
+          stringColor: 0x6ee7b7,
+          tipColor: 0x10b981,
+          gemColor: 0x34d399,
+          hasArrow: true
+        });
+      }
+    },
+
+    expert_infernal_staff: {
+      id: 'expert_infernal_staff',
+      name: 'Expert Infernal Staff',
+      type: 'weapon',
+      tier: 5,
+      accentColor: 0xef4444,
+      desc: 'T5 Demon-crested staff unleashing searing magma fury on foes.',
+      buildMesh: function(T) {
+        return createStaffMesh(T, {
+          shaftColor: 0x18181b,
+          headColor: 0xb91c1c,
+          orbColor: 0xef4444,
+          emissiveColor: 0xdc2626,
+          prongCount: 4,
+          orbRadius: 0.18,
+          hasRings: true
+        });
+      }
+    },
+
+    battle_hammer: {
+      id: 'battle_hammer',
+      name: 'Expert Earthbreaker',
+      type: 'weapon',
+      tier: 5,
+      accentColor: 0xf59e0b,
+      desc: 'T5 Colossal runic hammer designed to shatter heavy armor plates.',
+      buildMesh: function(T) {
+        const group = new T.Group();
+        const ironMat = new T.MeshStandardMaterial({ color: 0x334155, metalness: 0.92, roughness: 0.22 });
+        const goldTrim = new T.MeshStandardMaterial({ color: 0xf59e0b, metalness: 0.85, roughness: 0.25 });
+        const handleMat = new T.MeshStandardMaterial({ color: 0x1e293b, metalness: 0.6, roughness: 0.4 });
+
+        const shaft = new T.Mesh(new T.CylinderGeometry(0.05, 0.055, 1.5, 8), handleMat);
+        shaft.position.y = 0.6; group.add(shaft);
+
+        const head = new T.Mesh(new T.BoxGeometry(0.55, 0.48, 0.65), ironMat);
+        head.position.set(0, 1.15, 0); head.castShadow = true; group.add(head);
+
+        const band1 = new T.Mesh(new T.BoxGeometry(0.57, 0.08, 0.67), goldTrim);
+        band1.position.set(0, 1.15, 0); group.add(band1);
+
+        const spike = new T.Mesh(new T.ConeGeometry(0.14, 0.45, 4), ironMat);
+        spike.rotation.x = Math.PI / 2; spike.position.set(0, 1.15, -0.5); group.add(spike);
+
+        return group;
+      }
+    },
+
+    crystal_spear: {
+      id: 'crystal_spear',
+      name: 'Expert Frost Pike',
+      type: 'weapon',
+      tier: 5,
+      accentColor: 0x38bdf8,
+      desc: 'T5 Glacial polearm tipping a diamond-honed spearhead of absolute zero ice.',
+      buildMesh: function(T) {
+        const group = new T.Group();
+        const shaftMat = new T.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.6 });
+        const iceMat = new T.MeshStandardMaterial({
+          color: 0x38bdf8, emissive: 0x0284c7, emissiveIntensity: 0.9, metalness: 0.7, roughness: 0.12
+        });
+        const silverMat = new T.MeshStandardMaterial({ color: 0xe2e8f0, metalness: 0.95, roughness: 0.15 });
+
+        const shaft = new T.Mesh(new T.CylinderGeometry(0.04, 0.045, 2.0, 8), shaftMat);
+        shaft.position.y = 0.8; group.add(shaft);
+
+        const collar = new T.Mesh(new T.CylinderGeometry(0.07, 0.05, 0.25, 8), silverMat);
+        collar.position.y = 1.7; group.add(collar);
+
+        const spearhead = new T.Mesh(new T.ConeGeometry(0.18, 0.75, 4), iceMat);
+        spearhead.position.y = 2.15; spearhead.rotation.y = Math.PI / 4; group.add(spearhead);
+
+        for (let side of [-1, 1]) {
+          const barb = new T.Mesh(new T.ConeGeometry(0.08, 0.35, 4), iceMat);
+          barb.position.set(side * 0.15, 1.82, 0); barb.rotation.z = -side * 0.65; group.add(barb);
+        }
+
+        return group;
+      }
+    },
+
+    expert_royal_robe: {
+      id: 'expert_royal_robe',
+      name: 'Expert Royal Robe',
+      type: 'armor',
+      tier: 5,
+      accentColor: 0xa855f7,
+      desc: 'T5 Gilded royal archmage vestments boosting supreme sorcery.',
+      buildMesh: function(T) {
+        const group = new T.Group();
+        const velvetMat = new T.MeshStandardMaterial({ color: 0x581c87, roughness: 0.6 });
+        const goldMat = new T.MeshStandardMaterial({ color: 0xf59e0b, metalness: 0.95, roughness: 0.15 });
+        const gemMat = new T.MeshStandardMaterial({ color: 0xc084fc, emissive: 0xa855f7, emissiveIntensity: 0.85 });
+
+        const torso = new T.Mesh(new T.BoxGeometry(0.92, 1.18, 0.6), velvetMat);
+        torso.position.y = 0.72; group.add(torso);
+
+        const cape = new T.Mesh(new T.BoxGeometry(1.0, 0.38, 0.68), goldMat);
+        cape.position.y = 1.18; group.add(cape);
+
+        const orb = new T.Mesh(new T.SphereGeometry(0.12, 8, 8), gemMat);
+        orb.position.set(0, 1.18, 0.38); group.add(orb);
+
+        return group;
+      }
+    },
+
+    expert_stalker_leather: {
+      id: 'expert_stalker_leather',
+      name: 'Expert Stalker Leather',
+      type: 'armor',
+      tier: 5,
+      accentColor: 0xca8a04,
+      desc: 'T5 Dragon-scale reinforced leather tunic with wolf pelt pauldrons.',
+      buildMesh: function(T) {
+        const group = new T.Group();
+        const leatherMat = new T.MeshStandardMaterial({ color: 0x713f12, roughness: 0.75 });
+        const scaleMat = new T.MeshStandardMaterial({ color: 0x1c1917, metalness: 0.7, roughness: 0.3 });
+
+        const torso = new T.Mesh(new T.BoxGeometry(0.92, 1.14, 0.6), leatherMat);
+        torso.position.y = 0.7; group.add(torso);
+
+        const pL = new T.Mesh(new T.BoxGeometry(0.38, 0.28, 0.68), scaleMat);
+        pL.position.set(-0.58, 1.12, 0); group.add(pL);
+        const pR = new T.Mesh(new T.BoxGeometry(0.38, 0.28, 0.68), scaleMat);
+        pR.position.set(0.58, 1.12, 0); group.add(pR);
 
         return group;
       }
@@ -763,62 +1176,218 @@
 
     demon_carapace: {
       id: 'demon_carapace',
-      name: 'Demon Carapace',
+      name: 'Expert Demon Carapace',
       type: 'armor',
-      rarity: 'epic',
+      tier: 5,
       accentColor: 0xef4444,
-      desc: 'Forged from abyssal obsidian and demon bones, radiating brimstone magma.',
+      desc: 'T5 Forged from abyssal obsidian and demon bones, radiating brimstone magma.',
       buildMesh: function(T) {
         const group = new T.Group();
-        const obsMat = new T.MeshStandardMaterial({
-          color: 0x18181b,
-          metalness: 0.8,
-          roughness: 0.3
-        });
-        const magmaMat = new T.MeshStandardMaterial({
-          color: 0xdc2626,
-          emissive: 0xef4444,
-          emissiveIntensity: 0.8,
-          roughness: 0.2
-        });
+        const obsMat = new T.MeshStandardMaterial({ color: 0x18181b, metalness: 0.8, roughness: 0.3 });
+        const magmaMat = new T.MeshStandardMaterial({ color: 0xdc2626, emissive: 0xef4444, emissiveIntensity: 0.8 });
 
-        // Obsidian Breastplate
         const torso = new T.Mesh(new T.BoxGeometry(0.95, 1.2, 0.65), obsMat);
-        torso.position.y = 0.75;
-        torso.castShadow = true;
-        group.add(torso);
+        torso.position.y = 0.75; torso.castShadow = true; group.add(torso);
 
-        // Molten Chest Core
         const core = new T.Mesh(new T.OctahedronGeometry(0.22), magmaMat);
-        core.position.set(0, 0.82, 0.35);
-        group.add(core);
+        core.position.set(0, 0.82, 0.35); group.add(core);
 
-        // Magma Vein Ribs
-        for (let i = -1; i <= 1; i += 2) {
-          const rib1 = new T.Mesh(new T.BoxGeometry(0.24, 0.06, 0.06), magmaMat);
-          rib1.position.set(i * 0.22, 0.62, 0.34);
-          rib1.rotation.z = i * 0.2;
-          group.add(rib1);
-
-          const rib2 = new T.Mesh(new T.BoxGeometry(0.2, 0.05, 0.06), magmaMat);
-          rib2.position.set(i * 0.2, 0.46, 0.34);
-          rib2.rotation.z = i * 0.2;
-          group.add(rib2);
-        }
-
-        // Spiked Demon Shoulder Horns
         for (let side of [-1, 1]) {
           const pauldron = new T.Mesh(new T.BoxGeometry(0.38, 0.3, 0.7), obsMat);
-          pauldron.position.set(side * 0.6, 1.2, 0);
-          pauldron.rotation.z = side * 0.2;
-          group.add(pauldron);
+          pauldron.position.set(side * 0.6, 1.2, 0); pauldron.rotation.z = side * 0.2; group.add(pauldron);
 
           const spike = new T.Mesh(new T.ConeGeometry(0.12, 0.65, 5), magmaMat);
-          spike.position.set(side * 0.65, 1.5, -0.05);
-          spike.rotation.z = -side * 0.45;
-          spike.rotation.x = -0.2;
-          group.add(spike);
+          spike.position.set(side * 0.65, 1.5, -0.05); spike.rotation.z = -side * 0.45; group.add(spike);
         }
+
+        return group;
+      }
+    },
+
+    // =========================================================================
+    // TIER 6 (MASTER) WEAPONS & ARMORS
+    // =========================================================================
+    master_relic_blade: {
+      id: 'master_relic_blade',
+      name: 'Master Relic Greatsword',
+      type: 'weapon',
+      tier: 6,
+      accentColor: 0xf59e0b,
+      desc: 'T6 Ancient kingdom relic radiating blazing golden celestial power.',
+      buildMesh: function(T) {
+        const group = new T.Group();
+        const goldMat = new T.MeshStandardMaterial({ color: 0xfcd34d, metalness: 0.98, roughness: 0.1 });
+        const holyMat = new T.MeshStandardMaterial({ color: 0xfef08a, emissive: 0xf59e0b, emissiveIntensity: 0.95 });
+        const gemMat = new T.MeshStandardMaterial({ color: 0x38bdf8, emissive: 0x0284c7, emissiveIntensity: 0.9 });
+
+        const blade = new T.Mesh(new T.BoxGeometry(0.26, 1.8, 0.06), goldMat);
+        blade.position.y = 0.95; blade.castShadow = true; group.add(blade);
+
+        const holyCore = new T.Mesh(new T.BoxGeometry(0.08, 1.4, 0.07), holyMat);
+        holyCore.position.y = 0.92; group.add(holyCore);
+
+        const tip = new T.Mesh(new T.ConeGeometry(0.18, 0.4, 4), goldMat);
+        tip.rotation.y = Math.PI / 4; tip.position.y = 2.05; group.add(tip);
+
+        const guard = new T.Mesh(new T.BoxGeometry(0.65, 0.12, 0.18), goldMat);
+        guard.position.y = 0.08; group.add(guard);
+
+        const jewel = new T.Mesh(new T.OctahedronGeometry(0.12), gemMat);
+        jewel.position.set(0, 0.08, 0.1); group.add(jewel);
+
+        const grip = new T.Mesh(new T.CylinderGeometry(0.05, 0.05, 0.45, 8), holyMat);
+        grip.position.y = -0.2; group.add(grip);
+
+        return group;
+      }
+    },
+
+    master_bow_of_shadows: {
+      id: 'master_bow_of_shadows',
+      name: 'Master Bow of Shadows',
+      type: 'weapon',
+      tier: 6,
+      accentColor: 0xa855f7,
+      desc: 'T6 Void-forged composite recurve bow firing shadow piercing bolts.',
+      buildMesh: function(T) {
+        return createBowMesh(T, {
+          limbColor: 0x09090b,
+          gripColor: 0x18181b,
+          stringColor: 0xa855f7,
+          tipColor: 0xc084fc,
+          gemColor: 0xa855f7,
+          hasArrow: true
+        });
+      }
+    },
+
+    master_archmage_staff: {
+      id: 'master_archmage_staff',
+      name: 'Master Archmage Staff',
+      type: 'weapon',
+      tier: 6,
+      accentColor: 0x38bdf8,
+      desc: 'T6 Ornate golden celestial scepter with orbiting cosmic rings.',
+      buildMesh: function(T) {
+        return createStaffMesh(T, {
+          shaftColor: 0x1e1b4b,
+          headColor: 0xf59e0b,
+          orbColor: 0x38bdf8,
+          emissiveColor: 0x0284c7,
+          prongCount: 5,
+          orbRadius: 0.2,
+          hasRings: true
+        });
+      }
+    },
+
+    master_abyssal_hammer: {
+      id: 'master_abyssal_hammer',
+      name: 'Master Abyssal Hammer',
+      type: 'weapon',
+      tier: 6,
+      accentColor: 0xef4444,
+      desc: 'T6 Cataclysmic obsidian war hammer shattering terrain with hellfire.',
+      buildMesh: function(T) {
+        const group = new T.Group();
+        const obsMat = new T.MeshStandardMaterial({ color: 0x18181b, metalness: 0.85, roughness: 0.25 });
+        const fireMat = new T.MeshStandardMaterial({ color: 0xef4444, emissive: 0xdc2626, emissiveIntensity: 0.95 });
+
+        const shaft = new T.Mesh(new T.CylinderGeometry(0.055, 0.06, 1.6, 8), obsMat);
+        shaft.position.y = 0.65; group.add(shaft);
+
+        const head = new T.Mesh(new T.BoxGeometry(0.65, 0.55, 0.75), obsMat);
+        head.position.set(0, 1.25, 0); head.castShadow = true; group.add(head);
+
+        const core = new T.Mesh(new T.BoxGeometry(0.67, 0.15, 0.77), fireMat);
+        core.position.set(0, 1.25, 0); group.add(core);
+
+        const spike = new T.Mesh(new T.ConeGeometry(0.18, 0.55, 4), fireMat);
+        spike.rotation.x = Math.PI / 2; spike.position.set(0, 1.25, -0.6); group.add(spike);
+
+        return group;
+      }
+    },
+
+    master_archmage_vestment: {
+      id: 'master_archmage_vestment',
+      name: 'Master Archmage Vestment',
+      type: 'armor',
+      tier: 6,
+      accentColor: 0x38bdf8,
+      desc: 'T6 Luminescent starlight-infused robes with astral gold trim.',
+      buildMesh: function(T) {
+        const group = new T.Group();
+        const silkMat = new T.MeshStandardMaterial({ color: 0x0f172a, roughness: 0.5 });
+        const starMat = new T.MeshStandardMaterial({ color: 0x38bdf8, emissive: 0x0284c7, emissiveIntensity: 0.8 });
+        const goldMat = new T.MeshStandardMaterial({ color: 0xfcd34d, metalness: 0.95 });
+
+        const torso = new T.Mesh(new T.BoxGeometry(0.95, 1.22, 0.62), silkMat);
+        torso.position.y = 0.74; group.add(torso);
+
+        const cape = new T.Mesh(new T.BoxGeometry(1.05, 0.42, 0.7), goldMat);
+        cape.position.y = 1.22; group.add(cape);
+
+        const jewel = new T.Mesh(new T.OctahedronGeometry(0.15), starMat);
+        jewel.position.set(0, 1.22, 0.4); group.add(jewel);
+
+        return group;
+      }
+    },
+
+    master_shadow_jacket: {
+      id: 'master_shadow_jacket',
+      name: 'Master Shadow Garb',
+      type: 'armor',
+      tier: 6,
+      accentColor: 0xa855f7,
+      desc: 'T6 Phantom leather coat wrapped in umbral wards and shadow gems.',
+      buildMesh: function(T) {
+        const group = new T.Group();
+        const voidMat = new T.MeshStandardMaterial({ color: 0x09090b, roughness: 0.7 });
+        const purpleMat = new T.MeshStandardMaterial({ color: 0xa855f7, emissive: 0x7e22ce, emissiveIntensity: 0.75 });
+
+        const torso = new T.Mesh(new T.BoxGeometry(0.95, 1.18, 0.62), voidMat);
+        torso.position.y = 0.72; group.add(torso);
+
+        const pL = new T.Mesh(new T.BoxGeometry(0.4, 0.3, 0.7), voidMat);
+        pL.position.set(-0.62, 1.15, 0); group.add(pL);
+        const pR = new T.Mesh(new T.BoxGeometry(0.4, 0.3, 0.7), voidMat);
+        pR.position.set(0.62, 1.15, 0); group.add(pR);
+
+        const gem = new T.Mesh(new T.SphereGeometry(0.1, 8, 8), purpleMat);
+        gem.position.set(0, 0.85, 0.34); group.add(gem);
+
+        return group;
+      }
+    },
+
+    master_judicator_plate: {
+      id: 'master_judicator_plate',
+      name: 'Master Judicator Carapace',
+      type: 'armor',
+      tier: 6,
+      accentColor: 0xf59e0b,
+      desc: 'T6 Indestructible titan armor with glowing gold crest and molten plates.',
+      buildMesh: function(T) {
+        const group = new T.Group();
+        const titanMat = new T.MeshStandardMaterial({ color: 0x18181b, metalness: 0.95, roughness: 0.15 });
+        const goldMat = new T.MeshStandardMaterial({ color: 0xf59e0b, metalness: 0.95, roughness: 0.15 });
+        const flameMat = new T.MeshStandardMaterial({ color: 0xef4444, emissive: 0xf97316, emissiveIntensity: 0.9 });
+
+        const torso = new T.Mesh(new T.BoxGeometry(1.0, 1.25, 0.7), titanMat);
+        torso.position.y = 0.76; group.add(torso);
+
+        const crest = new T.Mesh(new T.BoxGeometry(0.18, 0.9, 0.1), goldMat);
+        crest.position.set(0, 0.82, 0.38); group.add(crest);
+
+        const gem = new T.Mesh(new T.OctahedronGeometry(0.15), flameMat);
+        gem.position.set(0, 0.82, 0.44); group.add(gem);
+
+        const pL = new T.Mesh(new T.BoxGeometry(0.42, 0.32, 0.75), goldMat);
+        pL.position.set(-0.64, 1.2, 0); group.add(pL);
+        const pR = new T.Mesh(new T.BoxGeometry(0.42, 0.32, 0.75), goldMat);
+        pR.position.set(0.64, 1.2, 0); group.add(pR);
 
         return group;
       }
@@ -832,9 +1401,12 @@
     dagger: 'flame_dagger',
     hammer: 'battle_hammer',
     spear: 'crystal_spear',
+    bow: 'novice_bow',
+    staff: 'novice_fire_staff',
     leather: 'leather_armor',
     iron: 'iron_plate',
-    demon: 'demon_carapace'
+    demon: 'demon_carapace',
+    cloth: 'novice_robe'
   };
 
   function resolveItem(id) {
@@ -849,9 +1421,6 @@
   let offscreenScene = null;
   let offscreenCamera = null;
 
-  /**
-   * Initializes offscreen 3D studio for rendering crisp isometric 3D item images.
-   */
   function initOffscreenStudio(T) {
     if (offscreenRenderer || typeof document === 'undefined') return;
     try {
@@ -866,12 +1435,10 @@
       });
       offscreenRenderer.setSize(112, 112);
       offscreenRenderer.setPixelRatio(1);
-      if (T.sRGBEncoding) offscreenRenderer.outputEncoding = T.sRGBEncoding;
 
       offscreenScene = new T.Scene();
       offscreenCamera = new T.PerspectiveCamera(38, 1, 0.1, 50);
 
-      // Studio 3-point lighting
       const ambLight = new T.AmbientLight(0xffffff, 0.95);
       offscreenScene.add(ambLight);
 
@@ -891,9 +1458,6 @@
     }
   }
 
-  /**
-   * Generates a 3D isometric rendered image (Data URL) for any item.
-   */
   function generate3DThumbnail(itemId) {
     const reg = resolveItem(itemId);
     if (!reg) return null;
@@ -903,10 +1467,8 @@
 
     initOffscreenStudio(THREE);
     if (!offscreenRenderer) return null;
-
     if (!reg.buildMesh) return null;
 
-    // Clear previous model from offscreen scene
     const toRemove = offscreenScene.children.filter(c => c.name === 'ITEM_PIVOT');
     toRemove.forEach(c => offscreenScene.remove(c));
 
@@ -924,9 +1486,8 @@
     pivot.name = 'ITEM_PIVOT';
     pivot.add(model);
 
-    // Apply ideal isometric tilt angle
     if (reg.type === 'weapon') {
-      pivot.rotation.z = -Math.PI / 4; // 45 deg weapon angle
+      pivot.rotation.z = -Math.PI / 4;
       pivot.rotation.y = Math.PI / 4;
       pivot.rotation.x = Math.PI / 10;
     } else if (reg.type === 'armor') {
@@ -949,14 +1510,10 @@
       thumbnailCache[resolvedId] = dataUrl;
       return dataUrl;
     } catch (renderErr) {
-      console.warn(`Render thumb error for ${resolvedId}:`, renderErr);
       return null;
     }
   }
 
-  /**
-   * Pre-renders 3D thumbnails smoothly in the background without blocking the UI or main thread.
-   */
   function preloadAllThumbnails() {
     if (!THREE || typeof document === 'undefined') return;
     const keys = Object.keys(ITEM_REGISTRY);
@@ -966,9 +1523,7 @@
       while (idx < keys.length && (Date.now() - start) < 8) {
         try {
           generate3DThumbnail(keys[idx]);
-        } catch (e) {
-          // ignore
-        }
+        } catch (e) { }
         idx++;
       }
       if (idx < keys.length) {
@@ -982,9 +1537,6 @@
     setTimeout(processNextBatch, 200);
   }
 
-  /**
-   * Retrieves the 3D rendered image data URL for an item.
-   */
   function getThumbnail(itemId) {
     const reg = resolveItem(itemId);
     const resolvedId = reg ? reg.id : itemId;
@@ -996,21 +1548,15 @@
     }
   }
 
-  /**
-   * Creates an interactive in-game world 3D mesh for dropped loot items.
-   * Includes floating model, ground beacon light ring, and metadata for animation.
-   */
   function createWorldLootMesh(itemId) {
     if (!THREE) return null;
     const group = new THREE.Group();
     const reg = resolveItem(itemId);
 
-    // Inner 3D Item Model
     let itemModel;
     if (reg && reg.buildMesh) {
       itemModel = reg.buildMesh(THREE);
     } else {
-      // Fallback golden pouch
       const pouchGeo = new THREE.DodecahedronGeometry(0.35);
       const pouchMat = new THREE.MeshStandardMaterial({
         color: 0xfbbf24,
@@ -1022,13 +1568,11 @@
       itemModel = new THREE.Mesh(pouchGeo, pouchMat);
     }
 
-    // Scale appropriately for ground visibility
     itemModel.scale.multiplyScalar(0.75);
     itemModel.position.y = 0.5;
     group.add(itemModel);
     group.userData.itemModel = itemModel;
 
-    // Ground Ethereal Light Ring
     const accent = (reg && reg.accentColor) || 0xfbbf24;
     const ringGeo = new THREE.RingGeometry(0.35, 0.48, 16);
     const ringMat = new THREE.MeshBasicMaterial({
@@ -1043,16 +1587,12 @@
     group.add(ring);
     group.userData.ring = ring;
 
-    // Hover bobbing metadata
     group.userData.baseY = 0.5;
     group.userData.rotSpeed = 1.4;
 
     return group;
   }
 
-  /**
-   * Creates the 3D model for character equipment (weapons).
-   */
   function createItemMesh(itemId) {
     if (!THREE) return null;
     const reg = resolveItem(itemId);
@@ -1062,7 +1602,6 @@
     return null;
   }
 
-  // Public Interface
   return {
     registry: ITEM_REGISTRY,
     createWorldLootMesh,
