@@ -884,7 +884,24 @@ app.use((err, req, res, next) => {
     next(err);
 });
 
-const liveWorld = { players: {}, resources: {}, monsters: {}, loot: {} };
+const liveWorld = { 
+    players: {}, 
+    resources: {}, 
+    monsters: {}, 
+    loot: {},
+    campfires: {},
+    obelisks: {
+        crimson: { id: 'crimson', name: 'Crimson Obelisk', x: -35, z: 30, owner: null, progress: 0, color: 0x9ca3af },
+        abyssal: { id: 'abyssal', name: 'Abyssal Obelisk', x: 0, z: 40, owner: null, progress: 0, color: 0x9ca3af },
+        celestial: { id: 'celestial', name: 'Celestial Obelisk', x: 35, z: 35, owner: null, progress: 0, color: 0x9ca3af }
+    },
+    timeOfDay: 12 // Start at noon
+};
+
+// Increment time every 30 seconds
+setInterval(() => {
+    liveWorld.timeOfDay = (liveWorld.timeOfDay + 1) % 24;
+}, 30000);
 
 function getRandomInZone(zoneKey) {
     if (zoneKey === 'woodlands') {
@@ -1086,6 +1103,7 @@ io.use(async (socket, next) => {
 
 function broadcastState() {
     io.emit('state', { 
+        timeOfDay: liveWorld.timeOfDay,
         players: Object.entries(liveWorld.players).map(([sid, p]) => {
             const currentZone = getZoneAt(p.stats.pos.x, p.stats.pos.z);
             return { 
@@ -1103,6 +1121,7 @@ function broadcastState() {
                 isGathering: p.isGathering, 
                 isAttacking: p.isAttacking, 
                 dead: p.dead, 
+                mounted: p.mounted || null,
                 weaponType: (p.equipment && p.equipment.weapon) ? p.equipment.weapon.weaponType : null,
                 weaponId: (p.equipment && p.equipment.weapon) ? (p.equipment.weapon.itemId || p.equipment.weapon.id) : null,
                 weaponTier: (p.equipment && p.equipment.weapon) ? (p.equipment.weapon.tier || 2) : null,
@@ -1133,7 +1152,9 @@ function broadcastState() {
                 isHit: (Date.now() - m.lastHit < 150) 
             };
         }), 
-        loot: Object.values(liveWorld.loot)
+        loot: Object.values(liveWorld.loot),
+        campfires: Object.values(liveWorld.campfires || {}),
+        obelisks: Object.values(liveWorld.obelisks || {})
     });
 }
 
@@ -1276,7 +1297,7 @@ const SKILLS = {
             id: 'armor_crush',
             name: 'Armor Crush',
             icon: '🔨',
-            manaCost: 32,
+            manaCost: 40,
             cooldown: 4.0,
             dmgMult: 1.8,
             type: 'target_single',
@@ -1287,7 +1308,7 @@ const SKILLS = {
             id: 'seismic_stomp',
             name: 'Seismic Stomp',
             icon: '💥',
-            manaCost: 52,
+            manaCost: 65,
             cooldown: 7.0,
             dmgMult: 2.4,
             type: 'aoe_around',
@@ -1299,7 +1320,7 @@ const SKILLS = {
             id: 'titan_cataclysm',
             name: 'Titan Cataclysm',
             icon: '☄️',
-            manaCost: 85,
+            manaCost: 100,
             cooldown: 14.0,
             dmgMult: 4.2,
             type: 'aoe_around',
@@ -1313,7 +1334,7 @@ const SKILLS = {
             id: 'triple_thrust',
             name: 'Triple Thrust',
             icon: '🔱',
-            manaCost: 30,
+            manaCost: 40,
             cooldown: 3.0,
             dmgMult: 2.55,
             type: 'target_single',
@@ -1324,7 +1345,7 @@ const SKILLS = {
             id: 'vaulting_impale',
             name: 'Vaulting Impale',
             icon: '⚡',
-            manaCost: 48,
+            manaCost: 60,
             cooldown: 6.0,
             dmgMult: 2.7,
             type: 'dash_strike',
@@ -1336,7 +1357,7 @@ const SKILLS = {
             id: 'dragon_tempest',
             name: 'Dragon Tempest',
             icon: '🐉',
-            manaCost: 78,
+            manaCost: 95,
             cooldown: 11.0,
             dmgMult: 3.8,
             type: 'aoe_around',
@@ -1960,6 +1981,378 @@ io.on('connection', async (socket) => {
         broadcastState();
     });
 
+    socket.on('summonMount', (mountId) => {
+        if (!mountId) {
+            p.mounted = null;
+            socket.emit('notice', `🐎 Dismounted.`);
+            broadcastState();
+            return;
+        }
+        // Verify they actually own the mount
+        const hasMount = p.inventory.some(it => it.itemId === mountId) || 
+                         (p.equipment && Object.values(p.equipment).some(eq => eq && eq.itemId === mountId));
+        if (!hasMount) {
+            return socket.emit('notice', `❌ You do not own this mount! Buy one from the blacksmith merchant.`);
+        }
+        const mountKey = mountId.replace('mount_', '');
+        if (p.mounted === mountKey) {
+            p.mounted = null;
+            socket.emit('notice', `🐎 Dismounted.`);
+        } else {
+            p.mounted = mountKey;
+            socket.emit('notice', `🐎 Summoned: ${ITEMS[mountId]?.name || 'Mount'}!`);
+            socket.emit('vfx', { type: 'levelup', x: p.stats.pos.x, z: p.stats.pos.z });
+        }
+        broadcastState();
+    });
+
+    socket.on('castSpell', (data) => {
+        if (p.dead) return;
+        const { spellId } = data;
+        if (!spellId) return;
+
+        p.stats.mp = p.stats.mp !== undefined ? p.stats.mp : 100;
+        
+        let mpCost = 0;
+        let spellName = '';
+        if (spellId === 'whirlwind') { mpCost = 15; spellName = 'Whirlwind'; }
+        else if (spellId === 'frostbolt') { mpCost = 25; spellName = 'Frostbolt'; }
+        else if (spellId === 'shadowstep') { mpCost = 20; spellName = 'Shadowstep'; }
+
+        if (p.stats.mp < mpCost) {
+            return socket.emit('notice', `❌ Not enough MP to cast ${spellName}!`);
+        }
+
+        p.stats.mp -= mpCost;
+
+        if (spellId === 'whirlwind') {
+            // Spin and deal AoE damage to monsters within 5 units
+            let baseDamage = p.stats.baseDamage || 8;
+            if (p.equipment && p.equipment.weapon) {
+                baseDamage += p.equipment.weapon.dmg || 0;
+            }
+            // Socketed Ruby bonus
+            if (p.equipment && p.equipment.weapon && p.equipment.weapon.name && p.equipment.weapon.name.includes('[Ruby]')) {
+                baseDamage += 15;
+            }
+
+            const str = p.stats.strength || 1;
+            const finalDmg = Math.floor(baseDamage + str * 1.5);
+
+            // Find hits
+            const hits = Object.values(liveWorld.monsters).filter(m => {
+                return Math.hypot(m.x - p.stats.pos.x, m.z - p.stats.pos.z) <= 5.5;
+            });
+
+            hits.forEach(m => {
+                m.hp -= finalDmg;
+                m.lastHit = Date.now();
+                socket.emit('combatLog', { msg: `💥 Whirlwind hit ${MONSTER_TYPES[m.type]?.name || m.type} for ${finalDmg} DMG!`, type: 'dmg_out' });
+                io.emit('vfx', { type: 'damage', x: m.x, z: m.z, amount: finalDmg, weaponType: 'broadsword' });
+                if (m.hp <= 0) {
+                    processMonsterDeath(m, m.id, p);
+                }
+            });
+
+            io.emit('vfx', { type: 'slash', x: p.stats.pos.x, z: p.stats.pos.z });
+            socket.emit('notice', `⚡ Cast Whirlwind! (-15 MP)`);
+        } 
+        else if (spellId === 'frostbolt') {
+            // Find target or nearest monster within 20 units
+            let targetMob = null;
+            if (data.targetId && liveWorld.monsters[data.targetId]) {
+                targetMob = liveWorld.monsters[data.targetId];
+            } else {
+                let nearest = null, minDist = 20;
+                Object.values(liveWorld.monsters).forEach(m => {
+                    const d = Math.hypot(m.x - p.stats.pos.x, m.z - p.stats.pos.z);
+                    if (d < minDist) { minDist = d; nearest = m; }
+                });
+                targetMob = nearest;
+            }
+
+            if (!targetMob) {
+                p.stats.mp += mpCost; // refund
+                return socket.emit('notice', `❌ No target monster found within range for Frostbolt.`);
+            }
+
+            const intStat = p.stats.intelligence || 1;
+            let baseDmg = p.stats.baseDamage || 8;
+            if (p.equipment && p.equipment.weapon) {
+                baseDmg += p.equipment.weapon.dmg || 0;
+            }
+            if (p.equipment && p.equipment.weapon && p.equipment.weapon.name && p.equipment.weapon.name.includes('[Sapphire]')) {
+                baseDmg += 10;
+            }
+            const finalDmg = Math.floor(baseDmg + intStat * 2.2);
+
+            targetMob.hp -= finalDmg;
+            targetMob.lastHit = Date.now();
+            targetMob.frozenUntil = Date.now() + 2500; // freeze monster for 2.5 seconds
+
+            socket.emit('combatLog', { msg: `❄️ Frostbolt hit ${MONSTER_TYPES[targetMob.type]?.name || targetMob.type} for ${finalDmg} DMG!`, type: 'dmg_out' });
+            io.emit('vfx', { type: 'damage', x: targetMob.x, z: targetMob.z, amount: finalDmg, weaponType: 'staff' });
+            io.emit('vfx', { type: 'frost', fromX: p.stats.pos.x, fromZ: p.stats.pos.z, toX: targetMob.x, toZ: targetMob.z });
+
+            if (targetMob.hp <= 0) {
+                processMonsterDeath(targetMob, targetMob.id, p);
+            }
+            socket.emit('notice', `❄️ Fired Frostbolt! (-25 MP)`);
+        }
+        else if (spellId === 'shadowstep') {
+            // Dash player forward or toward target, dealing high crit damage if passing through enemies
+            const agi = p.stats.agility || 1;
+            let baseDmg = p.stats.baseDamage || 8;
+            if (p.equipment && p.equipment.weapon) {
+                baseDmg += p.equipment.weapon.dmg || 0;
+            }
+            const finalDmg = Math.floor(baseDmg + agi * 2.6);
+
+            // Compute direction
+            let dx = 0, dz = -1;
+            if (p.target) {
+                const dist = Math.hypot(p.target.x - p.stats.pos.x, p.target.z - p.stats.pos.z);
+                if (dist > 0.1) {
+                    dx = (p.target.x - p.stats.pos.x) / dist;
+                    dz = (p.target.z - p.stats.pos.z) / dist;
+                }
+            } else {
+                dx = Math.sin(Date.now() / 1000);
+                dz = Math.cos(Date.now() / 1000);
+            }
+
+            const oldX = p.stats.pos.x;
+            const oldZ = p.stats.pos.z;
+
+            // Instantly dash forward 12 units
+            p.stats.pos.x += dx * 12;
+            p.stats.pos.z += dz * 12;
+
+            // Bound checking to prevent going out of bounds
+            p.stats.pos.x = Math.max(-100, Math.min(100, p.stats.pos.x));
+            p.stats.pos.z = Math.max(-100, Math.min(100, p.stats.pos.z));
+
+            // Deal high crit damage to any monsters between old pos and new pos
+            Object.values(liveWorld.monsters).forEach(m => {
+                const distToLine = Math.hypot(m.x - (oldX + p.stats.pos.x)/2, m.z - (oldZ + p.stats.pos.z)/2);
+                if (distToLine <= 6.5) {
+                    m.hp -= finalDmg;
+                    m.lastHit = Date.now();
+                    socket.emit('combatLog', { msg: `🗡️ Shadowstep pierced ${MONSTER_TYPES[m.type]?.name || m.type} for ${finalDmg} DMG!`, type: 'dmg_out' });
+                    io.emit('vfx', { type: 'damage', x: m.x, z: m.z, amount: finalDmg, weaponType: 'dagger' });
+                    if (m.hp <= 0) {
+                        processMonsterDeath(m, m.id, p);
+                    }
+                }
+            });
+
+            io.emit('vfx', { type: 'dash', fromX: oldX, fromZ: oldZ, toX: p.stats.pos.x, toZ: p.stats.pos.z });
+            socket.emit('notice', `⚡ Cast Shadowstep! (-20 MP)`);
+        }
+
+        socket.emit('inventory', { stats: p.stats, inventory: p.inventory, equipment: p.equipment });
+        broadcastState();
+    });
+
+    socket.on('startFishing', () => {
+        if (p.dead) return;
+        // Verify they have a fishing rod equipped or in inventory
+        const hasRod = (p.equipment && p.equipment.weapon && p.equipment.weapon.itemId === 'fishing_rod') || p.inventory.some(it => it.itemId === 'fishing_rod');
+        if (!hasRod) {
+            return socket.emit('notice', `❌ You need a Journeyman Fishing Rod equipped or in your bag to fish! Buy one from the blacksmith.`);
+        }
+
+        // Must be in a Fishing Zone
+        const inZoneA = Math.hypot(p.stats.pos.x - (-30), p.stats.pos.z - (-35)) <= 7;
+        const inZoneB = Math.hypot(p.stats.pos.x - 35, p.stats.pos.z - (-30)) <= 7;
+        if (!inZoneA && !inZoneB) {
+            return socket.emit('notice', `❌ You must stand inside a shimmering blue water Fishing Zone to cast your line! Check the map.`);
+        }
+
+        p.isGathering = true;
+        p.fishingState = {
+            isFishing: true,
+            castTime: Date.now(),
+            biteTime: Date.now() + 2000 + Math.random() * 3000,
+            notified: false
+        };
+
+        socket.emit('notice', `🎣 Cast line into the water... Wait for a bite!`);
+        socket.emit('combatLog', { msg: `Casted fishing line... Wait for bite.`, type: 'heal' });
+        broadcastState();
+
+        // Check bite in a loop/timeout
+        setTimeout(() => {
+            if (p.fishingState && p.fishingState.isFishing) {
+                p.fishingState.notified = true;
+                socket.emit('notice', `❗ BITE! QUICK, PRESS [F] TO REEL IT IN!`);
+                io.emit('vfx', { type: 'bite', x: p.stats.pos.x, z: p.stats.pos.z });
+            }
+        }, p.fishingState.biteTime - Date.now());
+    });
+
+    socket.on('reelFishing', () => {
+        if (!p.fishingState || !p.fishingState.isFishing) return;
+        p.isGathering = false;
+        
+        const now = Date.now();
+        const reactionTime = now - p.fishingState.biteTime;
+
+        if (reactionTime >= 0 && reactionTime <= 1800) {
+            // Caught a fish!
+            const roll = Math.random();
+            let caughtItem = 'raw_trout';
+            if (roll > 0.8) caughtItem = 'raw_eel'; // 20% chance of Abyssal Eel
+
+            p.inventory.push({ ...ITEMS[caughtItem], itemId: caughtItem, uid: Date.now().toString() });
+            socket.emit('notice', `🎣 SUCCESS! You caught a ${ITEMS[caughtItem].name}!`);
+            socket.emit('combatLog', { msg: `Caught: ${ITEMS[caughtItem].name}!`, type: 'lvl_up' });
+            io.emit('vfx', { type: 'levelup', x: p.stats.pos.x, z: p.stats.pos.z });
+
+            // Update quest progress
+            updatePlayerQuestProgress(p, 'fish_caught', 1);
+        } else {
+            socket.emit('notice', `💨 Ah, the fish got away! You were too slow or reeled too early.`);
+        }
+
+        p.fishingState = null;
+        socket.emit('inventory', { stats: p.stats, inventory: p.inventory, equipment: p.equipment });
+        broadcastState();
+    });
+
+    socket.on('spawnCampfire', () => {
+        if (p.dead) return;
+        // Requires 2 wood logs
+        const woodCount = p.inventory.filter(it => it.itemId === 'birch_wood' || it.itemId === 'chestnut_wood' || it.itemId === 'pine_wood').length;
+        if (woodCount < 2) {
+            return socket.emit('notice', `❌ You need at least 2 logs of Wood in your inventory to build a cozy Campfire!`);
+        }
+
+        // Consume 2 wood logs
+        let removed = 0;
+        p.inventory = p.inventory.filter(it => {
+            if (removed < 2 && (it.itemId === 'birch_wood' || it.itemId === 'chestnut_wood' || it.itemId === 'pine_wood')) {
+                removed++;
+                return false;
+            }
+            return true;
+        });
+
+        const cid = 'campfire_' + Math.random().toString(36).substr(2, 7);
+        liveWorld.campfires[cid] = {
+            id: cid,
+            x: p.stats.pos.x,
+            z: p.stats.pos.z,
+            creator: p.username,
+            createdAt: Date.now()
+        };
+
+        socket.emit('notice', `🔥 Cozy Campfire built successfully! Standing near it heals and lets you cook raw fish.`);
+        socket.emit('combatLog', { msg: `Built cozy Campfire! Cook your raw fish here.`, type: 'heal' });
+        io.emit('vfx', { type: 'levelup', x: p.stats.pos.x, z: p.stats.pos.z });
+
+        socket.emit('inventory', { stats: p.stats, inventory: p.inventory, equipment: p.equipment });
+        broadcastState();
+    });
+
+    socket.on('cookFish', (rawFishId) => {
+        if (p.dead) return;
+        // Verify they are near a campfire
+        const nearCampfire = Object.values(liveWorld.campfires).some(c => {
+            return Math.hypot(p.stats.pos.x - c.x, p.stats.pos.z - c.z) <= 5;
+        });
+
+        if (!nearCampfire) {
+            return socket.emit('notice', `❌ You must stand close to a cozy burning Campfire to cook your raw fish! Press [J] to build one.`);
+        }
+
+        // Find the fish item in backpack
+        const idx = p.inventory.findIndex(it => it.itemId === rawFishId);
+        if (idx === -1) {
+            return socket.emit('notice', `❌ You do not have that raw fish in your bag!`);
+        }
+
+        const rawFish = p.inventory[idx];
+        let cookedId = '';
+        if (rawFish.itemId === 'raw_trout') cookedId = 'cooked_trout';
+        else if (rawFish.itemId === 'raw_eel') cookedId = 'cooked_eel';
+
+        if (!cookedId) {
+            return socket.emit('notice', `❌ That item cannot be cooked!`);
+        }
+
+        // Swap raw for cooked
+        p.inventory.splice(idx, 1);
+        p.inventory.push({ ...ITEMS[cookedId], itemId: cookedId, uid: Date.now().toString() });
+
+        socket.emit('notice', `🍳 Sizzle! Cooked raw fish into a delicious ${ITEMS[cookedId].name}!`);
+        io.emit('vfx', { type: 'damage', x: p.stats.pos.x, z: p.stats.pos.z, amount: 'Cooked!', weaponType: 'broadsword' });
+
+        // Update quest progress
+        updatePlayerQuestProgress(p, 'fish_cooked', 1);
+
+        socket.emit('inventory', { stats: p.stats, inventory: p.inventory, equipment: p.equipment });
+        broadcastState();
+    });
+
+    socket.on('socketGem', (data) => {
+        const { equipSlot, gemUid } = data; // e.g. slot: 'weapon' or 'armor'
+        if (!equipSlot || !gemUid) return;
+
+        // Find gem in inventory
+        const gemIdx = p.inventory.findIndex(it => it.uid === gemUid);
+        if (gemIdx === -1) {
+            return socket.emit('notice', `❌ Rune/Gem not found in your backpack!`);
+        }
+        const gem = p.inventory[gemIdx];
+        if (gem.type !== 'rune') {
+            return socket.emit('notice', `❌ Selected item is not a valid rune or gem!`);
+        }
+
+        // Get equipped slot
+        const targetEquip = p.equipment ? p.equipment[equipSlot] : null;
+        if (!targetEquip) {
+            return socket.emit('notice', `❌ You do not have any ${equipSlot} equipped to socket a gem into!`);
+        }
+
+        // Check if item already has a gem socketed
+        if (targetEquip.name && (targetEquip.name.includes('[Ruby]') || targetEquip.name.includes('[Sapphire]') || targetEquip.name.includes('[Emerald]'))) {
+            return socket.emit('notice', `❌ This equipment already has an active gem socketed!`);
+        }
+
+        // Socket it!
+        let suffix = '';
+        if (gem.itemId === 'gem_ruby') suffix = '[Ruby]';
+        else if (gem.itemId === 'gem_sapphire') suffix = '[Sapphire]';
+        else if (gem.itemId === 'gem_emerald') suffix = '[Emerald]';
+
+        targetEquip.name = `✨ ${suffix} ${targetEquip.name}`;
+        
+        // Stat increases!
+        if (gem.itemId === 'gem_ruby') {
+            if (equipSlot === 'weapon') {
+                targetEquip.dmg = (targetEquip.dmg || 1) + 15;
+            } else {
+                targetEquip.defense = (targetEquip.defense || 1) + 12;
+            }
+        } else if (gem.itemId === 'gem_sapphire') {
+            p.stats.maxMp = (p.stats.maxMp || 100) + 50;
+            p.stats.intelligence = (p.stats.intelligence || 1) + 10;
+        } else if (gem.itemId === 'gem_emerald') {
+            p.stats.agility = (p.stats.agility || 1) + 8;
+        }
+
+        // Consume gem
+        p.inventory.splice(gemIdx, 1);
+
+        socket.emit('notice', `🔮 Socketed: Attached ${gem.name} into your equipped ${equipSlot}!`);
+        socket.emit('combatLog', { msg: `Successfully socketed ${gem.name} into ${equipSlot}!`, type: 'lvl_up' });
+        io.emit('vfx', { type: 'levelup', x: p.stats.pos.x, z: p.stats.pos.z });
+
+        socket.emit('inventory', { stats: p.stats, inventory: p.inventory, equipment: p.equipment });
+        broadcastState();
+    });
+
     socket.on('buyItem', (itemId) => {
         const item = ITEMS[itemId];
         if (!item) return;
@@ -2219,8 +2612,21 @@ setInterval(() => {
         if (!p.target || p.dead) return; 
         const dx = p.target.x - p.stats.pos.x, dz = p.target.z - p.stats.pos.z, dist = Math.hypot(dx, dz); 
         if (dist > 0.4) { 
-            p.stats.pos.x += (dx/dist)*0.45; 
-            p.stats.pos.z += (dz/dist)*0.45; 
+            let speedMult = 1.0;
+            if (p.mounted === 'horse') speedMult += 0.4;
+            else if (p.mounted === 'wolf') speedMult += 0.6;
+            else if (p.mounted === 'drake') speedMult += 0.8;
+
+            // Socketed Emerald speed bonus
+            if (p.equipment && p.equipment.armor && p.equipment.armor.name && p.equipment.armor.name.includes('[Emerald]')) {
+                speedMult += 0.12;
+            }
+            if (p.equipment && p.equipment.weapon && p.equipment.weapon.name && p.equipment.weapon.name.includes('[Emerald]')) {
+                speedMult += 0.12;
+            }
+
+            p.stats.pos.x += (dx/dist) * 0.45 * speedMult; 
+            p.stats.pos.z += (dz/dist) * 0.45 * speedMult; 
         } else { 
             p.target = null; 
         } 
@@ -2273,6 +2679,85 @@ setInterval(() => {
             }
         }
     });
+
+    // 5-Second Interval Tasks
+    if (!global.tickCount) global.tickCount = 0;
+    global.tickCount++;
+    if (global.tickCount % 50 === 0) {
+        // A. Campfires expiry cleanup
+        const now = Date.now();
+        Object.entries(liveWorld.campfires || {}).forEach(([id, c]) => {
+            if (now - c.createdAt > 60000) {
+                delete liveWorld.campfires[id];
+            }
+        });
+
+        // B. Wilderness Obelisks capture & rewards
+        Object.values(liveWorld.obelisks || {}).forEach(ob => {
+            // Find players near this obelisk
+            const nearbyPlayers = Object.values(liveWorld.players).filter(p => {
+                return !p.dead && Math.hypot(p.stats.pos.x - ob.x, p.stats.pos.z - ob.z) <= 6;
+            });
+
+            if (nearbyPlayers.length === 1) {
+                // Single player capturing / holding
+                const p = nearbyPlayers[0];
+                if (ob.owner !== p.username) {
+                    ob.progress += 20; // 5 ticks to capture (25 seconds)
+                    if (ob.progress >= 100) {
+                        ob.progress = 100;
+                        ob.owner = p.username;
+                        ob.color = 0x0ea5e9; // Blue for claimed
+                        const pSocket = io.sockets.sockets.get(p.socketId);
+                        if (pSocket) {
+                            pSocket.emit('notice', `🏰 You have captured the ${ob.name}! (+2g, +20 XP every 5s)`);
+                            pSocket.emit('combatLog', { msg: `Captured Obelisk: ${ob.name}`, type: 'lvl_up' });
+                        }
+                    }
+                } else {
+                    // Already owned, give passive rewards
+                    p.stats.gold += 2;
+                    p.stats.xp += 20;
+                    
+                    // Check if they leveled up
+                    const levelUpXp = xpForLevel(p.stats.level || 1);
+                    if (p.stats.xp >= levelUpXp) {
+                        p.stats.level++;
+                        p.stats.xp -= levelUpXp;
+                        p.stats.maxHp += 15;
+                        p.stats.maxMp += 3; // Reduced from 10
+                        p.stats.hp = p.stats.maxHp;
+                        p.stats.mp = p.stats.maxMp;
+                        p.stats.statPoints += 5;
+                        const pSocket = io.sockets.sockets.get(p.socketId);
+                        if (pSocket) {
+                            pSocket.emit('notice', `⭐ LEVEL UP! You are now Level ${p.stats.level}!`);
+                            pSocket.emit('vfx', { type: 'levelup', x: p.stats.pos.x, z: p.stats.pos.z });
+                        }
+                    }
+
+                    const pSocket = io.sockets.sockets.get(p.socketId);
+                    if (pSocket) {
+                        pSocket.emit('combatLog', { msg: `🎁 Obelisk Reward: +2 Gold & +20 XP!`, type: 'heal' });
+                        pSocket.emit('vfx', { type: 'heal', x: p.stats.pos.x, z: p.stats.pos.z, amount: 20 });
+                    }
+                }
+            } else if (nearbyPlayers.length > 1) {
+                // Contested state
+                const ownersPresent = nearbyPlayers.filter(p => p.username === ob.owner);
+                if (ownersPresent.length === 0) {
+                    // Multiple neutral/challengers standing, progress halts or decays
+                    ob.progress = Math.max(0, ob.progress - 10);
+                }
+            } else {
+                // No players near, decay progress if not fully owned
+                if (!ob.owner && ob.progress > 0) {
+                    ob.progress = Math.max(0, ob.progress - 10);
+                }
+            }
+        });
+    }
+
     broadcastState();
 }, 100);
 

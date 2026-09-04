@@ -330,6 +330,33 @@
       display: none;
     }
 
+    /* Quest Tracker Overlay */
+    #quest-tracker {
+      position: absolute; top: 16px; right: 330px;
+      width: 240px; background: rgba(10, 14, 26, 0.75);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 12px; padding: 12px; color: #e2e8f0;
+      pointer-events: none; z-index: 50; font-size: 11px;
+    }
+    .quest-track-title { font-weight: 700; color: #fbbf24; margin-bottom: 6px; }
+    .quest-track-item { margin-bottom: 4px; }
+
+    /* Emote Radial Menu */
+    #emote-menu {
+      display: none; position: absolute; top: 50%; left: 50%;
+      transform: translate(-50%, -50%); z-index: 1000;
+      background: rgba(15, 23, 42, 0.9); border: 2px solid #38bdf8;
+      border-radius: 50%; padding: 20px;
+      grid-template-columns: repeat(2, 1fr); gap: 10px;
+    }
+    .emote-btn {
+      width: 50px; height: 50px; border-radius: 50%;
+      background: rgba(255, 255, 255, 0.1); border: 1px solid #38bdf8;
+      color: white; font-size: 20px; cursor: pointer;
+    }
+    .emote-btn:hover { background: #38bdf8; }
+
     /* Combat Log Overlay */
     #combat-log-panel {
       position: absolute; bottom: 20px; right: 24px;
@@ -513,6 +540,10 @@
       background: rgba(255, 255, 255, 0.08);
       border-color: #38bdf8;
       transform: translateY(-2px);
+    }
+    .slot.equipped {
+      border-color: #fbbf24 !important;
+      box-shadow: 0 0 10px rgba(251, 191, 36, 0.4);
     }
     .slot.selected {
       border-color: #f59e0b !important;
@@ -998,6 +1029,17 @@
 </head>
 <body>
   <div id="screen-vignette"></div>
+  <div id="quest-tracker">
+    <div class="quest-track-title">Active Quests</div>
+    <div id="quest-track-list"></div>
+  </div>
+
+  <div id="emote-menu">
+    <button class="emote-btn" onclick="sendEmote('wave')">👋</button>
+    <button class="emote-btn" onclick="sendEmote('dance')">💃</button>
+    <button class="emote-btn" onclick="sendEmote('sit')">🪑</button>
+    <button class="emote-btn" onclick="sendEmote('point')">👉</button>
+  </div>
 
   <!-- Admin UI -->
   <button id="btn-admin" onclick="toggleAdminPanel()" style="display:none; position:absolute; top: 16px; left: 50%; transform: translateX(-50%); background: rgba(239, 68, 68, 0.15); border: 1px solid rgba(239, 68, 68, 0.5); color: #fca5a5; font-size: 11px; font-weight: 800; padding: 6px 16px; border-radius: 8px; cursor: pointer; box-shadow: 0 4px 12px rgba(220, 38, 38, 0.2); z-index: 10;">👑 ADMIN DASHBOARD</button>
@@ -1041,7 +1083,7 @@
     <div class="boss-header">
       <div class="boss-title">
         <span>☠️</span>
-        <span id="boss-hud-name">Ignisrax the Abyssal Dragon Lord</span>
+        <span id="boss-hud-name"></span>
       </div>
       <span id="boss-hud-lvl" class="boss-lvl">Lv. 60 [WORLD BOSS]</span>
     </div>
@@ -1435,9 +1477,13 @@
     <div class="shop-tabs">
       <button class="shop-tab-btn active" id="tab-shop-buy" onclick="setShopTab('buy')">🛒 Buy Gear</button>
       <button class="shop-tab-btn" id="tab-shop-craft" onclick="setShopTab('craft')">🔨 Anvil Crafting</button>
+      <button class="shop-tab-btn" id="tab-shop-socket" onclick="setShopTab('socket')">🔮 Rune Socketing</button>
+      <button class="shop-tab-btn" id="tab-shop-mounts" onclick="setShopTab('mounts')">🐴 Mounts</button>
     </div>
     <div id="shop-buy-list"></div>
     <div id="shop-craft-list" style="display:none;"></div>
+    <div id="shop-socket-list" style="display:none;"></div>
+    <div id="shop-mounts-list" style="display:none;"></div>
     <button onclick="toggleShop()" style="margin-top:10px; width:100%; background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.12); color:#cbd5e1; padding:9px; cursor:pointer; border-radius:8px; font-size:12px; font-weight:600;">
       Close
     </button>
@@ -1733,6 +1779,38 @@
             meshes.players[d.playerId].userData.jumpStartTime = performance.now();
           }
           spawnJumpDust(d.x, d.z);
+        } else if (d.type === 'bite') {
+          playSfx('levelup');
+          // Spawn splashing blue particles
+          spawnSparkBurst(d.x, d.z, 0x06b6d4, 45, 12);
+          showToast('❗ BITE! Press [F] to REEL IT IN!', 'success');
+        } else if (d.type === 'frost') {
+          playSfx('hit');
+          spawnProjectile(d.fromX, d.fromZ, d.toX, d.toZ, 'magic_orb', 'staff');
+          spawnSparkBurst(d.toX, d.toZ, 0x38bdf8, 30, 8);
+          spawnGroundGlowDecal(d.toX, d.toZ, 0x0ea5e9, 2.5, 600);
+        } else if (d.type === 'dash') {
+          playSfx('jump');
+          spawnSparkBurst(d.fromX, d.fromZ, 0x881337, 25, 6);
+          spawnSparkBurst(d.toX, d.toZ, 0xe11d48, 35, 8);
+          // Simple purple trail line
+          const pts = [new THREE.Vector3(d.fromX, 0.8, d.fromZ), new THREE.Vector3(d.toX, 0.8, d.toZ)];
+          const lineGeo = new THREE.BufferGeometry().setFromPoints(pts);
+          const lineMat = new THREE.LineBasicMaterial({ color: 0xe11d48, transparent: true, opacity: 1.0 });
+          const line = new THREE.Line(lineGeo, lineMat);
+          scene.add(line);
+          let lLife = 1.0;
+          const anim = setInterval(() => {
+            lLife -= 0.1;
+            lineMat.opacity = Math.max(0, lLife);
+            if (lLife <= 0) {
+              clearInterval(anim);
+              scene.remove(line); lineGeo.dispose(); lineMat.dispose();
+            }
+          }, 35);
+        } else if (d.type === 'slash') {
+          // Whirlwind visual
+          spawnSkill3DAnimation({ x: d.x, z: d.z, fromX: d.x, fromZ: d.z, vfx: 'whirlwind', skillName: 'Whirlwind!' });
         }
       });
 
@@ -2000,7 +2078,7 @@
     // -------------------------------------------------------------
     // DETAILED 3D MESH GENERATORS
     // -------------------------------------------------------------
-    const meshes = { players: {}, resources: {}, monsters: {}, loot: {} };
+    const meshes = { players: {}, resources: {}, monsters: {}, loot: {}, campfires: {}, obelisks: {}, fishingZones: {} };
 
     function createNameTag(name, isMe) {
       const canvas = document.createElement('canvas');
@@ -2185,6 +2263,179 @@
       const tag = createNameTag(name, isMe);
       tag.position.y = 2.8;
       g.add(tag);
+
+      return g;
+    }
+
+    // CREATE MOUNT MODEL IN THREE.JS
+    function createMountModel(type) {
+      const g = new THREE.Group();
+      let bodyColor = 0x5c4033; // Brown horse default
+      let eyeColor = 0xffffff;
+
+      if (type === 'horse') {
+        bodyColor = 0x78350f; // Warm brown horse
+      } else if (type === 'wolf') {
+        bodyColor = 0x4b5563; // Dark grey wolf
+        eyeColor = 0xfacc15; // Yellow wolf eyes
+      } else if (type === 'drake') {
+        bodyColor = 0x991b1b; // Molten crimson drake
+        eyeColor = 0xf97316; // Orange fiery eyes
+      }
+
+      // Torso/Saddle
+      const torsoGeo = new THREE.BoxGeometry(0.7, 0.55, 1.3);
+      const torsoMat = new THREE.MeshStandardMaterial({ color: bodyColor, roughness: 0.7 });
+      const torso = new THREE.Mesh(torsoGeo, torsoMat);
+      torso.position.y = 0.45;
+      torso.castShadow = true;
+      g.add(torso);
+
+      // Saddle Seat
+      const saddleGeo = new THREE.BoxGeometry(0.72, 0.12, 0.55);
+      const saddleMat = new THREE.MeshStandardMaterial({ color: 0x1e1b4b, roughness: 0.9 });
+      const saddle = new THREE.Mesh(saddleGeo, saddleMat);
+      saddle.position.set(0, 0.72, -0.1);
+      g.add(saddle);
+
+      // Neck and Head
+      const neckGeo = new THREE.BoxGeometry(0.35, 0.55, 0.35);
+      const neck = new THREE.Mesh(neckGeo, torsoMat);
+      neck.position.set(0, 0.8, 0.45);
+      neck.rotation.x = -0.3;
+      g.add(neck);
+
+      const headGeo = new THREE.BoxGeometry(0.38, 0.35, 0.6);
+      const head = new THREE.Mesh(headGeo, torsoMat);
+      head.position.set(0, 1.1, 0.65);
+      g.add(head);
+
+      // Eyes
+      const eyeGeo = new THREE.BoxGeometry(0.08, 0.08, 0.08);
+      const eyeMat = new THREE.MeshBasicMaterial({ color: eyeColor });
+      const eyeL = new THREE.Mesh(eyeGeo, eyeMat);
+      eyeL.position.set(-0.2, 1.15, 0.75);
+      g.add(eyeL);
+
+      const eyeR = new THREE.Mesh(eyeGeo, eyeMat);
+      eyeR.position.set(0.2, 1.15, 0.75);
+      g.add(eyeR);
+
+      // Legs Group
+      const legGeo = new THREE.BoxGeometry(0.18, 0.5, 0.18);
+      const legMat = new THREE.MeshStandardMaterial({ color: bodyColor, roughness: 0.8 });
+      
+      const legFL = new THREE.Mesh(legGeo, legMat);
+      legFL.position.set(-0.28, 0.15, 0.45);
+      g.add(legFL);
+      g.userData.legFL = legFL;
+
+      const legFR = new THREE.Mesh(legGeo, legMat);
+      legFR.position.set(0.28, 0.15, 0.45);
+      g.add(legFR);
+      g.userData.legFR = legFR;
+
+      const legBL = new THREE.Mesh(legGeo, legMat);
+      legBL.position.set(-0.28, 0.15, -0.45);
+      g.add(legBL);
+      g.userData.legBL = legBL;
+
+      const legBR = new THREE.Mesh(legGeo, legMat);
+      legBR.position.set(0.28, 0.15, -0.45);
+      g.add(legBR);
+      g.userData.legBR = legBR;
+
+      // Special additions: Drake wings
+      if (type === 'drake') {
+        const wingL = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.6, 0.8), new THREE.MeshStandardMaterial({ color: 0xe11d48, transparent: true, opacity: 0.85 }));
+        wingL.position.set(-0.45, 0.65, -0.15);
+        wingL.rotation.z = -0.5;
+        g.add(wingL);
+        g.userData.wingL = wingL;
+
+        const wingR = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.6, 0.8), new THREE.MeshStandardMaterial({ color: 0xe11d48, transparent: true, opacity: 0.85 }));
+        wingR.position.set(0.45, 0.65, -0.15);
+        wingR.rotation.z = 0.5;
+        g.add(wingR);
+        g.userData.wingR = wingR;
+      }
+
+      g.position.set(0, -0.9, 0); // Position it exactly under elevated player
+      return g;
+    }
+
+    // CAMPFIRE MODEL IN THREE.JS
+    function createCampfireModel() {
+      const g = new THREE.Group();
+      
+      // Log wood pile
+      const logMat = new THREE.MeshStandardMaterial({ color: 0x452a17, roughness: 0.9 });
+      for (let i = 0; i < 3; i++) {
+        const log = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.12, 0.8), logMat);
+        log.rotation.z = Math.PI / 2;
+        log.rotation.y = (i * Math.PI) / 3;
+        log.position.y = 0.1;
+        g.add(log);
+      }
+
+      // Fire Core Glowing Dome
+      const fireMat = new THREE.MeshBasicMaterial({ color: 0xf97316 });
+      const fire = new THREE.Mesh(new THREE.ConeGeometry(0.35, 0.8, 8), fireMat);
+      fire.position.y = 0.45;
+      g.add(fire);
+      g.userData.fireMesh = fire;
+
+      // PointLight for cozy atmosphere
+      const light = new THREE.PointLight(0xf97316, 1.8, 10);
+      light.position.set(0, 1.2, 0);
+      light.castShadow = true;
+      g.add(light);
+
+      return g;
+    }
+
+    // OBELISK MODEL IN THREE.JS
+    function createObeliskModel(name) {
+      const g = new THREE.Group();
+
+      // Stone Base pedestal
+      const baseMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.85, metalness: 0.2 });
+      const base = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.5, 1.6), baseMat);
+      base.position.y = 0.25;
+      base.castShadow = true;
+      base.receiveShadow = true;
+      g.add(base);
+
+      const shaft = new THREE.Mesh(new THREE.CylinderGeometry(0.5, 0.7, 4.0, 4), baseMat);
+      shaft.position.y = 2.4;
+      shaft.rotation.y = Math.PI / 4;
+      shaft.castShadow = true;
+      g.add(shaft);
+
+      // Glowing Crystal Capstone on top
+      const crystalMat = new THREE.MeshStandardMaterial({
+        color: 0x9ca3af,
+        emissive: 0x4b5563,
+        emissiveIntensity: 1.0,
+        roughness: 0.1,
+        metalness: 0.9
+      });
+      const crystal = new THREE.Mesh(new THREE.OctahedronGeometry(0.65, 0), crystalMat);
+      crystal.position.y = 4.8;
+      g.add(crystal);
+      g.userData.crystal = crystal;
+
+      // Core glow light
+      const glowLight = new THREE.PointLight(0x9ca3af, 2.5, 15);
+      glowLight.position.set(0, 4.8, 0);
+      g.add(glowLight);
+      g.userData.glowLight = glowLight;
+
+      // Name Tag for Obelisk to see capture status
+      const tag = createNameTag(name, false);
+      tag.position.y = 5.8;
+      g.add(tag);
+      g.userData.tag = tag;
 
       return g;
     }
@@ -5253,10 +5504,13 @@
 
       const bossHud = document.getElementById('boss-bar-hud');
       if (bossHud) {
-        if (activeBoss) {
+        if (activeBoss && activeBoss.isBoss) {
           bossHud.style.display = 'flex';
-          document.getElementById('boss-hud-name').innerText = activeBoss.name || (activeBoss.type === 'boss_dragon' ? 'Ignisrax the Abyssal Dragon Lord' : 'Gorgaroth the Warlord');
-          document.getElementById('boss-hud-lvl').innerText = `Lv. ${activeBoss.level || 60} ${activeBoss.isBoss ? '[WORLD BOSS]' : '[MINI BOSS]'}`;
+          const dist = Math.hypot(activeBoss.x - myPlayer.x, activeBoss.z - myPlayer.z);
+          const isClose = dist < 10;
+          const defaultName = activeBoss.name || (activeBoss.type === 'boss_dragon' ? 'Ignisrax the Abyssal Dragon Lord' : 'Gorgaroth the Warlord');
+          document.getElementById('boss-hud-name').innerText = isClose ? (defaultName + " (REVEALED)") : defaultName;
+          document.getElementById('boss-hud-lvl').innerText = `Lv. ${activeBoss.level || 60} [WORLD BOSS]`;
           const bHpPct = Math.max(0, Math.min(100, (activeBoss.hp / activeBoss.maxHp) * 100));
           document.getElementById('boss-hud-fill').style.width = `${bHpPct}%`;
           document.getElementById('boss-hud-txt').innerText = `${Math.round(activeBoss.hp).toLocaleString()} / ${activeBoss.maxHp.toLocaleString()} HP`;
@@ -5308,7 +5562,8 @@
           }
           
           // Show health bar if within range (35 for bosses, 20 for regular mobs)
-          const visRange = m.isBoss ? 35 : 20;
+          const isBoss = m.isBoss || m.isMiniBoss || m.type === 'boss_dragon' || m.type === 'infernal_warlord';
+          const visRange = isBoss ? 35 : 20;
           hpBg.visible = distToPlayer <= visRange;
 
           hpBg.lookAt(camera.position);
@@ -5368,6 +5623,103 @@
           delete meshes.resources[id];
         }
       });
+
+      // 5. CAMPFIRES
+      if (st.campfires) {
+        st.campfires.forEach(c => {
+          if (!meshes.campfires[c.id]) {
+            const mesh = createCampfireModel();
+            mesh.position.set(c.x, 0, c.z);
+            scene.add(mesh);
+            meshes.campfires[c.id] = mesh;
+          } else {
+            // Flicker fire flame
+            const mesh = meshes.campfires[c.id];
+            if (mesh.userData.fireMesh) {
+              mesh.userData.fireMesh.scale.setScalar(0.85 + Math.sin(performance.now() * 0.04) * 0.15);
+            }
+          }
+        });
+
+        // Cleanup expired campfires
+        Object.keys(meshes.campfires).forEach(id => {
+          if (!st.campfires.find(c => c.id === id)) {
+            scene.remove(meshes.campfires[id]);
+            delete meshes.campfires[id];
+          }
+        });
+      }
+
+      // 6. OBELISKS
+      if (st.obelisks) {
+        st.obelisks.forEach(ob => {
+          if (!meshes.obelisks[ob.id]) {
+            const mesh = createObeliskModel(ob.name);
+            mesh.position.set(ob.x, 0, ob.z);
+            scene.add(mesh);
+            meshes.obelisks[ob.id] = mesh;
+          }
+          // Update colors based on owner
+          const mesh = meshes.obelisks[ob.id];
+          let color = 0x9ca3af; // Neutral grey
+          let tagText = `${ob.name}\n(Neutral)`;
+          if (ob.owner === 'wood') {
+            color = 0x22c55e; // Green
+            tagText = `${ob.name}\n[Faction: Wood]`;
+          } else if (ob.owner === 'ore') {
+            color = 0xf59e0b; // Orange
+            tagText = `${ob.name}\n[Faction: Ore]`;
+          } else if (ob.progress > 0) {
+            tagText = `${ob.name}\nCapturing: ${Math.round(ob.progress)}%`;
+          }
+          if (mesh.userData.crystal) {
+            mesh.userData.crystal.material.color.setHex(color);
+            mesh.userData.crystal.material.emissive.setHex(color);
+            mesh.userData.crystal.rotation.y += 0.02;
+          }
+          if (mesh.userData.glowLight) {
+            mesh.userData.glowLight.color.setHex(color);
+          }
+          // Dynamic nametag update
+          if (mesh.userData.tag) {
+            const parent = mesh.userData.tag.parent;
+            if (parent) {
+              parent.remove(mesh.userData.tag);
+              const newTag = createNameTag(tagText, false);
+              newTag.position.y = 5.8;
+              parent.add(newTag);
+              mesh.userData.tag = newTag;
+            }
+          }
+        });
+      }
+
+      // 7. FISHING WATER RIPPLES (Static zone centers)
+      const fZones = [
+        { id: 'f1', x: -30, z: -35, name: 'Woodlands Fishing Hole' },
+        { id: 'f2', x: 35, z: -30, name: 'Frostpeak Fishing Hole' }
+      ];
+      fZones.forEach(f => {
+        if (!meshes.fishingZones[f.id]) {
+          const g = new THREE.Group();
+          // Rippling cyan circle
+          const geom = new THREE.RingGeometry(1.6, 2.0, 16);
+          const mat = new THREE.MeshBasicMaterial({ color: 0x06b6d4, side: THREE.DoubleSide, transparent: true, opacity: 0.6 });
+          const ring = new THREE.Mesh(geom, mat);
+          ring.rotation.x = Math.PI / 2;
+          g.add(ring);
+          g.position.set(f.x, 0.05, f.z);
+          scene.add(g);
+          meshes.fishingZones[f.id] = g;
+          g.userData = { ring };
+        } else {
+          // Rippling pulsation
+          const g = meshes.fishingZones[f.id];
+          if (g.userData.ring) {
+            g.userData.ring.scale.setScalar(1.0 + Math.sin(performance.now() * 0.005) * 0.15);
+          }
+        }
+      });
     }
 
     // -------------------------------------------------------------
@@ -5416,7 +5768,16 @@
       { id: 'master_relic_blade', name: 'Master Abyssal Blade', tier: 'T6', type: 'weapon', cat: 'warrior', desc: '+46 DMG', price: 58000, icon: '⚔️' },
       { id: 'master_bow_of_shadows', name: 'Master Bow of Shadows', tier: 'T6', type: 'weapon', cat: 'hunter', desc: '+44 DMG (Ranged)', price: 62000, icon: '🏹' },
       { id: 'master_archmage_staff', name: 'Master Archmage Staff', tier: 'T6', type: 'weapon', cat: 'mage', desc: '+48 DMG (Arcane)', price: 68000, icon: '⚡' },
-      { id: 'master_judicator_plate', name: 'Master Judicator Plate', tier: 'T6', type: 'armor', cat: 'warrior', desc: '+260 HP, +65 DEF', price: 75000, icon: '👑' }
+      { id: 'master_judicator_plate', name: 'Master Judicator Plate', tier: 'T6', type: 'armor', cat: 'warrior', desc: '+260 HP, +65 DEF', price: 75000, icon: '👑' },
+
+      // Sandbox Expansions
+      { id: 'mount_horse', name: 'Cavalry Warhorse', tier: 'T2', type: 'mount', cat: 'all', desc: '+40% Speed Mount (Key [H])', price: 50, icon: '🐴' },
+      { id: 'mount_wolf', name: 'Dire Wolf', tier: 'T4', type: 'mount', cat: 'all', desc: '+60% Speed Mount (Key [H])', price: 150, icon: '🐺' },
+      { id: 'mount_drake', name: 'Molten Drake', tier: 'T6', type: 'mount', cat: 'all', desc: '+80% Speed Dragon (Key [H])', price: 400, icon: '🐉' },
+      { id: 'fishing_rod', name: 'Journeyman Fishing Rod', tier: 'T2', type: 'weapon', cat: 'all', desc: 'Life Skill: Catch Fish (Key [F])', price: 100, icon: '🎣' },
+      { id: 'gem_ruby', name: 'Cut Ruby Rune', tier: 'T3', type: 'rune', cat: 'all', desc: 'Rune: socket at forge for +15 DMG', price: 300, icon: '🔺' },
+      { id: 'gem_sapphire', name: 'Cut Sapphire Rune', tier: 'T4', type: 'rune', cat: 'all', desc: 'Rune: socket for +50 MP & +10 INT', price: 500, icon: '🔷' },
+      { id: 'gem_emerald', name: 'Cut Emerald Rune', tier: 'T5', type: 'rune', cat: 'all', desc: 'Rune: socket for +8 AGI & +12% Speed', price: 1000, icon: '🟢' }
     ];
 
     const CRAFT_RECIPES = [
@@ -5587,8 +5948,12 @@
 
       d.inventory.forEach((it, i) => {
         const s = document.createElement('div');
-        s.className = 'slot' + (it.uid === selectedInventoryUid ? ' selected' : '');
-        s.title = `${it.name} (${it.type}) - Click to select or inspect`;
+        const isEquipped = (d.equipment && (
+           (d.equipment.weapon && d.equipment.weapon.uid === it.uid) ||
+           (d.equipment.armor && d.equipment.armor.uid === it.uid)
+        ));
+        s.className = 'slot' + (it.uid === selectedInventoryUid ? ' selected' : '') + (isEquipped ? ' equipped' : '');
+        s.title = `${it.name} (${it.type}) - Click to select or inspect` + (isEquipped ? ' (Equipped)' : '');
         const thumb = (typeof Item3D !== 'undefined') ? Item3D.getThumbnail(it.itemId || it.id) : it.image;
         if (thumb) {
           s.innerHTML = `<img src="${thumb}" class="item-3d-thumb" alt="${it.name}">`;
@@ -5730,14 +6095,122 @@
       currentShopTab = tab;
       const bBtn = document.getElementById('tab-shop-buy');
       const cBtn = document.getElementById('tab-shop-craft');
+      const sBtn = document.getElementById('tab-shop-socket');
+      const mBtn = document.getElementById('tab-shop-mounts');
       const bList = document.getElementById('shop-buy-list');
       const cList = document.getElementById('shop-craft-list');
+      const sList = document.getElementById('shop-socket-list');
+      const mList = document.getElementById('shop-mounts-list');
       if (bBtn) bBtn.classList.toggle('active', tab === 'buy');
       if (cBtn) cBtn.classList.toggle('active', tab === 'craft');
+      if (sBtn) sBtn.classList.toggle('active', tab === 'socket');
+      if (mBtn) mBtn.classList.toggle('active', tab === 'mounts');
       if (bList) bList.style.display = tab === 'buy' ? 'block' : 'none';
       if (cList) cList.style.display = tab === 'craft' ? 'block' : 'none';
+      if (sList) sList.style.display = tab === 'socket' ? 'block' : 'none';
+      if (mList) mList.style.display = tab === 'mounts' ? 'block' : 'none';
       if (tab === 'buy') renderShopList();
-      else renderCraftingList();
+      else if (tab === 'craft') renderCraftingList();
+      else if (tab === 'socket') renderSocketingList();
+      else renderMountsList();
+    }
+
+    function renderMountsList() {
+      const container = document.getElementById('shop-mounts-list');
+      if (!container) return;
+      container.innerHTML = '';
+      const gold = latestInventoryData && latestInventoryData.stats ? (latestInventoryData.stats.gold || 0) : 0;
+      
+      const mounts = SHOP_ITEMS.filter(it => it.type === 'mount');
+      
+      mounts.forEach(it => {
+        const card = document.createElement('div');
+        card.className = 'shop-item-card';
+        const canAfford = gold >= it.price;
+        card.innerHTML = `
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span style="font-size:20px;">${it.icon}</span>
+            <div style="display:flex; flex-direction:column;">
+              <span style="font-size:12px; font-weight:700;">${it.name}</span>
+              <span style="font-size:10px; color:#94a3b8;">${it.desc} &bull; ${it.price}g</span>
+            </div>
+          </div>
+          <button class="shop-btn" ${canAfford ? '' : 'disabled'} onclick="buyShopItem('${it.id}', '${it.name}', ${it.price})">
+            ${canAfford ? 'Buy' : 'Need Gold'}
+          </button>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function renderSocketingList() {
+      const container = document.getElementById('shop-socket-list');
+      if (!container) return;
+      container.innerHTML = '';
+
+      if (!latestInventoryData || !latestInventoryData.inventory) {
+        container.innerHTML = `<div style="text-align:center; padding:20px; color:#94a3b8;">No inventory data loaded.</div>`;
+        return;
+      }
+
+      const runes = latestInventoryData.inventory.filter(it => it.type === 'rune' || (it.itemId && it.itemId.startsWith('gem_')));
+      
+      if (runes.length === 0) {
+        container.innerHTML = `
+          <div style="text-align:center; padding:30px; color:#94a3b8;">
+            <div style="font-size:32px; margin-bottom:8px;">🔮</div>
+            <div style="font-size:12px; font-weight:700;">No Runes or Gems in your backpack!</div>
+            <div style="font-size:10px; color:#64748b; margin-top:4px;">Buy Ruby, Sapphire, or Emerald runes from the blacksmith shop first, then socket them here to empower your weapons and armor.</div>
+          </div>
+        `;
+        return;
+      }
+
+      runes.forEach(gem => {
+        const card = document.createElement('div');
+        card.className = 'shop-item-card';
+        card.style.display = 'flex';
+        card.style.justifyContent = 'space-between';
+        card.style.alignItems = 'center';
+        card.style.padding = '8px 12px';
+        card.style.background = 'rgba(30, 27, 75, 0.4)';
+        card.style.border = '1px solid rgba(139, 92, 246, 0.25)';
+        card.style.borderRadius = '8px';
+        card.style.marginBottom = '6px';
+
+        const wepEquipped = latestInventoryData.equipment && latestInventoryData.equipment.weapon;
+        const armorEquipped = latestInventoryData.equipment && latestInventoryData.equipment.armor;
+
+        card.innerHTML = `
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span style="font-size:24px;">${gem.icon || '🔮'}</span>
+            <div style="text-align:left;">
+              <div style="font-weight:700; font-size:12px; color:#c084fc;">${gem.name}</div>
+              <div style="font-size:10px; color:#94a3b8;">${gem.desc || 'Power-up rune'}</div>
+            </div>
+          </div>
+          <div style="display:flex; gap:6px;">
+            <button class="shop-btn" style="padding:4px 8px; font-size:10px; background:#1e1b4b; border:1px solid #8b5cf6;" 
+              ${wepEquipped ? '' : 'disabled'} onclick="socketGemOnClient('weapon', '${gem.uid}')">
+              Socket Weapon
+            </button>
+            <button class="shop-btn" style="padding:4px 8px; font-size:10px; background:#1e1b4b; border:1px solid #10b981;" 
+              ${armorEquipped ? '' : 'disabled'} onclick="socketGemOnClient('armor', '${gem.uid}')">
+              Socket Armor
+            </button>
+          </div>
+        `;
+        container.appendChild(card);
+      });
+    }
+
+    function socketGemOnClient(slot, gemUid) {
+      if (!socket) return;
+      socket.emit('socketGem', { equipSlot: slot, gemUid });
+      playSfx('levelup');
+      setTimeout(() => {
+        renderSocketingList();
+      }, 250);
     }
 
     function showToast(msg, type = 'info') {
@@ -5917,6 +6390,71 @@
       socket.emit('allocateStat', statName);
     }
 
+    // SANDBOX INTERACTION ACTIONS
+    function toggleMountOnClient() {
+      if (!socket || !latestInventoryData) return;
+      const me = currentLatestState && currentLatestState.players ? currentLatestState.players.find(x => x.id === myId) : null;
+      if (me && me.mounted) {
+        // Dismount
+        socket.emit('summonMount', { mountId: null });
+        showToast('🐴 Dismounted.', 'info');
+      } else {
+        // Find best mount in bag
+        const mounts = (latestInventoryData.inventory || []).filter(it => it.itemId && it.itemId.startsWith('mount_'));
+        if (mounts.length === 0) {
+          showToast('❌ You do not own any mount! Buy one at the Blacksmith [P] first.', 'error');
+          return;
+        }
+        // Prefer drake, then wolf, then horse
+        const bestMount = mounts.find(it => it.itemId === 'mount_drake') || mounts.find(it => it.itemId === 'mount_wolf') || mounts[0];
+        socket.emit('summonMount', { mountId: bestMount.itemId });
+        showToast(`🐴 Mounting ${bestMount.name}...`, 'success');
+      }
+    }
+
+    function handleFishingActionOnClient() {
+      if (!socket || !latestInventoryData) return;
+      const myPlayer = currentLatestState && currentLatestState.players ? currentLatestState.players.find(x => x.id === myId) : null;
+      if (!myPlayer) return;
+
+      if (myPlayer.isGathering && myPlayer.fishingState && myPlayer.fishingState.isFishing) {
+        // Reel it in
+        socket.emit('reelFishing');
+        playSfx('loot');
+      } else {
+        // Verify near a fishing zone
+        const inZoneA = Math.hypot(myPlayer.x - (-30), myPlayer.z - (-35)) <= 8.5;
+        const inZoneB = Math.hypot(myPlayer.x - 35, myPlayer.z - (-30)) <= 8.5;
+        if (!inZoneA && !inZoneB) {
+          showToast('❌ Move inside a shimmering blue water Fishing Zone to cast your line!', 'error');
+          return;
+        }
+        socket.emit('startFishing');
+        playSfx('click');
+      }
+    }
+
+    function buildCampfireOnClient() {
+      if (!socket || !latestInventoryData) return;
+      const woodCount = (latestInventoryData.inventory || []).filter(it => it.itemId === 'birch_wood' || it.itemId === 'chestnut_wood' || it.itemId === 'pine_wood').length;
+      if (woodCount < 2) {
+        showToast('❌ You need at least 2 logs of Wood in your bag to build a cozy Campfire! Go chop some trees.', 'error');
+        return;
+      }
+      socket.emit('spawnCampfire');
+      showToast('🔥 Building campfire...', 'success');
+    }
+
+    function cookFishOnCampfire() {
+      if (!socket || !latestInventoryData) return;
+      const rawFish = (latestInventoryData.inventory || []).find(it => it.itemId === 'raw_trout' || it.itemId === 'raw_eel');
+      if (!rawFish) {
+        showToast('❌ You do not have any raw fish to cook! Go catch some at a fishing hole [Key F] first.', 'error');
+        return;
+      }
+      socket.emit('cookFish', rawFish.itemId);
+    }
+
     function toggleBag() {
       const b = document.getElementById('inv-ui');
       b.style.display = b.style.display === 'none' || b.style.display === '' ? 'block' : 'none';
@@ -6003,6 +6541,15 @@
         if (currentQuestFilter === 'claimed') return q.status === 'claimed';
         return true;
       });
+
+      // Update the persistent quest tracker
+      const tracker = document.getElementById('quest-track-list');
+      if (tracker) {
+        tracker.innerHTML = '';
+        clientQuestsData.filter(q => q.status === 'active').forEach(q => {
+          tracker.innerHTML += `<div class="quest-track-item">${q.title}: ${q.progress}/${q.goal}</div>`;
+        });
+      }
 
       const dot = document.getElementById('quest-badge-dot');
       if (dot) dot.style.display = hasUnclaimed ? 'block' : 'none';
@@ -6214,6 +6761,13 @@
       if (key === '1') triggerSkill(1);
       if (key === '2') triggerSkill(2);
       if (key === '3') triggerSkill(3);
+      if (key === 'v') {
+        const m = document.getElementById('emote-menu');
+        m.style.display = m.style.display === 'grid' ? 'none' : 'grid';
+      }
+      if (key === 'h') toggleMountOnClient();
+      if (key === 'f') handleFishingActionOnClient();
+      if (key === 'j') buildCampfireOnClient();
       if (key === 'escape') cancelPrimedSkill();
       if (key === 'q') cameraDistance = Math.min(55, cameraDistance + 3);
       if (key === 'e') cameraDistance = Math.max(10, cameraDistance - 3);
@@ -6445,17 +6999,64 @@
       }
 
       // Player animations (Smooth Movement & Dynamic Weapon Combat)
-      Object.values(meshes.players).forEach(m => {
+      Object.entries(meshes.players).forEach(([id, m]) => {
+        const p = currentLatestState && currentLatestState.players ? currentLatestState.players.find(x => x.id === id) : null;
+        let dist = 0;
         if (m.targetPos) {
           const dx = m.targetPos.x - m.position.x;
           const dz = m.targetPos.z - m.position.z;
-          const dist = Math.hypot(dx, dz);
+          dist = Math.hypot(dx, dz);
           if (dist > 0.05) {
             m.rotation.y = Math.atan2(dx, dz);
             if (m.userData.cape) {
               m.userData.cape.rotation.x = 0.15 + Math.sin(now * 0.01) * 0.25;
             }
           }
+
+          if (p && p.mounted) {
+            m.targetPos.y = 0.95;
+            if (!m.userData.currentMountKey || m.userData.currentMountKey !== p.mounted) {
+              if (m.userData.mountModel) {
+                m.remove(m.userData.mountModel);
+              }
+              m.userData.mountModel = createMountModel(p.mounted);
+              m.add(m.userData.mountModel);
+              m.userData.currentMountKey = p.mounted;
+            }
+            // Animate mount legs if moving
+            if (m.userData.mountModel && dist > 0.1) {
+              const legSwing = Math.sin(now * 0.015) * 0.45;
+              if (m.userData.mountModel.userData.legFL) m.userData.mountModel.userData.legFL.rotation.x = legSwing;
+              if (m.userData.mountModel.userData.legFR) m.userData.mountModel.userData.legFR.rotation.x = -legSwing;
+              if (m.userData.mountModel.userData.legBL) m.userData.mountModel.userData.legBL.rotation.x = -legSwing;
+              if (m.userData.mountModel.userData.legBR) m.userData.mountModel.userData.legBR.rotation.x = legSwing;
+
+              // Flap wings for Drake
+              if (p.mounted === 'drake') {
+                const wingFlap = Math.sin(now * 0.02) * 0.5;
+                if (m.userData.mountModel.userData.wingL) m.userData.mountModel.userData.wingL.rotation.z = -0.5 + wingFlap;
+                if (m.userData.mountModel.userData.wingR) m.userData.mountModel.userData.wingR.rotation.z = 0.5 - wingFlap;
+              }
+            } else if (m.userData.mountModel) {
+              // Idle legs
+              if (m.userData.mountModel.userData.legFL) m.userData.mountModel.userData.legFL.rotation.x = 0;
+              if (m.userData.mountModel.userData.legFR) m.userData.mountModel.userData.legFR.rotation.x = 0;
+              if (m.userData.mountModel.userData.legBL) m.userData.mountModel.userData.legBL.rotation.x = 0;
+              if (m.userData.mountModel.userData.legBR) m.userData.mountModel.userData.legBR.rotation.x = 0;
+              if (p.mounted === 'drake') {
+                if (m.userData.mountModel.userData.wingL) m.userData.mountModel.userData.wingL.rotation.z = -0.4;
+                if (m.userData.mountModel.userData.wingR) m.userData.mountModel.userData.wingR.rotation.z = 0.4;
+              }
+            }
+          } else {
+            m.targetPos.y = 0.0;
+            if (m.userData.mountModel) {
+              m.remove(m.userData.mountModel);
+              m.userData.mountModel = null;
+              m.userData.currentMountKey = null;
+            }
+          }
+
           m.position.lerp(m.targetPos, 0.2);
         }
 

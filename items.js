@@ -100,7 +100,24 @@ const ITEMS = {
     celestial_greatsword: { name: 'Astraeus Void Cleaver', tier: 7, type: 'weapon', weaponType: 'broadsword', category: 'warrior', dmg: 88, range: 5, sellValue: 45000, price: 320000, desc: 'T7 World-Class Greatsword forged from collapsed star cores.' },
     celestial_bow: { name: 'Star-Strider Longbow', tier: 7, type: 'weapon', weaponType: 'bow', category: 'hunter', dmg: 82, range: 25, projectile: 'energy_arrow', sellValue: 48000, price: 340000, desc: 'T7 World-Class bow firing astral supernovas.' },
     celestial_staff: { name: 'Void Emperor Scepter', tier: 7, type: 'weapon', weaponType: 'staff', category: 'mage', dmg: 96, range: 25, projectile: 'arcane_orb', sellValue: 52000, price: 380000, desc: 'T7 World-Class scepter commanding astral black holes.' },
-    celestial_carapace: { name: 'Void Emperor Regalia', tier: 7, type: 'armor', armorType: 'demon', category: 'warrior', defense: 75, hpBonus: 650, sellValue: 58000, price: 420000, desc: 'T7 Supreme titan plate resonating with cosmic eternity.' }
+    celestial_carapace: { name: 'Void Emperor Regalia', tier: 7, type: 'armor', armorType: 'demon', category: 'warrior', defense: 75, hpBonus: 650, sellValue: 58000, price: 420000, desc: 'T7 Supreme titan plate resonating with cosmic eternity.' },
+
+    // =========================================================================
+    // SANDBOX EXPANSIONS (MOUNTS, LIFE SKILLS & RUNES)
+    // =========================================================================
+    mount_horse: { name: 'Cavalry Warhorse', type: 'mount', tier: 2, image: '🐴', sellValue: 150, price: 50, speedBonus: 0.4, desc: 'Summonable mount providing +40% movement speed.' },
+    mount_wolf: { name: 'Dire Wolf', type: 'mount', tier: 4, image: '🐺', sellValue: 450, price: 150, speedBonus: 0.6, desc: 'Summonable mount providing +60% movement speed.' },
+    mount_drake: { name: 'Molten Drake', type: 'mount', tier: 6, image: '🐉', sellValue: 1500, price: 400, speedBonus: 0.8, desc: 'Summonable dragon mount providing +80% movement speed with flame trails!' },
+
+    fishing_rod: { name: 'Journeyman Fishing Rod', type: 'weapon', weaponType: 'fishing_rod', category: 'hunter', dmg: 2, range: 15, sellValue: 120, price: 100, desc: 'Equip to catch fish in any shimmering Fishing Zone!' },
+    raw_trout: { name: 'Raw Trout', type: 'material', tier: 2, image: '🐟', sellValue: 10, price: 40, desc: 'Raw freshwater trout. Can be cooked at a Campfire.' },
+    cooked_trout: { name: 'Cooked Trout', type: 'potion', tier: 2, image: '🍖', sellValue: 25, price: 80, hpRestore: 25, mpRestore: 15, desc: 'Deliciously grilled fish. Restores 25 HP and 15 MP.' },
+    raw_eel: { name: 'Raw Abyssal Eel', type: 'material', tier: 5, image: '🐠', sellValue: 80, price: 350, desc: 'Raw electrical abyssal eel. Can be cooked at a Campfire.' },
+    cooked_eel: { name: 'Cooked Abyssal Eel', type: 'potion', tier: 5, image: '🍣', sellValue: 150, price: 600, hpRestore: 60, mpRestore: 40, buff: 'strength', buffDuration: 120000, desc: 'Empowering eel roll. Restores 60 HP, 40 MP, and grants +10 Strength buff!' },
+
+    gem_ruby: { name: 'Cut Ruby Rune', type: 'rune', tier: 3, image: '🔺', sellValue: 100, price: 300, desc: 'Rune of Wrath. Socket into weapon/armor at the anvil for bonus damage & defense!' },
+    gem_sapphire: { name: 'Cut Sapphire Rune', type: 'rune', tier: 4, image: '🔷', sellValue: 180, price: 500, desc: 'Rune of Mind. Socket into weapon/armor for bonus Max MP & intelligence!' },
+    gem_emerald: { name: 'Cut Emerald Rune', type: 'rune', tier: 5, image: '🟢', sellValue: 350, price: 1000, desc: 'Rune of Speed. Socket into weapon/armor for agility & movement speed!' }
 };
 
 // =========================================================================
