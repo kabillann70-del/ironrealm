@@ -10,15 +10,6 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700;900&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <script>
-    try {
-      if (window.localStorage && localStorage.getItem('ir_token')) {
-        window.location.replace('/game.html');
-      }
-    } catch (e) {
-      console.warn('Storage check note:', e);
-    }
-  </script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
     body {
@@ -41,6 +32,49 @@
       max-width: 400px;
       box-shadow: 0 24px 60px rgba(0, 0, 0, 0.8), 0 0 40px rgba(56, 189, 248, 0.12);
       text-align: center;
+    }
+    .saved-session-box {
+      background: rgba(56, 189, 248, 0.08);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      border-radius: 10px;
+      padding: 12px 14px;
+      margin-bottom: 16px;
+      text-align: left;
+      font-size: 12px;
+    }
+    .saved-session-box .session-label {
+      color: #38bdf8;
+      font-weight: 700;
+      text-transform: uppercase;
+      font-size: 10px;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+    .saved-session-actions {
+      display: flex;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    .btn-resume {
+      flex: 1;
+      padding: 8px 12px;
+      background: linear-gradient(135deg, #0284c7, #2563eb);
+      border: none;
+      border-radius: 6px;
+      color: #fff;
+      font-weight: 700;
+      font-size: 11px;
+      cursor: pointer;
+    }
+    .btn-clear-sess {
+      padding: 8px 10px;
+      background: rgba(239, 68, 68, 0.15);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      border-radius: 6px;
+      color: #f87171;
+      font-weight: 600;
+      font-size: 11px;
+      cursor: pointer;
     }
     .title {
       font-family: 'Cinzel', serif;
@@ -195,6 +229,15 @@
     <div class="title">IRONREALM</div>
     <div class="subtitle">Persistent 3D Sandbox RPG & PvP</div>
 
+    <div id="saved-session-box" class="saved-session-box" style="display: none;">
+      <div class="session-label">⚔️ Active Session Detected</div>
+      <div style="color: #cbd5e1; font-size: 12px; margin-bottom: 6px;" id="saved-session-info">You have an active character session saved in your browser.</div>
+      <div class="saved-session-actions">
+        <button class="btn-resume" id="btn-resume" onclick="resumeGame()">Continue Playing</button>
+        <button class="btn-clear-sess" id="btn-clear-sess" onclick="clearSavedSession()" title="Log out and log into another account">Clear / Switch</button>
+      </div>
+    </div>
+
     <button class="btn-quickplay" id="btn-quickplay" onclick="quickPlay()">
       <span>⚔️</span>
       <span>ENTER REALM (QUICK PLAY)</span>
@@ -228,6 +271,34 @@
 
   <script>
     let currentMode = 'login';
+
+    // Check if a saved session is present and render banner without redirecting
+    function checkSavedSession() {
+      try {
+        const token = localStorage.getItem('ir_token');
+        const box = document.getElementById('saved-session-box');
+        if (token && box) {
+          box.style.display = 'block';
+        } else if (box) {
+          box.style.display = 'none';
+        }
+      } catch (e) {
+        console.warn('Storage check note:', e);
+      }
+    }
+    checkSavedSession();
+
+    function resumeGame() {
+      window.location.href = '/game.html';
+    }
+
+    function clearSavedSession() {
+      try {
+        localStorage.removeItem('ir_token');
+      } catch (e) {}
+      checkSavedSession();
+      showStatus('Saved session cleared. You can now log in or register.', 'success');
+    }
 
     function setMode(mode) {
       currentMode = mode;

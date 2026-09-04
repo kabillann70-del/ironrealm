@@ -383,8 +383,13 @@
   <!-- Hero Top HUD -->
   <div id="ui-top">
     <div class="hero-header">
-      <span id="hero-name" class="hero-name">Hero</span>
-      <span id="hero-badge" class="hero-badge">Lv. 1 Adventurer</span>
+      <div style="display: flex; align-items: baseline; gap: 8px;">
+        <span id="hero-name" class="hero-name">Hero</span>
+        <span id="hero-badge" class="hero-badge">Lv. 1 Adventurer</span>
+      </div>
+      <button id="btn-portal-exit" onclick="exitToPortal()" title="Return to Login Portal / Switch Account" style="background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.16); color: #cbd5e1; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 6px; cursor: pointer; display: flex; align-items: center; gap: 4px; transition: all 0.2s ease;">
+        <span>🚪</span><span>Portal</span>
+      </button>
     </div>
     <div class="bar-row">
       <div class="bar-label">
@@ -629,6 +634,15 @@
     }
     // Failsafe: never lock the user behind the loading screen
     setTimeout(() => dismissLoadingScreen(), 2000);
+
+    function exitToPortal() {
+      window.location.href = '/';
+    }
+
+    function logoutGame() {
+      try { localStorage.removeItem('ir_token'); } catch(e){}
+      window.location.href = '/';
+    }
 
     // -------------------------------------------------------------
     // AUTHENTICATION & SOCKET SETUP
