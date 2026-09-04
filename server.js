@@ -849,6 +849,26 @@ app.post('/api/admin/action', async (req, res) => {
                 if (pState) pState.stats.xp = 0;
                 if (userRecord) userRecord.stats.xp = 0;
                 break;
+            case 'resetLevel':
+                if (pState) {
+                    pState.stats.level = 1;
+                    pState.stats.xp = 0;
+                    pState.stats.maxHp = 100;
+                    pState.stats.hp = 100;
+                    pState.stats.baseDamage = 8;
+                }
+                if (userRecord) {
+                    userRecord.stats.level = 1;
+                    userRecord.stats.xp = 0;
+                    userRecord.stats.maxHp = 100;
+                    userRecord.stats.hp = 100;
+                    userRecord.stats.baseDamage = 8;
+                }
+                break;
+            case 'clearInventory':
+                if (pState) pState.inventory = [];
+                if (userRecord) userRecord.inventory = [];
+                break;
             default:
                 return res.status(400).json({ error: 'Unknown action' });
         }
