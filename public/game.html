@@ -286,11 +286,94 @@
       border-color: #38bdf8;
       transform: translateY(-2px);
     }
+    .slot.selected {
+      border-color: #f59e0b !important;
+      background: rgba(245, 158, 11, 0.16) !important;
+      box-shadow: 0 0 12px rgba(245, 158, 11, 0.45);
+      transform: scale(1.04);
+    }
     .slot img { width: 70%; height: 70%; object-fit: contain; }
     .slot .badge {
       position: absolute; bottom: 2px; right: 2px; font-size: 8px; font-weight: 800;
       background: rgba(15, 23, 42, 0.9); padding: 1px 4px; border-radius: 4px;
       color: #38bdf8;
+    }
+    .slot .badge-gold {
+      color: #fbbf24 !important;
+    }
+    .slot-action-panel {
+      margin-top: 12px;
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+      border-radius: 10px;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .slot-action-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+    }
+    .slot-action-title {
+      font-weight: 700;
+      font-size: 11px;
+      color: #f8fafc;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .slot-action-stats {
+      font-size: 10px;
+      color: #94a3b8;
+    }
+    .slot-action-btns {
+      display: flex;
+      gap: 6px;
+    }
+    .btn-sell-selected {
+      flex: 1;
+      background: linear-gradient(135deg, #eab308, #ca8a04);
+      border: none;
+      padding: 7px 10px;
+      cursor: pointer;
+      font-weight: 700;
+      border-radius: 6px;
+      color: #0f172a;
+      font-size: 11px;
+      box-shadow: 0 2px 8px rgba(234, 179, 8, 0.35);
+      transition: all 0.15s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+    }
+    .btn-sell-selected:hover {
+      background: linear-gradient(135deg, #facc15, #eab308);
+      transform: translateY(-1px);
+    }
+    .btn-equip-selected {
+      flex: 1;
+      background: linear-gradient(135deg, #0284c7, #2563eb);
+      border: none;
+      padding: 7px 10px;
+      cursor: pointer;
+      font-weight: 700;
+      border-radius: 6px;
+      color: #fff;
+      font-size: 11px;
+      box-shadow: 0 2px 8px rgba(2, 132, 199, 0.35);
+      transition: all 0.15s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 4px;
+    }
+    .btn-equip-selected:hover {
+      background: linear-gradient(135deg, #38bdf8, #0284c7);
+      transform: translateY(-1px);
     }
 
     /* Village Shop & Anvil Forge Modal */
@@ -501,6 +584,21 @@
       </div>
     </div>
     <div id="inv-grid" class="grid"></div>
+    <div id="inv-selected-panel" class="slot-action-panel" style="display:none;">
+      <div class="slot-action-header">
+        <span id="sel-item-name" class="slot-action-title">Selected Item</span>
+        <span id="sel-item-price" style="color:#fbbf24; font-weight:700; font-size:11px;">+0g</span>
+      </div>
+      <div id="sel-item-stats" class="slot-action-stats">Damage: +0 &bull; Value: 0g</div>
+      <div class="slot-action-btns">
+        <button id="btn-sell-selected" class="btn-sell-selected" onclick="sellSelectedItem()">
+          <span>💰</span><span>Sell Item</span>
+        </button>
+        <button id="btn-equip-selected" class="btn-equip-selected" onclick="equipSelectedItem()">
+          <span>⚔️</span><span>Equip</span>
+        </button>
+      </div>
+    </div>
     <button onclick="socket.emit('sellAll')" style="margin-top:14px; width:100%; background:linear-gradient(135deg, #f59e0b, #d97706); border:none; padding:10px; cursor:pointer; font-weight:700; border-radius:8px; color:#fff; font-size:11px; box-shadow:0 4px 14px rgba(245, 158, 11, 0.4);">
       💰 SELL ALL MATERIALS
     </button>
@@ -1901,6 +1999,7 @@
     // -------------------------------------------------------------
     let latestInventoryData = null;
     let currentShopTab = 'buy';
+    let selectedInventoryUid = null;
 
     const SHOP_ITEMS = [
       { id: 'wood_sword', name: 'Wood Sword', type: 'weapon', desc: '+5 DMG', price: 50, icon: '🗡️' },
@@ -2003,10 +2102,17 @@
       // Grid items
       const grid = document.getElementById('inv-grid');
       grid.innerHTML = '';
+
+      // Verify if selected item still exists
+      const selectedItem = d.inventory.find(it => it.uid === selectedInventoryUid);
+      if (!selectedItem) {
+        selectedInventoryUid = null;
+      }
+
       d.inventory.forEach((it, i) => {
         const s = document.createElement('div');
-        s.className = 'slot';
-        s.title = `${it.name} (${it.type})`;
+        s.className = 'slot' + (it.uid === selectedInventoryUid ? ' selected' : '');
+        s.title = `${it.name} (${it.type}) - Click to select or inspect`;
         const thumb = (typeof Item3D !== 'undefined') ? Item3D.getThumbnail(it.itemId || it.id) : it.image;
         if (thumb) {
           s.innerHTML = `<img src="${thumb}" class="item-3d-thumb" alt="${it.name}">`;
@@ -2017,21 +2123,106 @@
 
         if (it.type === 'weapon') {
           s.innerHTML += `<span class="badge">+${it.dmg || 0}D</span>`;
-          s.onclick = () => { playSfx('equip'); socket.emit('equipItem', it.uid); };
         } else if (it.type === 'armor') {
           s.innerHTML += `<span class="badge">+${it.defense || 0}A</span>`;
-          s.onclick = () => { playSfx('equip'); socket.emit('equipItem', it.uid); };
         } else {
           const val = it.sellValue || 5;
-          s.innerHTML += `<span class="badge">${val}g</span>`;
-          s.onclick = () => { socket.emit('sellItem', i); };
+          s.innerHTML += `<span class="badge badge-gold">${val}g</span>`;
         }
+
+        // Clicking selects the item to view details & actions (like Sell Weapon)
+        s.onclick = (e) => {
+          selectInventoryItem(it);
+        };
+        // Double-clicking directly equips weapon/armor or sells material
+        s.ondblclick = (e) => {
+          e.stopPropagation();
+          if (it.type === 'weapon' || it.type === 'armor') {
+            playSfx('equip');
+            socket.emit('equipItem', it.uid);
+          } else {
+            socket.emit('sellItem', it.uid || i);
+          }
+        };
+
         grid.appendChild(s);
       });
+
+      // Update selected item action panel
+      updateSelectedItemPanel();
 
       // Update shop tabs
       renderShopList();
       renderCraftingList();
+    }
+
+    function selectInventoryItem(it) {
+      if (selectedInventoryUid === it.uid) {
+        // Toggle selection off if already selected
+        selectedInventoryUid = null;
+      } else {
+        selectedInventoryUid = it.uid;
+      }
+      if (latestInventoryData) {
+        renderInventory(latestInventoryData);
+      }
+    }
+
+    function updateSelectedItemPanel() {
+      const panel = document.getElementById('inv-selected-panel');
+      if (!panel) return;
+      if (!selectedInventoryUid || !latestInventoryData) {
+        panel.style.display = 'none';
+        return;
+      }
+      const item = latestInventoryData.inventory.find(it => it.uid === selectedInventoryUid);
+      if (!item) {
+        panel.style.display = 'none';
+        return;
+      }
+
+      panel.style.display = 'flex';
+      const nameEl = document.getElementById('sel-item-name');
+      const priceEl = document.getElementById('sel-item-price');
+      const statsEl = document.getElementById('sel-item-stats');
+      const equipBtn = document.getElementById('btn-equip-selected');
+      const sellBtn = document.getElementById('btn-sell-selected');
+
+      const sellVal = item.sellValue || 5;
+      nameEl.innerText = item.name;
+      priceEl.innerText = `+${sellVal}g`;
+
+      if (item.type === 'weapon') {
+        const isEquipped = latestInventoryData.equipment && latestInventoryData.equipment.weapon && latestInventoryData.equipment.weapon.uid === item.uid;
+        statsEl.innerHTML = `Type: <b style="color:#38bdf8;">Weapon</b> &bull; Stat: <b style="color:#4ade80;">+${item.dmg || 0} DMG</b> ${isEquipped ? '<span style="color:#fbbf24; font-weight:700;">(Equipped)</span>' : ''}`;
+        equipBtn.style.display = 'flex';
+        equipBtn.innerHTML = isEquipped ? '<span>🛡️</span><span>Equipped</span>' : '<span>⚔️</span><span>Equip Weapon</span>';
+        equipBtn.disabled = isEquipped;
+        sellBtn.innerHTML = `<span>💰</span><span>Sell Weapon (+${sellVal}g)</span>`;
+      } else if (item.type === 'armor') {
+        const isEquipped = latestInventoryData.equipment && latestInventoryData.equipment.armor && latestInventoryData.equipment.armor.uid === item.uid;
+        statsEl.innerHTML = `Type: <b style="color:#38bdf8;">Armor</b> &bull; Stat: <b style="color:#4ade80;">+${item.defense || 0} DEF</b> ${isEquipped ? '<span style="color:#fbbf24; font-weight:700;">(Equipped)</span>' : ''}`;
+        equipBtn.style.display = 'flex';
+        equipBtn.innerHTML = isEquipped ? '<span>🛡️</span><span>Equipped</span>' : '<span>🥋</span><span>Equip Armor</span>';
+        equipBtn.disabled = isEquipped;
+        sellBtn.innerHTML = `<span>💰</span><span>Sell Armor (+${sellVal}g)</span>`;
+      } else {
+        statsEl.innerHTML = `Type: <b style="color:#94a3b8;">Crafting Material</b> &bull; Yields: <b style="color:#fbbf24;">${sellVal}g</b>`;
+        equipBtn.style.display = 'none';
+        sellBtn.innerHTML = `<span>💰</span><span>Sell Material (+${sellVal}g)</span>`;
+      }
+    }
+
+    function sellSelectedItem() {
+      if (!selectedInventoryUid) return;
+      socket.emit('sellItem', selectedInventoryUid);
+      selectedInventoryUid = null;
+    }
+
+    function equipSelectedItem() {
+      if (!selectedInventoryUid) return;
+      playSfx('equip');
+      socket.emit('equipItem', selectedInventoryUid);
     }
 
     function unequipSlot(slot) {

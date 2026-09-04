@@ -238,9 +238,15 @@ io.on('connection', async (socket) => {
     });
     socket.on('buyItem', (itemId) => {
         const item = ITEMS[itemId];
-        if (!item || p.stats.gold < item.price) return;
-        p.stats.gold -= item.price; p.inventory.push({ ...item, itemId, uid: Date.now().toString() });
+        if (!item) return;
+        if ((p.stats.gold || 0) < item.price) {
+            return socket.emit('notice', `❌ Not enough gold to buy ${item.name}! (Need ${item.price}g)`);
+        }
+        p.stats.gold -= item.price;
+        p.inventory.push({ ...item, itemId, uid: Date.now().toString() });
+        socket.emit('notice', `🛍️ Purchased ${item.name} for ${item.price}g!`);
         socket.emit('inventory', { stats: p.stats, inventory: p.inventory, equipment: p.equipment });
+        broadcastState();
     });
     const RECIPES = {
         wood_sword: { mats: { raw_wood: 3 }, gold: 10 },
@@ -308,11 +314,27 @@ io.on('connection', async (socket) => {
             broadcastState();
         }
     });
-    socket.on('sellItem', (index) => {
+    socket.on('sellItem', (target) => {
+        let index = -1;
+        if (typeof target === 'number') {
+            index = target;
+        } else if (typeof target === 'string') {
+            index = p.inventory.findIndex(it => it.uid === target);
+        }
         if (index >= 0 && index < p.inventory.length) {
             const item = p.inventory[index];
-            p.stats.gold += (item.sellValue || 5);
+            // If equipped, unequip first
+            if (p.equipment && p.equipment.weapon && p.equipment.weapon.uid === item.uid) {
+                p.equipment.weapon = null;
+            }
+            if (p.equipment && p.equipment.armor && p.equipment.armor.uid === item.uid) {
+                p.equipment.armor = null;
+                p.stats.hp = Math.min(p.stats.hp, p.stats.maxHp);
+            }
+            const goldEarned = item.sellValue || 5;
+            p.stats.gold = (p.stats.gold || 0) + goldEarned;
             p.inventory.splice(index, 1);
+            socket.emit('notice', `💰 Sold ${item.name} for +${goldEarned} Gold`);
             socket.emit('inventory', { stats: p.stats, inventory: p.inventory, equipment: p.equipment });
             broadcastState();
         }
